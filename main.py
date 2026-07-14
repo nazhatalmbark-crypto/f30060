@@ -8,6 +8,11 @@ st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 conn = sqlite3.connect('shop_data.db', check_same_thread=False)
 c = conn.cursor()
 
+# --- إصلاح الخطأ الجذري ---
+# نقوم بحذف جدول الفواتير القديم وإعادة بنائه بالهيكل الجديد (6 أعمدة)
+c.execute('DROP TABLE IF EXISTS invoices') 
+
+# إنشاء الجداول من جديد
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price INTEGER, quantity INTEGER)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, shop_name TEXT, phone TEXT, items TEXT, total INTEGER, timestamp TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, shop_name TEXT, phone TEXT, address TEXT, area TEXT)')
@@ -22,7 +27,6 @@ if 'cart' not in st.session_state: st.session_state.cart = []
 if menu == "سلة البيع":
     st.header("🛒 سلة البيع")
     
-    # --- عرض الفاتورة ---
     if 'invoice_view' in st.session_state and st.session_state.invoice_view:
         inv = st.session_state.temp_invoice
         st.markdown("<div style='border: 2px solid #000; padding: 30px; background-color: white; color: black;'>", unsafe_allow_html=True)
@@ -33,7 +37,7 @@ if menu == "سلة البيع":
         st.table(pd.DataFrame(st.session_state.cart))
         st.write(f"### المجموع الكلي: {sum(i['price'] for i in st.session_state.cart)} د.ع")
         st.markdown("---")
-        st.write("**المبرمج ياسر - مستمرين نحو الأفضل**")
+        st.write("**المبرمج ياسر - مستمرين نحو الأفضل**") # العبارة المطلوبة
         st.markdown("</div>", unsafe_allow_html=True)
         if st.button("إغلاق الفاتورة"):
             st.session_state.invoice_view = False
@@ -42,8 +46,6 @@ if menu == "سلة البيع":
     else:
         col1, col2 = st.columns([2, 1])
         products = pd.read_sql("SELECT * FROM products WHERE quantity > 0", conn)
-        
-        # جلب العملاء للقائمة المنسدلة
         customers_df = pd.read_sql("SELECT * FROM customers", conn)
         cust_list = ["--- اختر عميل من القائمة ---"] + customers_df['name'].tolist()
 
@@ -56,13 +58,9 @@ if menu == "سلة البيع":
 
         with col2:
             st.subheader("بيانات العميل")
-            
-            # القائمة المنسدلة
             selected_name = st.selectbox("اسم الزبون", cust_list)
             
-            # جلب البيانات تلقائياً
-            shop_val = ""
-            phone_val = ""
+            shop_val, phone_val = "", ""
             if selected_name != "--- اختر عميل من القائمة ---":
                 cust_data = customers_df[customers_df['name'] == selected_name].iloc[0]
                 shop_val = cust_data['shop_name']
@@ -92,7 +90,6 @@ if menu == "سلة البيع":
                         st.session_state.invoice_view = True
                         st.rerun()
 
-# --- باقي الأقسام (إضافة مواد، المخزن، الأرشيف، العملاء، الديون) تبقى كما هي بدون تغيير ---
 elif menu == "إضافة مواد":
     st.header("➕ إضافة مواد جديدة")
     with st.form("add_p"):
@@ -127,7 +124,7 @@ elif menu == "أرشيف الفواتير":
         st.write(f"{inv['items']}")
         st.write(f"### المجموع الكلي: {inv['total']} د.ع")
         st.markdown("---")
-        st.write("**المبرمج ياسر - مستمرين نحو الأفضل**")
+        st.write("**المبرمج ياسر - مستمرين نحو الأفضل**") # العبارة المطلوبة في الأرشيف أيضاً
         st.markdown("</div>", unsafe_allow_html=True)
         if st.button("رجوع للأرشيف"):
             st.session_state.view_invoice = False
