@@ -25,52 +25,39 @@ if 'cart' not in st.session_state: st.session_state.cart = []
 if menu == "سلة البيع":
     st.header("🛒 سلة البيع")
     
-    # عرض الفاتورة إذا تمت عملية البيع
-    if 'invoice_view' in st.session_state and st.session_state.invoice_view:
-        st.markdown("<div style='border: 2px solid #333; padding: 20px; text-align: center;'>", unsafe_allow_html=True)
-        st.subheader("Eng. Yasser System")
-        st.write("المبرمج ياسر")
-        st.markdown("---")
-        st.table(pd.DataFrame(st.session_state.cart))
-        st.write(f"### المجموع الكلي: {sum(i['price'] for i in st.session_state.cart)}")
-        st.markdown("---")
-        st.write("**مستمرين نحو الأفضل**")
-        st.markdown("</div>", unsafe_allow_html=True)
-        if st.button("إغلاق الفاتورة"):
-            st.session_state.invoice_view = False
-            st.rerun()
-    else:
-        # واجهة البيع
-        col1, col2 = st.columns([2, 1])
-        products = pd.read_sql("SELECT * FROM products WHERE quantity > 0", conn)
-        
-        with col1:
-            st.subheader("قائمة المواد")
-            for _, row in products.iterrows():
-                if st.button(f"{row['name']} | السعر: {row['price']}", key=f"add_{row['name']}"):
-                    st.session_state.cart.append({'name': row['name'], 'price': int(row['price'])})
-                    st.rerun()
+    col1, col2 = st.columns([2, 1])
+    products = pd.read_sql("SELECT * FROM products WHERE quantity > 0", conn)
+    
+    with col1:
+        st.subheader("قائمة المواد")
+        for _, row in products.iterrows():
+            if st.button(f"إضافة {row['name']} ({row['price']})", key=f"add_{row['name']}"):
+                st.session_state.cart.append({'name': row['name'], 'price': int(row['price'])})
+                st.rerun()
 
-        with col2:
-            st.subheader("السلة")
-            cust_name = st.text_input("اسم الزبون")
-            if st.session_state.cart:
-                cart_df = pd.DataFrame(st.session_state.cart)
-                st.table(cart_df)
-                total = int(cart_df['price'].sum())
-                st.write(f"### المجموع الكلي: {total}")
-                
-                if st.button("حفظ وإصدار الفاتورة"):
-                    c.execute("INSERT INTO invoices VALUES (?,?,?,?)", (cust_name, str(st.session_state.cart), total, datetime.now().strftime("%Y-%m-%d %H:%M")))
-                    for item in st.session_state.cart:
-                        c.execute("UPDATE products SET quantity = quantity - 1 WHERE name = ?", (item['name'],))
-                    conn.commit()
-                    st.session_state.invoice_view = True
+    with col2:
+        st.subheader("السلة")
+        cust_name = st.text_input("اسم الزبون")
+        if st.session_state.cart:
+            # عرض المواد في السلة مع زر حذف
+            for i, item in enumerate(st.session_state.cart):
+                c1, c2 = st.columns([3, 1])
+                c1.write(f"{item['name']} - {item['price']}")
+                if c2.button("❌", key=f"del_cart_{i}"):
+                    st.session_state.cart.pop(i)
                     st.rerun()
-                
-                if st.button("تصفير السلة"):
-                    st.session_state.cart = []
-                    st.rerun()
+            
+            total = int(sum(i['price'] for i in st.session_state.cart))
+            st.write(f"### المجموع الكلي: {total}")
+            
+            if st.button("حفظ وإصدار الفاتورة"):
+                c.execute("INSERT INTO invoices VALUES (?,?,?,?)", (cust_name, str(st.session_state.cart), total, datetime.now().strftime("%Y-%m-%d %H:%M")))
+                for item in st.session_state.cart:
+                    c.execute("UPDATE products SET quantity = quantity - 1 WHERE name = ?", (item['name'],))
+                conn.commit()
+                st.session_state.cart = []
+                st.success("تم الحفظ!")
+                st.rerun()
 
 # --- 2. إضافة مواد ---
 elif menu == "إضافة مواد":
@@ -84,10 +71,17 @@ elif menu == "إضافة مواد":
             conn.commit()
             st.success("تمت الإضافة!")
 
-# --- 3. جرد المخزن ---
+# --- 3. جرد المخزن (مع خيار الحذف) ---
 elif menu == "جرد المخزن":
     st.header("📊 جرد المخزن")
-    st.dataframe(pd.read_sql("SELECT * FROM products", conn), use_container_width=True)
+    products = pd.read_sql("SELECT * FROM products", conn)
+    for _, row in products.iterrows():
+        c1, c2 = st.columns([3, 1])
+        c1.write(f"{row['name']} | السعر: {row['price']} | الكمية: {row['quantity']}")
+        if c2.button(f"حذف المادة", key=f"delete_db_{row['name']}"):
+            c.execute("DELETE FROM products WHERE name = ?", (row['name'],))
+            conn.commit()
+            st.rerun()
 
 # --- 4. أرشيف الفواتير ---
 elif menu == "أرشيف الفواتير":
@@ -121,4 +115,5 @@ elif menu == "الديون":
     st.dataframe(pd.read_sql("SELECT * FROM debts", conn), use_container_width=True)
 
 st.sidebar.markdown("---")
+st.sidebar.write("المبرمج ياسر")
 st.sidebar.write("مستمرين نحو الأفضل")
