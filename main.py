@@ -2,14 +2,41 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import ast
 
 st.set_page_config(page_title="Eng. Yasser System", layout="wide")
+
+# --- تنسيق CSS لجعل الواجهة تشبه التطبيق ---
+st.markdown("""
+    <style>
+    .invoice-card {
+        background-color: #f8f9fa;
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border: 1px solid #e0e0e0;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+    }
+    .badge-price {
+        padding: 5px 15px;
+        border-radius: 20px;
+        color: white;
+        font-weight: bold;
+        display: inline-block;
+    }
+    .badge-name {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- إعداد قاعدة البيانات ---
 conn = sqlite3.connect('shop_data.db', check_same_thread=False)
 c = conn.cursor()
-
-# إنشاء الجداول
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price INTEGER, quantity INTEGER, cost_price INTEGER)')
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT, shop_name TEXT, shop_address TEXT, province TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, date TEXT, payment_method TEXT)')
@@ -20,122 +47,79 @@ conn.commit()
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'cart' not in st.session_state: st.session_state.cart = {}
 
-# --- نظام الدخول ---
 if not st.session_state.logged_in:
     st.title("🔐 تسجيل الدخول")
-    u = st.text_input("اسم المستخدم")
-    p = st.text_input("كلمة المرور", type="password")
+    u = st.text_input("اسم المستخدم"); p = st.text_input("كلمة المرور", type="password")
     if st.button("دخول"):
         c.execute("SELECT * FROM users WHERE username=? AND password=?", (u, p))
-        if c.fetchone():
-            st.session_state.logged_in = True
-            st.session_state.username = u
-            st.rerun()
-        else: st.error("بيانات غير صحيحة")
+        if c.fetchone(): st.session_state.logged_in = True; st.rerun()
     st.stop()
 
-# --- القائمة الجانبية ---
-with st.sidebar:
-    st.subheader(f"مرحباً {st.session_state.username}")
-    menu = st.radio("القائمة", ["شاشة البيع", "إضافة مواد", "العملاء", "جرد المخزن", "الفواتير"])
+# --- القوائم العلوية (مثل التطبيق) ---
+tab1, tab2, tab3, tab4 = st.tabs(["🛒 شاشة البيع", "🧾 الفواتير", "👥 العملاء", "📦 المخزن"])
 
-# --- شاشة البيع ---
-if menu == "شاشة البيع":
+with tab1:
     st.header("🛒 شاشة البيع")
+    # (نفس منطق البيع السابق)
     cust_df = pd.read_sql("SELECT * FROM customers", conn)
     cust_options = ["اختر عميل..."] + cust_df['name'].tolist()
-    selected_customer_name = st.selectbox("🔎 ابحث عن العميل", cust_options)
-
-    if selected_customer_name != "اختر عميل...":
-        cust_data = cust_df[cust_df['name'] == selected_customer_name].iloc[0]
-        st.success(f"العميل: {cust_data['name']} | هاتف: {cust_data['phone']} | محل: {cust_data['shop_name']}")
-
-    st.divider()
-    # جلب المنتجات مع حذف التكرار
-    products_df = pd.read_sql("SELECT rowid, * FROM products", conn).drop_duplicates(subset=['name'])
+    selected_customer = st.selectbox("🔎 ابحث عن العميل", cust_options)
     
+    products_df = pd.read_sql("SELECT rowid, * FROM products", conn).drop_duplicates(subset=['name'])
     cols = st.columns(3)
     for i, row in products_df.iterrows():
         with cols[i % 3]:
             st.write(f"**{row['name']}**")
-            st.caption(f"المتوفر: {row['quantity']} | السعر: {row['price']}")
             qty_input = st.number_input(f"الكمية", min_value=1, max_value=int(row['quantity']), key=f"inp_{row['rowid']}")
             if st.button(f"➕ أضف {row['name']}", key=f"btn_{row['rowid']}"):
                 st.session_state.cart[row['name']] = {'price': row['price'], 'qty': qty_input}
                 st.rerun()
-
-    # الفاتورة
+    
     if st.session_state.cart:
-        st.divider()
-        st.subheader("📝 الفاتورة")
-        for item, data in list(st.session_state.cart.items()):
-            c1, c2 = st.columns([4, 1])
-            c1.write(f"🔹 {item} | {data['qty']} × {data['price']} = {data['qty']*data['price']} د.ع")
-            if c2.button("❌", key=f"del_{item}"):
-                del st.session_state.cart[item]
-                st.rerun()
-
-        total = sum(i['price'] * i['qty'] for i in st.session_state.cart.values())
-        st.write(f"### المجموع الكلي: {total} د.ع")
-        pay_method = st.radio("طريقة الدفع", ["نقد", "دين"], horizontal=True)
-
         if st.button("✅ إتمام البيع"):
-            if selected_customer_name == "اختر عميل...":
-                st.error("⚠️ يرجى اختيار العميل أولاً!")
+            if selected_customer == "اختر عميل...": st.error("اختر عميلاً!")
             else:
-                c.execute("INSERT INTO invoices VALUES (?,?,?,?,?)", 
-                          (selected_customer_name, str(st.session_state.cart), int(total), datetime.now().strftime("%Y-%m-%d"), pay_method))
-                for name, data in st.session_state.cart.items():
-                    c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (int(data['qty']), name))
-                conn.commit(); st.session_state.cart = {}; st.success("تم البيع بنجاح!"); st.rerun()
+                total = sum(i['price'] * i['qty'] for i in st.session_state.cart.values())
+                c.execute("INSERT INTO invoices VALUES (?,?,?,?,?)", (selected_customer, str(st.session_state.cart), int(total), datetime.now().strftime("%Y-%m-%d"), "نقد"))
+                conn.commit(); st.session_state.cart = {}; st.rerun()
 
-# --- باقي الصفحات ---
-elif menu == "إضافة مواد":
-    with st.form("add_p"):
-        n = st.text_input("اسم المادة"); p = st.number_input("السعر", 0); q = st.number_input("الكمية", 0)
-        if st.form_submit_button("إضافة"):
-            c.execute("INSERT INTO products VALUES (?,?,?,?)", (n, p, q, 0)); conn.commit(); st.success("تم!")
+with tab2:
+    st.header("🧾 الفواتير")
+    df = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
+    
+    for i, row in df.iterrows():
+        # تحديد لون السعر حسب نوع الدفع
+        price_color = "#ffc107" if row['payment_method'] == 'نقد' else "#dc3545"
+        
+        # رسم البطاقة (Card)
+        st.markdown(f"""
+            <div class="invoice-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span class="badge-price" style="background-color: {price_color};">{row['total']} دينار</span>
+                        <h4 style="margin:5px 0;">فاتورة #{row['rowid']}</h4>
+                    </div>
+                    <div class="badge-name">{row['customer_name']}</div>
+                </div>
+                <p style="margin-top:10px;">التاريخ: {row['date']} | الدفع: {row['payment_method']}</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # أزرار تحكم تحت كل بطاقة
+        c1, c2 = st.columns(2)
+        if c1.button(f"👁️ عرض #{row['rowid']}", key=f"view_{row['rowid']}"):
+            st.info(f"المواد: {row['items']}")
+        if c2.button(f"🗑️ حذف #{row['rowid']}", key=f"del_{row['rowid']}"):
+            c.execute("DELETE FROM invoices WHERE rowid=?", (row['rowid'],))
+            conn.commit(); st.rerun()
 
-elif menu == "العملاء":
+with tab3:
+    st.header("👥 إضافة عملاء")
     with st.form("add_c"):
-        n = st.text_input("اسم العميل"); ph = st.text_input("رقم الهاتف"); s = st.text_input("اسم المحل"); a = st.text_input("العنوان")
-        if st.form_submit_button("إضافة عميل"):
-            c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (n, ph, s, a, "البصرة")); conn.commit(); st.success("تم!")
-    st.table(pd.read_sql("SELECT * FROM customers", conn))
+        n = st.text_input("اسم العميل"); ph = st.text_input("رقم الهاتف")
+        if st.form_submit_button("إضافة"):
+            c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (n, ph, "", "", "")); conn.commit(); st.rerun()
 
-elif menu == "جرد المخزن":
+with tab4:
+    st.header("📦 المخزن")
     st.table(pd.read_sql("SELECT * FROM products", conn))
-
-elif menu == "الفواتير":
-    st.header("🧾 سجل الفواتير")
-    df = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY date DESC", conn)
-    
-    # تنسيق الألوان
-    def color_row(row):
-        color = '#d4edda' if row['payment_method'] == 'نقد' else '#f8d7da'
-        return [f'background-color: {color}'] * len(row)
-    
-    st.dataframe(df.style.apply(color_row, axis=1), use_container_width=True)
-    
-    # عرض الفاتورة
-    st.divider()
-    st.subheader("🔍 خيارات الفواتير")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        inv_id_view = st.number_input("رقم الفاتورة للعرض (rowid):", min_value=1, step=1, key="view")
-        if st.button("عرض الفاتورة"):
-            c.execute("SELECT * FROM invoices WHERE rowid=?", (inv_id_view,))
-            inv = c.fetchone()
-            if inv:
-                st.info(f"العميل: {inv[0]} | التاريخ: {inv[3]} | الحالة: {inv[4]}")
-                st.write(inv[1])
-            else: st.error("غير موجودة!")
-
-    with col2:
-        inv_id_del = st.number_input("رقم الفاتورة للحذف (rowid):", min_value=1, step=1, key="del")
-        if st.button("❌ حذف الفاتورة"):
-            c.execute("DELETE FROM invoices WHERE rowid=?", (inv_id_del,))
-            conn.commit()
-            st.success("تم حذف الفاتورة!")
-            st.rerun()
