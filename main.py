@@ -9,19 +9,19 @@ st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 conn = sqlite3.connect('shop_data.db', check_same_thread=False)
 c = conn.cursor()
 
-# إنشاء الجداول
+# إنشاء الجداول (تأكد من وجود كل الجداول المطلوبة)
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price INTEGER, quantity INTEGER, cost_price INTEGER)')
 c.execute('CREATE TABLE IF NOT EXISTS purchases (item_name TEXT, quantity INTEGER, total INTEGER, supplier TEXT, date TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS expenses (description TEXT, amount INTEGER, date TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, timestamp TEXT, payment_type TEXT)')
 conn.commit()
 
-# --- CSS للتصميم الاحترافي ---
+# --- CSS للتصميم الاحترافي (شكل البروست) ---
 st.markdown("""
     <style>
     .header-box { background-color: #1a4d2e; color: white; padding: 15px; border-radius: 10px; text-align: center; }
     .prod-card { border: 1px solid #ddd; padding: 15px; border-radius: 10px; background-color: #fff; text-align: center; margin: 10px; box-shadow: 2px 2px 5px #ccc; }
-    .invoice-box { border: 2px solid #333; padding: 20px; border-radius: 10px; background-color: #fff; max-width: 400px; margin: auto; }
+    .invoice-box { border: 2px solid #333; padding: 20px; border-radius: 10px; background-color: #fff; max-width: 400px; margin: auto; text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -37,6 +37,7 @@ st.sidebar.write("**المبرمج ياسر - مستمرين نحو الأفضل
 # --- 1. شاشة البيع ---
 if menu == "شاشة البيع":
     st.markdown('<div class="header-box"><h2>🛒 إدارة المبيعات</h2></div>', unsafe_allow_html=True)
+    
     col_h1, col_h2 = st.columns([4, 1])
     with col_h2:
         if st.button(f"🛒 السلة ({len(st.session_state.cart)})"):
@@ -68,43 +69,53 @@ if menu == "شاشة البيع":
                     st.session_state.cart.append({'name': row['name'], 'price': int(row['price'])})
                     st.rerun()
 
-# --- 2. إضافة مواد (بدون أزرار الزائد والناقص) ---
+# --- 2. إضافة مواد (مع فحص الأخطاء) ---
 elif menu == "إضافة مواد":
-    st.header("➕ إضافة مواد")
+    st.header("➕ إضافة مواد جديدة")
     with st.form("add_p"):
         n = st.text_input("اسم المادة")
-        p = st.text_input("السعر") # نص بدون أزرار
-        q = st.text_input("الكمية") # نص بدون أزرار
-        cp = st.text_input("سعر الشراء") # نص بدون أزرار
+        p = st.text_input("السعر")
+        q = st.text_input("الكمية")
+        cp = st.text_input("سعر الشراء")
         if st.form_submit_button("إضافة"):
-            try:
+            if not n: st.error("خطأ: اسم المادة فارغ!")
+            elif not p.isdigit(): st.error("خطأ في حقل 'السعر': يجب أن يكون رقماً!")
+            elif not q.isdigit(): st.error("خطأ في حقل 'الكمية': يجب أن يكون رقماً!")
+            elif not cp.isdigit(): st.error("خطأ في حقل 'سعر الشراء': يجب أن يكون رقماً!")
+            else:
                 c.execute("INSERT INTO products VALUES (?,?,?,?)", (n, int(p), int(q), int(cp)))
-                conn.commit(); st.success("تمت الإضافة!")
-            except: st.error("خطأ: يرجى كتابة أرقام صحيحة في الحقول!")
+                conn.commit(); st.success("تمت إضافة المادة!")
 
-# --- 3. باقي الأقسام ---
+# --- 3. المشتريات ---
 elif menu == "المشتريات":
     st.header("📦 المشتريات")
     with st.form("add_pur"):
         i = st.text_input("اسم المادة"); q = st.text_input("الكمية"); t = st.text_input("المبلغ")
         if st.form_submit_button("حفظ"):
-            c.execute("INSERT INTO purchases VALUES (?,?,?,?,?)", (i, int(q), int(t), "مورد", datetime.now().strftime("%Y-%m-%d")))
-            conn.commit(); st.success("تم")
+            if i and q.isdigit() and t.isdigit():
+                c.execute("INSERT INTO purchases VALUES (?,?,?,?,?)", (i, int(q), int(t), "مورد", datetime.now().strftime("%Y-%m-%d")))
+                conn.commit(); st.success("تم")
+            else: st.error("يرجى التأكد من صحة البيانات!")
 
+# --- 4. المصروفات ---
 elif menu == "المصروفات":
     st.header("💸 المصروفات")
     with st.form("exp"):
         d = st.text_input("السبب"); a = st.text_input("المبلغ")
         if st.form_submit_button("تسجيل"):
-            c.execute("INSERT INTO expenses VALUES (?,?,?)", (d, int(a), datetime.now().strftime("%Y-%m-%d")))
-            conn.commit(); st.success("تم")
+            if d and a.isdigit():
+                c.execute("INSERT INTO expenses VALUES (?,?,?)", (d, int(a), datetime.now().strftime("%Y-%m-%d")))
+                conn.commit(); st.success("تم")
+            else: st.error("يرجى كتابة اسم المصروف ومبلغ صحيح")
 
+# --- 5. التقارير ---
 elif menu == "التقارير":
-    st.header("📈 التقارير والأرباح")
+    st.header("📈 لوحة التحكم والتقارير")
     sales = pd.read_sql("SELECT * FROM invoices", conn)
     purchases = pd.read_sql("SELECT * FROM purchases", conn)
     expenses = pd.read_sql("SELECT * FROM expenses", conn)
-    st.metric("إجمالي المبيعات", f"{sales['total'].sum() if not sales.empty else 0}")
+    
+    st.metric("إجمالي المبيعات", f"{sales['total'].sum() if not sales.empty else 0} د.ع")
     st.write("---")
     st.write("**المبرمج ياسر - مستمرين نحو الأفضل**")
     if not sales.empty: st.line_chart(sales['total'])
