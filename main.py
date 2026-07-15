@@ -9,11 +9,14 @@ st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 conn = sqlite3.connect('shop_data.db', check_same_thread=False)
 c = conn.cursor()
 
-# إنشاء الجداول (محدثة وشاملة)
+# --- تنظيف وإعادة بناء الجداول (لحل مشكلة OperationalError نهائياً) ---
+c.execute('DROP TABLE IF EXISTS products')
+c.execute('DROP TABLE IF EXISTS customers')
+c.execute('DROP TABLE IF EXISTS invoices')
+
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price INTEGER, quantity INTEGER, cost_price INTEGER)')
-# إعادة بناء جدول العملاء ليتضمن الحقول الجديدة
-c.execute('DROP TABLE IF EXISTS customers') 
-c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT, shop_name TEXT, shop_address TEXT, province TEXT, shop_phone TEXT)')
+# تم حذف خانة رقم هاتف المحل هنا (5 حقول فقط)
+c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT, shop_name TEXT, shop_address TEXT, province TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, date TEXT)')
 conn.commit()
 
@@ -61,7 +64,7 @@ if menu == "شاشة البيع":
                 c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (data['qty'], name))
             conn.commit()
             st.session_state.cart = {}
-            st.success("تم البيع!")
+            st.success("تم البيع بنجاح!")
             st.rerun()
 
 # --- 2. إضافة مواد ---
@@ -75,7 +78,7 @@ elif menu == "إضافة مواد":
                 conn.commit(); st.success("تمت الإضافة!")
             else: st.error("تأكد من إدخال بيانات صحيحة!")
 
-# --- 3. العملاء (إدارة البيانات الجديدة) ---
+# --- 3. العملاء ---
 elif menu == "العملاء":
     st.header("👥 إدارة العملاء")
     with st.form("add_c"):
@@ -84,10 +87,9 @@ elif menu == "العملاء":
         shop_name = st.text_input("اسم المحل")
         shop_address = st.text_input("عنوان المحل")
         province = st.text_input("المحافظة")
-        shop_phone = st.text_input("رقم هاتف المحل")
         
         if st.form_submit_button("إضافة عميل جديد"):
-            c.execute("INSERT INTO customers VALUES (?,?,?,?,?,?)", (name, phone, shop_name, shop_address, province, shop_phone))
+            c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (name, phone, shop_name, shop_address, province))
             conn.commit(); st.success("تم إضافة العميل بنجاح!")
     
     st.subheader("قائمة العملاء")
