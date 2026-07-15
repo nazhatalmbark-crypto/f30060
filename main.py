@@ -11,7 +11,9 @@ c = conn.cursor()
 
 # إنشاء الجداول (محدثة وشاملة)
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price INTEGER, quantity INTEGER, cost_price INTEGER)')
-c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT, balance INTEGER)')
+# إعادة بناء جدول العملاء ليتضمن الحقول الجديدة
+c.execute('DROP TABLE IF EXISTS customers') 
+c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT, shop_name TEXT, shop_address TEXT, province TEXT, shop_phone TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, date TEXT)')
 conn.commit()
 
@@ -36,7 +38,6 @@ if menu == "شاشة البيع":
     st.markdown('<div class="header-box"><h2>🛒 شاشة البيع</h2></div>', unsafe_allow_html=True)
     products = pd.read_sql("SELECT rowid, * FROM products", conn)
     
-    # اختيار العميل
     customers = pd.read_sql("SELECT name FROM customers", conn)
     selected_customer = st.selectbox("اختر العميل", customers['name'].tolist() if not customers.empty else ["عام"])
     
@@ -74,14 +75,20 @@ elif menu == "إضافة مواد":
                 conn.commit(); st.success("تمت الإضافة!")
             else: st.error("تأكد من إدخال بيانات صحيحة!")
 
-# --- 3. العملاء (إضافة عميل جديد) ---
+# --- 3. العملاء (إدارة البيانات الجديدة) ---
 elif menu == "العملاء":
     st.header("👥 إدارة العملاء")
     with st.form("add_c"):
-        name = st.text_input("اسم العميل"); phone = st.text_input("رقم الهاتف")
+        name = st.text_input("اسم العميل")
+        phone = st.text_input("رقم هاتف العميل")
+        shop_name = st.text_input("اسم المحل")
+        shop_address = st.text_input("عنوان المحل")
+        province = st.text_input("المحافظة")
+        shop_phone = st.text_input("رقم هاتف المحل")
+        
         if st.form_submit_button("إضافة عميل جديد"):
-            c.execute("INSERT INTO customers VALUES (?,?,?)", (name, phone, 0))
-            conn.commit(); st.success("تم إضافة العميل!")
+            c.execute("INSERT INTO customers VALUES (?,?,?,?,?,?)", (name, phone, shop_name, shop_address, province, shop_phone))
+            conn.commit(); st.success("تم إضافة العميل بنجاح!")
     
     st.subheader("قائمة العملاء")
     st.table(pd.read_sql("SELECT * FROM customers", conn))
