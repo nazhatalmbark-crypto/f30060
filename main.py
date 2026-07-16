@@ -2,106 +2,103 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
-import hashlib
 import ast
+from fpdf import FPDF
 
 st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 
-DB_NAME = 'shop_data_final.db'
-
-def make_hash(password): return hashlib.sha256(str.encode(password)).hexdigest()
-
-# اتصال بقاعدة البيانات
-conn = sqlite3.connect(DB_NAME, check_same_thread=False)
+# إعداد قاعدة البيانات
+conn = sqlite3.connect('shop_data_pro.db', check_same_thread=False)
 c = conn.cursor()
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price_carton INTEGER, quantity INTEGER)')
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT, shop_name TEXT, shop_address TEXT, province TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, date TEXT)')
-c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
 conn.commit()
 
-# حالة الجلسة
-if 'logged_in' not in st.session_state: st.session_state.logged_in = False
-if 'cart' not in st.session_state: st.session_state.cart = {}
+# --- دالة إنشاء PDF ---
+def generate_pdf(invoice_id, customer_name, items, total):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt="فاتورة مبيعات - نظام ياسر", ln=True, align='C')
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"العميل: {customer_name}", ln=True)
+    pdf.cell(200, 10, txt=f"التاريخ: {datetime.now().strftime('%Y-%m-%d')}", ln=True)
+    pdf.line(10, 40, 200, 40)
+    pdf.ln(10)
+    
+    for item, data in items.items():
+        pdf.cell(200, 10, txt=f"{item} - {data['qty']} قطعة - السعر: {data['price']}", ln=True)
+    
+    pdf.cell(200, 10, txt=f"المجموع الكلي: {total}", ln=True)
+    pdf.output(f"invoice_{invoice_id}.pdf")
+    return f"invoice_{invoice_id}.pdf"
 
-# --- صفحة الدخول ---
-if not st.session_state.logged_in:
-    st.title("🔐 بوابة المبرمج ياسر")
-    choice = st.radio("العملية:", ["دخول", "إنشاء حساب جديد"], horizontal=True)
-    u = st.text_input("اسم المستخدم")
-    p = st.text_input("كلمة المرور", type="password")
-    if st.button("دخول"):
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", (u, make_hash(p)))
-        if c.fetchone(): st.session_state.logged_in = True; st.rerun()
-        else: st.error("خطأ في البيانات")
-    st.stop()
+# --- القوائم ---
+tabs = st.tabs(["🛒 البيع", "🧾 الفواتير", "👥 العملاء", "📦 المخزن والجرد", "📊 كشف الحساب"])
 
-# --- القوائم الرئيسية ---
-tab1, tab2, tab3, tab4 = st.tabs(["🛒 البيع", "🧾 الفواتير", "👥 العملاء", "📦 المخزن"])
-
-with tab1:
+with tabs[0]: # البيع
     st.header("🛒 شاشة البيع")
     cust_df = pd.read_sql("SELECT * FROM customers", conn)
-    cust_options = ["اختر عميل..."] + cust_df['name'].tolist()
-    selected_customer = st.selectbox("🔎 اختر العميل", cust_options)
+    selected_customer = st.selectbox("🔎 اختر العميل", ["اختر عميل..."] + cust_df['name'].tolist())
     
-    prods = pd.read_sql("SELECT rowid, * FROM products", conn)
-    if not prods.empty:
-        item_select = st.selectbox("المادة", prods['name'].tolist())
-        qty_input = st.text_input("الكمية")
-        if st.button("➕ أضف للسلة"):
-            if selected_customer == "اختر عميل...": st.error("يجب اختيار عميل أولاً!")
-            elif not qty_input.isdigit(): st.error("أدخل رقماً صحيحاً للكمية")
-            else:
-                price = prods[prods['name'] == item_select]['price_carton'].values[0]
-                st.session_state.cart[item_select] = {'price': price, 'qty': int(qty_input)}
-                st.rerun()
+    prods = pd.read_sql("SELECT * FROM products", conn)
+    item_select = st.selectbox("المادة", prods['name'].tolist())
+    qty_input = st.text_input("الكمية")
     
-    if st.session_state.cart:
-        st.write("--- السلة ---")
+    if st.button("➕ أضف للسلة"):
+        if selected_customer == "اختر عميل...": st.error("اختر عميلاً أولاً!")
+        elif not qty_input.isdigit(): st.error("أدخل رقماً!")
+        else:
+            price = prods[prods['name'] == item_select]['price_carton'].values[0]
+            if 'cart' not in st.session_state: st.session_state.cart = {}
+            st.session_state.cart[item_select] = {'price': price, 'qty': int(qty_input)}
+            st.rerun()
+
+    if 'cart' in st.session_state and st.session_state.cart:
         st.table(pd.DataFrame(st.session_state.cart).T)
         if st.button("✅ إتمام البيع"):
-            if selected_customer == "اختر عميل...": st.error("اختر عميلاً أولاً!")
-            else:
-                total = sum(d['price'] * d['qty'] for d in st.session_state.cart.values())
-                for name, data in st.session_state.cart.items():
-                    c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (data['qty'], name))
-                c.execute("INSERT INTO invoices VALUES (?,?,?,?)", (selected_customer, str(st.session_state.cart), int(total), datetime.now().strftime("%Y-%m-%d")))
-                conn.commit(); st.session_state.cart = {}; st.success("تم البيع!"); st.rerun()
+            total = sum(d['price'] * d['qty'] for d in st.session_state.cart.values())
+            for name, data in st.session_state.cart.items():
+                c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (data['qty'], name))
+            c.execute("INSERT INTO invoices VALUES (?,?,?,?)", (selected_customer, str(st.session_state.cart), int(total), datetime.now().strftime("%Y-%m-%d")))
+            conn.commit(); st.session_state.cart = {}; st.success("تم البيع!"); st.rerun()
 
-with tab2:
+with tabs[1]: # الفواتير
     st.header("🧾 سجل الفواتير")
     invoices = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
-    if invoices.empty: st.write("لا توجد فواتير بعد.")
     for _, row in invoices.iterrows():
-        with st.expander(f"فاتورة #{row['rowid']} | العميل: {row['customer_name']}"):
-            try:
-                # معالجة آمنة لبيانات الفاتورة
-                items = ast.literal_eval(row['items'])
-                for n, d in items.items(): st.write(f"🔹 {n} | {d['qty']} قطعة")
-                st.write(f"**المجموع: {row['total']}**")
-            except: 
-                st.write("خطأ في قراءة بيانات هذه الفاتورة (قديمة أو تالفة).")
+        with st.expander(f"فاتورة #{row['rowid']} | {row['customer_name']}"):
+            items = ast.literal_eval(row['items'])
+            for n, d in items.items(): st.write(f"🔹 {n} | {d['qty']} قطعة")
+            st.write(f"**المجموع: {row['total']}**")
+            if st.button(f"📥 تحميل PDF", key=f"pdf_{row['rowid']}"):
+                path = generate_pdf(row['rowid'], row['customer_name'], items, row['total'])
+                st.success(f"تم إنشاء الملف: {path}")
 
-with tab3:
+with tabs[2]: # العملاء
     st.header("👥 العملاء")
-    # تم إضافة clear_on_submit=True هنا لتصفير الخانات تلقائياً
+    search = st.text_input("🔍 بحث عن اسم المحل")
     with st.form("add_c", clear_on_submit=True):
-        name = st.text_input("اسم العميل"); phone = st.text_input("رقم الهاتف")
-        shop = st.text_input("اسم المحل"); addr = st.text_input("موقع المحل")
-        prov = st.selectbox("المحافظة", ["البصرة", "بغداد", "أخرى"])
+        n, p = st.columns(2)
+        name = n.text_input("اسم العميل"); phone = p.text_input("رقم الهاتف")
+        s, a = st.columns(2)
+        shop = s.text_input("اسم المحل"); addr = a.text_input("موقع المحل")
         if st.form_submit_button("إضافة"):
-            c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (name, phone, shop, addr, prov)); conn.commit(); st.success("تمت الإضافة!"); st.rerun()
-    st.table(pd.read_sql("SELECT * FROM customers", conn))
+            c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (name, phone, shop, addr, "البصرة")); conn.commit(); st.rerun()
+    
+    df_cust = pd.read_sql("SELECT * FROM customers", conn)
+    if search: df_cust = df_cust[df_cust['shop_name'].str.contains(search, na=False)]
+    st.table(df_cust)
 
-with tab4:
-    st.header("📦 إضافة منتج")
-    with st.form("add_p", clear_on_submit=True):
-        p_name = st.text_input("اسم المادة")
-        p_price = st.text_input("سعر الكارتون")
-        p_qty = st.text_input("الكمية المتوفرة")
-        if st.form_submit_button("إضافة للمخزن"):
-            c.execute("INSERT INTO products VALUES (?,?,?)", (p_name, int(p_price), int(p_qty))); conn.commit(); st.rerun()
+with tabs[3]: # المخزن والجرد
+    st.header("📦 المخزن وجرد المواد")
     st.table(pd.read_sql("SELECT * FROM products", conn))
 
-if st.sidebar.button("🚪 خروج"): st.session_state.logged_in = False; st.rerun()
+with tabs[4]: # كشف حساب
+    st.header("📊 كشف حساب عميل")
+    sel_cust = st.selectbox("اختر عميل لعرض ذممه", pd.read_sql("SELECT name FROM customers", conn)['name'].tolist())
+    if sel_cust:
+        inv = pd.read_sql("SELECT * FROM invoices WHERE customer_name = ?", conn, params=(sel_cust,))
+        st.table(inv)
+        st.write(f"### إجمالي الذمة: {inv['total'].sum()}")
