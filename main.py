@@ -7,6 +7,18 @@ import hashlib
 
 st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 
+# --- CSS لإخفاء أزرار الزائد والناقص في خانات الأرقام ---
+st.markdown("""
+    <style>
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .invoice-card { background-color: #f8f9fa; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #28a745; }
+    </style>
+""", unsafe_allow_html=True)
+
 def make_hash(password): return hashlib.sha256(str.encode(password)).hexdigest()
 
 # --- قاعدة البيانات ---
@@ -66,11 +78,9 @@ with tab1:
 
 with tab2:
     st.header("🧾 سجل الفواتير")
-    # عرض الفواتير
     for _, row in pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn).iterrows():
         with st.expander(f"📄 فاتورة #{row['rowid']} | العميل: {row['customer_name']} | المجموع: {row['total']} د.ع"):
-            
-            # جلب بيانات العميل كاملة من جدول العملاء
+            # جلب بيانات العميل
             c.execute("SELECT * FROM customers WHERE name=?", (row['customer_name'],))
             cust_info = c.fetchone()
             
@@ -83,8 +93,12 @@ with tab2:
             
             st.divider()
             st.subheader("🛒 المواد المشتراة")
-            items = ast.literal_eval(row['items'])
-            for n, d in items.items(): st.write(f"🔹 {n} | الكمية: {d['qty']} | السعر: {d['price']}")
+            # حماية من الخطأ بـ try-except
+            try:
+                items = ast.literal_eval(row['items'])
+                for n, d in items.items(): st.write(f"🔹 {n} | الكمية: {d['qty']} | السعر: {d['price']}")
+            except:
+                st.write("خطأ في قراءة بيانات المواد.")
             
             if st.button(f"🗑️ حذف الفاتورة {row['rowid']}", key=f"del_{row['rowid']}"):
                 c.execute("DELETE FROM invoices WHERE rowid=?", (row['rowid'],)); conn.commit(); st.rerun()
