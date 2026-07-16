@@ -7,7 +7,7 @@ from fpdf import FPDF
 
 st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 
-# إعداد قاعدة البيانات
+# --- إعداد قاعدة البيانات ---
 DB_NAME = 'shop_data_pro.db'
 conn = sqlite3.connect(DB_NAME, check_same_thread=False)
 c = conn.cursor()
@@ -16,7 +16,7 @@ c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT, shop_nam
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, date TEXT)')
 conn.commit()
 
-# --- دالة PDF ---
+# --- دالة إنشاء PDF ---
 def generate_pdf(invoice_id, customer_name, items, total):
     pdf = FPDF()
     pdf.add_page()
@@ -29,34 +29,30 @@ def generate_pdf(invoice_id, customer_name, items, total):
     for item, data in items.items():
         pdf.cell(200, 10, txt=f"{item} | الكمية: {data['qty']} | السعر: {data['price']}", ln=True)
     pdf.cell(200, 10, txt=f"المجموع الكلي: {total}", ln=True)
-    pdf.output(f"invoice_{invoice_id}.pdf")
-    return f"invoice_{invoice_id}.pdf"
+    file_name = f"invoice_{invoice_id}.pdf"
+    pdf.output(file_name)
+    return file_name
 
-# --- الواجهة ---
+# --- واجهة التطبيق ---
 st.title("⚙️ نظام إدارة المبيعات - المبرمج ياسر")
 
 tabs = st.tabs(["🛒 البيع", "📦 إضافة مواد", "📊 المخزن والجرد", "🧾 الفواتير", "👥 العملاء", "📊 كشف الحساب"])
 
 with tabs[0]: # البيع
     st.header("🛒 شاشة البيع")
-    # قراءة العملاء
     cust_df = pd.read_sql("SELECT * FROM customers", conn)
     cust_list = ["اختر عميل..."] + cust_df['name'].tolist()
     selected_customer = st.selectbox("🔎 اختر العميل", cust_list)
     
-    # [تعديل هنا]: قراءة المنتجات مباشرة من قاعدة البيانات في كل مرة
+    # تحديث تلقائي للمنتجات في كل مرة تفتح التبويب
     prods = pd.read_sql("SELECT * FROM products", conn)
     if not prods.empty:
-        # تحويل الأسماء إلى قائمة جديدة
-        item_names = prods['name'].unique().tolist()
-        item_select = st.selectbox("المادة", item_names)
-        
+        item_select = st.selectbox("المادة", prods['name'].unique().tolist())
         qty_input = st.text_input("الكمية")
         if st.button("➕ أضف للسلة"):
             if selected_customer == "اختر عميل...": st.error("اختر عميلاً أولاً!")
             elif not qty_input.isdigit(): st.error("أدخل رقماً!")
             else:
-                # جلب السعر للمادة المختارة
                 price = prods[prods['name'] == item_select]['price_carton'].values[0]
                 if 'cart' not in st.session_state: st.session_state.cart = {}
                 st.session_state.cart[item_select] = {'price': price, 'qty': int(qty_input)}
@@ -69,7 +65,7 @@ with tabs[0]: # البيع
             for name, data in st.session_state.cart.items():
                 c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (data['qty'], name))
             c.execute("INSERT INTO invoices VALUES (?,?,?,?)", (selected_customer, str(st.session_state.cart), int(total), datetime.now().strftime("%Y-%m-%d")))
-            conn.commit(); st.session_state.cart = {}; st.success("تم البيع!"); st.rerun()
+            conn.commit(); st.session_state.cart = {}; st.success("تم البيع بنجاح!"); st.rerun()
 
 with tabs[1]: # إضافة مواد
     st.header("📦 إضافة مواد جديدة للمخزن")
@@ -79,9 +75,9 @@ with tabs[1]: # إضافة مواد
         new_qty = st.text_input("الكمية المتوفرة")
         if st.form_submit_button("إضافة للمخزن"):
             c.execute("INSERT INTO products VALUES (?,?,?)", (new_name, int(new_price), int(new_qty)))
-            conn.commit(); st.success(f"تمت إضافة {new_name} بنجاح!")
+            conn.commit(); st.success(f"تمت إضافة {new_name} للمخزن!")
 
-with tabs[2]: # المخزن
+with tabs[2]: # المخزن والجرد
     st.header("📊 جرد المخزن")
     st.table(pd.read_sql("SELECT * FROM products", conn))
 
@@ -90,11 +86,17 @@ with tabs[3]: # الفواتير
     invoices = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
     for _, row in invoices.iterrows():
         with st.expander(f"فاتورة #{row['rowid']} | {row['customer_name']}"):
-            items = ast.literal_eval(row['items'])
-            for n, d in items.items(): st.write(f"🔹 {n} | {d['qty']} قطعة")
-            if st.button(f"📥 PDF فاتورة {row['rowid']}", key=f"p_{row['rowid']}"):
-                generate_pdf(row['rowid'], row['customer_name'], items, row['total'])
-                st.success("تم إنشاء ملف الـ PDF")
+            try:
+                # معالجة آمنة تمنع الخطأ (ValueError)
+                if row['items']:
+                    items = ast.literal_eval(row['items'])
+                    for n, d in items.items(): st.write(f"🔹 {n} | {d['qty']} قطعة")
+                    st.write(f"**المجموع: {row['total']}**")
+                    if st.button(f"📥 PDF فاتورة {row['rowid']}", key=f"p_{row['rowid']}"):
+                        file_path = generate_pdf(row['rowid'], row['customer_name'], items, row['total'])
+                        st.success(f"تم إنشاء الملف")
+            except:
+                st.error("خطأ في بيانات هذه الفاتورة.")
 
 with tabs[4]: # العملاء
     st.header("👥 العملاء")
