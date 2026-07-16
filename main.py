@@ -7,8 +7,8 @@ from fpdf import FPDF
 
 st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 
-# --- إعداد قاعدة البيانات ---
-DB_NAME = 'shop_data_pro.db'
+# --- اسم قاعدة بيانات جديد لتجنب الأخطاء القديمة ---
+DB_NAME = 'shop_data_final_v2.db'
 conn = sqlite3.connect(DB_NAME, check_same_thread=False)
 c = conn.cursor()
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price_carton INTEGER, quantity INTEGER)')
@@ -35,7 +35,7 @@ def generate_pdf(invoice_id, customer_name, items, total):
 
 st.title("⚙️ نظام إدارة المبيعات - المبرمج ياسر")
 
-tabs = st.tabs(["🛒 البيع", "📦 إضافة مواد", "📊 المخزن والجرد", "🧾 الفواتير", "👥 العملاء", "📊 كشف الحساب"])
+tabs = st.tabs(["🛒 البيع", "📦 إضافة مواد", "📊 المخزن", "🧾 الفواتير", "👥 العملاء", "📊 كشف الحساب"])
 
 with tabs[0]: # البيع
     st.header("🛒 شاشة البيع")
@@ -75,10 +75,9 @@ with tabs[2]: # المخزن
     st.header("📊 المخزن")
     st.table(pd.read_sql("SELECT * FROM products", conn))
 
-with tabs[3]: # الفواتير (تعديل جذري)
+with tabs[3]: # الفواتير (الجزء المحمي)
     st.header("🧾 الفواتير")
-    # زر التنظيف السحري
-    if st.button("🧹 تصفير وتنظيف جميع الفواتير"):
+    if st.button("🧹 تصفير وتنظيف كل شيء"):
         c.execute("DELETE FROM invoices")
         conn.commit(); st.rerun()
     
@@ -86,24 +85,25 @@ with tabs[3]: # الفواتير (تعديل جذري)
     for _, row in invoices.iterrows():
         with st.expander(f"فاتورة #{row['rowid']} | {row['customer_name']}"):
             try:
+                # حماية القراءة
                 items = ast.literal_eval(row['items'])
                 for n, d in items.items(): st.write(f"🔹 {n} | {d['qty']} قطعة")
                 st.write(f"المجموع: {row['total']}")
-                if st.button(f"📥 PDF", key=f"p_{row['rowid']}"):
+                if st.button(f"📥 PDF", key=f"pdf_{row['rowid']}"):
                     generate_pdf(row['rowid'], row['customer_name'], items, row['total'])
                     st.success("تم")
             except:
                 st.error("بيانات هذه الفاتورة تالفة.")
-                if st.button(f"🗑️ حذف الفاتورة التالفة {row['rowid']}", key=f"d_{row['rowid']}"):
+                if st.button(f"🗑️ حذف الفاتورة التالفة {row['rowid']}", key=f"del_{row['rowid']}"):
                     c.execute("DELETE FROM invoices WHERE rowid=?", (row['rowid'],))
                     conn.commit(); st.rerun()
 
 with tabs[4]: # العملاء
     st.header("👥 العملاء")
-    df_cust = pd.read_sql("SELECT * FROM customers", conn)
-    st.table(df_cust)
+    st.table(pd.read_sql("SELECT * FROM customers", conn))
 
 with tabs[5]: # كشف حساب
     st.header("📊 كشف الحساب")
-    sel_cust = st.selectbox("اختر", pd.read_sql("SELECT name FROM customers", conn)['name'].tolist())
-    if sel_cust: st.table(pd.read_sql("SELECT * FROM invoices WHERE customer_name = ?", conn, params=(sel_cust,)))
+    sel_cust = st.selectbox("اختر", ["اختر عميل..."] + pd.read_sql("SELECT name FROM customers", conn)['name'].tolist())
+    if sel_cust != "اختر عميل...":
+        st.table(pd.read_sql("SELECT * FROM invoices WHERE customer_name = ?", conn, params=(sel_cust,)))
