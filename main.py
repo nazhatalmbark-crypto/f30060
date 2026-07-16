@@ -22,7 +22,7 @@ c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, 
 c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
 conn.commit()
 
-# --- التصميم (CSS) ---
+# --- التصميم ---
 st.markdown("""
     <style>
     .invoice-card { background-color: #f8f9fa; border-radius: 15px; padding: 15px; margin-bottom: 10px; border: 1px solid #e0e0e0; }
@@ -34,25 +34,47 @@ st.markdown("""
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'cart' not in st.session_state: st.session_state.cart = {}
 
-# --- نظام الدخول الآمن ---
+# --- نظام الدخول والتسجيل ---
 if not st.session_state.logged_in:
-    st.title("🔐 بوابة الحماية - المبرمج ياسر")
-    u = st.text_input("اسم المستخدم")
-    p = st.text_input("كلمة المرور", type="password")
-    if st.button("دخول"):
-        hashed_p = make_hash(p)
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", (u, hashed_p))
-        if c.fetchone():
-            st.session_state.logged_in = True
-            st.session_state.username = u
-            st.rerun()
-        else: st.error("بيانات غير صحيحة!")
-    st.stop()
+    st.title("🔐 بوابة المبرمج ياسر - V2") # هذه النسخة V2
+    mode = st.radio("اختر العملية:", ["دخول", "تسجيل حساب جديد"], horizontal=True)
+
+    if mode == "دخول":
+        u = st.text_input("اسم المستخدم")
+        p = st.text_input("كلمة المرور", type="password")
+        if st.button("دخول"):
+            hashed_p = make_hash(p)
+            c.execute("SELECT * FROM users WHERE username=? AND password=?", (u, hashed_p))
+            if c.fetchone():
+                st.session_state.logged_in = True
+                st.session_state.username = u
+                st.rerun()
+            else: st.error("اسم المستخدم أو كلمة المرور غير صحيحة!")
+            
+    else: # وضع التسجيل
+        new_u = st.text_input("اسم المستخدم الجديد")
+        new_p = st.text_input("كلمة المرور الجديدة", type="password")
+        if st.button("إنشاء حساب"):
+            try:
+                hashed_p = make_hash(new_p)
+                c.execute("INSERT INTO users VALUES (?,?)", (new_u, hashed_p))
+                conn.commit()
+                st.success("تم إنشاء الحساب بنجاح! يمكنك الآن الدخول.")
+            except sqlite3.IntegrityError:
+                st.error("هذا المستخدم موجود مسبقاً، اختر اسماً آخر.")
+    st.stop() # توقف هنا حتى يسجل الدخول
+
+# --- إذا وصل هنا يعني أن المستخدم مسجل دخول ---
+st.sidebar.write(f"مرحباً بك: {st.session_state.username}")
+if st.sidebar.button("🚪 تسجيل خروج"):
+    st.session_state.logged_in = False
+    st.rerun()
 
 # --- القوائم العلوية ---
 tab1, tab2, tab3, tab4 = st.tabs(["🛒 شاشة البيع", "🧾 الفواتير والبحث", "👥 العملاء", "📦 المخزن"])
 
-# 1. شاشة البيع
+# ... (باقي الكود كما هو في المرات السابقة) ...
+# (شاشة البيع والفواتير والعملاء والمخزن)
 with tab1:
     st.header("🛒 شاشة البيع")
     cust_df = pd.read_sql("SELECT * FROM customers", conn)
@@ -78,37 +100,20 @@ with tab1:
                 for n, d in st.session_state.cart.items(): c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (d['qty'], n))
                 conn.commit(); st.session_state.cart = {}; st.rerun()
 
-# 2. الفواتير (مع ميزة البحث والفتح)
 with tab2:
     st.header("🧾 سجل الفواتير")
     search_query = st.text_input("🔍 بحث باسم العميل...")
-    
-    query = "SELECT rowid, * FROM invoices ORDER BY rowid DESC"
-    df = pd.read_sql(query, conn)
-    
-    if search_query:
-        df = df[df['customer_name'].str.contains(search_query, case=False)]
-
+    df = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
+    if search_query: df = df[df['customer_name'].str.contains(search_query, case=False)]
     for i, row in df.iterrows():
         p_col = "#ffc107" if row['payment_method'] == 'نقد' else "#dc3545"
-        
-        # البطاقة (Card)
-        st.markdown(f"""
-            <div class="invoice-card">
-                <b>فاتورة #{row['rowid']} | العميل: {row['customer_name']}</b>
-                <br><span class="badge-price" style="background-color: {p_col};">{row['total']} دينار</span>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # ميزة الفتح (Expander)
-        with st.expander("👁️ عرض تفاصيل الفاتورة"):
+        st.markdown(f'<div class="invoice-card"><b>فاتورة #{row["rowid"]} | {row["customer_name"]}</b><br><span class="badge-price" style="background-color: {p_col};">{row["total"]} دينار</span></div>', unsafe_allow_html=True)
+        with st.expander("👁️ تفاصيل"):
             items = ast.literal_eval(row['items'])
-            for name, data in items.items():
-                st.write(f"🔹 {name} | الكمية: {data['qty']} | السعر: {data['price']}")
-            if st.button(f"🗑️ حذف الفاتورة #{row['rowid']}", key=f"del_{row['rowid']}"):
+            for name, data in items.items(): st.write(f"🔹 {name} | {data['qty']} × {data['price']}")
+            if st.button(f"🗑️ حذف #{row['rowid']}", key=f"del_{row['rowid']}"):
                 c.execute("DELETE FROM invoices WHERE rowid=?", (row['rowid'],)); conn.commit(); st.rerun()
 
-# 3. العملاء
 with tab3:
     st.header("👥 إضافة عملاء")
     with st.form("add_c"):
@@ -116,11 +121,6 @@ with tab3:
         if st.form_submit_button("إضافة"):
             c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (n, ph, "", "", "")); conn.commit(); st.rerun()
 
-# 4. المخزن
 with tab4:
     st.header("📦 جرد المخزن")
     st.table(pd.read_sql("SELECT * FROM products", conn))
-
-if st.sidebar.button("🚪 تسجيل خروج"):
-    st.session_state.logged_in = False
-    st.rerun()
