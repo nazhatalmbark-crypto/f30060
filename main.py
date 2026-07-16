@@ -2,7 +2,6 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
-import hashlib
 import ast
 from fpdf import FPDF
 
@@ -36,23 +35,28 @@ def generate_pdf(invoice_id, customer_name, items, total):
 # --- الواجهة ---
 st.title("⚙️ نظام إدارة المبيعات - المبرمج ياسر")
 
-# التبويبات (أضفت تبويب إضافة مواد مستقل)
 tabs = st.tabs(["🛒 البيع", "📦 إضافة مواد", "📊 المخزن والجرد", "🧾 الفواتير", "👥 العملاء", "📊 كشف الحساب"])
 
 with tabs[0]: # البيع
     st.header("🛒 شاشة البيع")
+    # قراءة العملاء
     cust_df = pd.read_sql("SELECT * FROM customers", conn)
     cust_list = ["اختر عميل..."] + cust_df['name'].tolist()
     selected_customer = st.selectbox("🔎 اختر العميل", cust_list)
     
+    # [تعديل هنا]: قراءة المنتجات مباشرة من قاعدة البيانات في كل مرة
     prods = pd.read_sql("SELECT * FROM products", conn)
     if not prods.empty:
-        item_select = st.selectbox("المادة", prods['name'].tolist())
+        # تحويل الأسماء إلى قائمة جديدة
+        item_names = prods['name'].unique().tolist()
+        item_select = st.selectbox("المادة", item_names)
+        
         qty_input = st.text_input("الكمية")
         if st.button("➕ أضف للسلة"):
             if selected_customer == "اختر عميل...": st.error("اختر عميلاً أولاً!")
             elif not qty_input.isdigit(): st.error("أدخل رقماً!")
             else:
+                # جلب السعر للمادة المختارة
                 price = prods[prods['name'] == item_select]['price_carton'].values[0]
                 if 'cart' not in st.session_state: st.session_state.cart = {}
                 st.session_state.cart[item_select] = {'price': price, 'qty': int(qty_input)}
@@ -67,7 +71,7 @@ with tabs[0]: # البيع
             c.execute("INSERT INTO invoices VALUES (?,?,?,?)", (selected_customer, str(st.session_state.cart), int(total), datetime.now().strftime("%Y-%m-%d")))
             conn.commit(); st.session_state.cart = {}; st.success("تم البيع!"); st.rerun()
 
-with tabs[1]: # إضافة مواد (هذا هو طلبك)
+with tabs[1]: # إضافة مواد
     st.header("📦 إضافة مواد جديدة للمخزن")
     with st.form("add_prod_form", clear_on_submit=True):
         new_name = st.text_input("اسم المادة")
