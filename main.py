@@ -2,34 +2,25 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
-import ast
 import hashlib
 
 st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 
+# اسم قاعدة بيانات جديد تماماً لإنهاء كل المشاكل
+DB_NAME = 'shop_data_final.db'
+
 def make_hash(password): return hashlib.sha256(str.encode(password)).hexdigest()
 
-# قاعدة البيانات
-conn = sqlite3.connect('shop_data.db', check_same_thread=False)
-c = conn.cursor()
-
-# --- كود التصحيح التلقائي ---
-# إذا لم يجد عمود 'price_carton' في جدول المنتجات، سيقوم بمسح الجدول وإعادة بنائه
-c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='products'")
-if c.fetchone():
-    c.execute("PRAGMA table_info(products)")
-    columns = [info[1] for info in c.fetchall()]
-    if 'price_carton' not in columns:
-        c.execute("DROP TABLE products") # حذف الجدول القديم
-
 # إنشاء الجداول
+conn = sqlite3.connect(DB_NAME, check_same_thread=False)
+c = conn.cursor()
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price_carton INTEGER, quantity INTEGER)')
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT, shop_name TEXT, shop_address TEXT, province TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, date TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
 conn.commit()
 
-# --- إدارة الجلسة ---
+# حالة الجلسة
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'cart' not in st.session_state: st.session_state.cart = {}
 
@@ -43,13 +34,13 @@ if not st.session_state.logged_in:
         if st.button("دخول"):
             c.execute("SELECT * FROM users WHERE username=? AND password=?", (u, make_hash(p)))
             if c.fetchone(): st.session_state.logged_in = True; st.rerun()
-            else: st.error("خطأ في البيانات")
+            else: st.error("خطأ في بيانات الدخول")
     else:
         if st.button("إنشاء حساب"):
             try:
                 c.execute("INSERT INTO users VALUES (?,?)", (u, make_hash(p)))
-                conn.commit(); st.success("تم إنشاء الحساب!")
-            except: st.error("مستخدم موجود مسبقاً")
+                conn.commit(); st.success("تم إنشاء الحساب، يمكنك الدخول الآن!")
+            except: st.error("اسم المستخدم موجود مسبقاً")
     st.stop()
 
 # --- القوائم الرئيسية ---
@@ -61,21 +52,21 @@ with tab1:
     cust_options = ["اختر عميل..."] + cust_df['name'].tolist()
     selected_customer = st.selectbox("🔎 اختر العميل", cust_options)
     
+    # جلب المنتجات بحذر
     prods = pd.read_sql("SELECT rowid, * FROM products", conn)
-    col1, col2, col3 = st.columns(3)
-    with col1: item_select = st.selectbox("المادة", prods['name'].tolist() if not prods.empty else [])
-    with col2: qty_input = st.text_input("الكمية") # بدون أزرار +/-
-    with col3:
-        st.write("---")
-        add_btn = st.button("➕ أضف للسلة")
     
-    if add_btn:
-        if selected_customer == "اختر عميل...": st.error("⚠️ يرجى اختيار العميل أولاً!")
-        elif not qty_input.isdigit(): st.error("أدخل رقماً صحيحاً للكمية")
-        else:
-            price = prods[prods['name'] == item_select]['price_carton'].values[0]
-            st.session_state.cart[item_select] = {'price': price, 'qty': int(qty_input)}
-            st.rerun()
+    if not prods.empty:
+        item_select = st.selectbox("المادة", prods['name'].tolist())
+        qty_input = st.text_input("الكمية")
+        if st.button("➕ أضف للسلة"):
+            if selected_customer == "اختر عميل...": st.error("يجب اختيار عميل أولاً!")
+            elif not qty_input.isdigit(): st.error("أدخل رقماً للكمية")
+            else:
+                price = prods[prods['name'] == item_select]['price_carton'].values[0]
+                st.session_state.cart[item_select] = {'price': price, 'qty': int(qty_input)}
+                st.rerun()
+    else:
+        st.warning("المخزن فارغ حالياً، أضف مواد أولاً.")
     
     if st.session_state.cart:
         st.write("--- السلة ---")
@@ -88,16 +79,19 @@ with tab1:
                 for name, data in st.session_state.cart.items():
                     c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (data['qty'], name))
                 c.execute("INSERT INTO invoices VALUES (?,?,?,?)", (selected_customer, str(st.session_state.cart), int(total), datetime.now().strftime("%Y-%m-%d")))
-                conn.commit(); st.session_state.cart = {}; st.success("تم البيع وخصم المخزن!"); st.rerun()
+                conn.commit(); st.session_state.cart = {}; st.success("تم البيع بنجاح!"); st.rerun()
 
 with tab2:
     st.header("🧾 سجل الفواتير")
     invoices = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
     for _, row in invoices.iterrows():
         with st.expander(f"فاتورة #{row['rowid']} | العميل: {row['customer_name']}"):
-            items = ast.literal_eval(row['items'])
-            for n, d in items.items(): st.write(f"🔹 {n} | {d['qty']} قطعة")
-            st.write(f"المجموع: {row['total']}")
+            try:
+                import ast
+                items = ast.literal_eval(row['items'])
+                for n, d in items.items(): st.write(f"🔹 {n} | {d['qty']} قطعة")
+                st.write(f"المجموع: {row['total']}")
+            except: st.write("بيانات الفاتورة قديمة.")
 
 with tab3:
     st.header("👥 العملاء")
