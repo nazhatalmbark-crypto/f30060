@@ -44,7 +44,6 @@ with tabs[0]: # البيع
     cust_list = ["اختر عميل..."] + cust_df['name'].tolist()
     selected_customer = st.selectbox("🔎 اختر العميل", cust_list)
     
-    # تحديث تلقائي للمنتجات في كل مرة تفتح التبويب
     prods = pd.read_sql("SELECT * FROM products", conn)
     if not prods.empty:
         item_select = st.selectbox("المادة", prods['name'].unique().tolist())
@@ -81,22 +80,30 @@ with tabs[2]: # المخزن والجرد
     st.header("📊 جرد المخزن")
     st.table(pd.read_sql("SELECT * FROM products", conn))
 
-with tabs[3]: # الفواتير
+with tabs[3]: # الفواتير (الجزء المعدل)
     st.header("🧾 سجل الفواتير")
     invoices = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
-    for _, row in invoices.iterrows():
-        with st.expander(f"فاتورة #{row['rowid']} | {row['customer_name']}"):
-            try:
-                # معالجة آمنة تمنع الخطأ (ValueError)
-                if row['items']:
+    
+    if invoices.empty:
+        st.write("لا توجد فواتير مسجلة.")
+    else:
+        for _, row in invoices.iterrows():
+            with st.expander(f"فاتورة #{row['rowid']} | العميل: {row['customer_name']}"):
+                try:
+                    # قراءة البيانات مع حماية من الأخطاء
                     items = ast.literal_eval(row['items'])
                     for n, d in items.items(): st.write(f"🔹 {n} | {d['qty']} قطعة")
                     st.write(f"**المجموع: {row['total']}**")
-                    if st.button(f"📥 PDF فاتورة {row['rowid']}", key=f"p_{row['rowid']}"):
+                    
+                    if st.button(f"📥 تحميل PDF", key=f"pdf_{row['rowid']}"):
                         file_path = generate_pdf(row['rowid'], row['customer_name'], items, row['total'])
                         st.success(f"تم إنشاء الملف")
-            except:
-                st.error("خطأ في بيانات هذه الفاتورة.")
+                except:
+                    # حل مشكلة الفواتير التالفة
+                    st.error("خطأ: بيانات هذه الفاتورة تالفة.")
+                    if st.button(f"🗑️ حذف هذه الفاتورة التالفة #{row['rowid']}", key=f"del_{row['rowid']}"):
+                        c.execute("DELETE FROM invoices WHERE rowid=?", (row['rowid'],))
+                        conn.commit(); st.rerun()
 
 with tabs[4]: # العملاء
     st.header("👥 العملاء")
