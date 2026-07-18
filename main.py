@@ -7,7 +7,7 @@ import ast
 st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 
 # --- الإعدادات ---
-DB_NAME = 'final_system_pro.db'
+DB_NAME = 'final_system_v9.db'
 conn = sqlite3.connect(DB_NAME, check_same_thread=False)
 c = conn.cursor()
 
@@ -27,15 +27,17 @@ if not st.session_state.logged_in:
     if st.button("دخول"):
         c.execute("SELECT * FROM users WHERE username=? AND password=?", (user, pw))
         if c.fetchone(): st.session_state.logged_in = True; st.rerun()
-        else: st.error("خطأ!")
+        else: st.error("خطأ في البيانات!")
     st.stop()
 
+# --- الواجهة ---
 st.title("⚙️ نظام المبرمج ياسر")
 if st.button("خروج"): st.session_state.logged_in = False; st.rerun()
 
-tabs = st.tabs(["🛒 البيع", "📦 المخزن", "🧾 الفواتير", "👥 العملاء"])
+tabs = st.tabs(["🛒 البيع", "📦 إضافة مواد", "📊 المخزن", "🧾 الفواتير", "👥 العملاء"])
 
 with tabs[0]: # البيع
+    st.header("🛒 البيع والطلب")
     cust_list = ["اختر عميل..."] + pd.read_sql("SELECT name FROM customers", conn)['name'].tolist()
     selected_customer = st.selectbox("🔎 اختر العميل", cust_list)
     p_type = st.radio("نوع الدفع", ["نقد", "أقساط"])
@@ -50,7 +52,6 @@ with tabs[0]: # البيع
                 st.rerun()
 
     if 'cart' in st.session_state and st.session_state.cart:
-        st.subheader("🛒 السلة")
         if st.button("✅ إتمام البيع"):
             if selected_customer == "اختر عميل...": st.error("يجب اختيار عميل!")
             else:
@@ -60,50 +61,53 @@ with tabs[0]: # البيع
                     c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (int(d['qty']), n))
                 conn.commit(); st.session_state.cart = {}; st.success("تم البيع!"); st.rerun()
 
-with tabs[1]: # المخزن
-    st.header("📊 جرد المخزن")
-    data = pd.read_sql("SELECT rowid, * FROM products", conn)
-    for _, row in data.iterrows():
-        c1, c2 = st.columns([0.8, 0.2])
-        c1.write(f"🔹 **{row['name']}** | السعر: {row['price_carton']} | المتوفر: {row['quantity']}")
-        if c2.button("🗑️ حذف", key=f"d_{row['rowid']}"):
-            c.execute("DELETE FROM products WHERE rowid=?", (row['rowid'],)); conn.commit(); st.rerun()
+with tabs[1]: # إضافة مواد
+    with st.form("add_prod", clear_on_submit=True):
+        n = st.text_input("اسم المادة"); p = st.number_input("السعر", 0); q = st.number_input("الكمية", 0)
+        if st.form_submit_button("إضافة للمخزن"):
+            c.execute("INSERT INTO products VALUES (?,?,?)", (n, p, q)); conn.commit(); st.success("تم!")
 
-with tabs[2]: # الفواتير (عرض مباشر)
+with tabs[2]: # المخزن
+    data = pd.read_sql("SELECT rowid, * FROM products", conn)
+    cols = st.columns(3)
+    for i, row in data.iterrows():
+        with cols[i % 3]:
+            st.info(f"🔹 **{row['name']}** | المتوفر: {row['quantity']}")
+            if st.button("🗑️ حذف", key=f"d_{row['rowid']}"):
+                c.execute("DELETE FROM products WHERE rowid=?", (row['rowid'],)); conn.commit(); st.rerun()
+
+with tabs[3]: # الفواتير (الفاتورة مرتبة)
     st.header("🧾 سجل الفواتير")
     invoices = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
     for _, row in invoices.iterrows():
         with st.expander(f"فاتورة #{row['rowid']} - {row['customer_name']}"):
-            # جلب معلومات العميل
-            cust_info = c.execute("SELECT * FROM customers WHERE name=?", (row['customer_name'],)).fetchone()
+            cust = c.execute("SELECT * FROM customers WHERE name=?", (row['customer_name'],)).fetchone()
             
             # --- تصميم الفاتورة ---
             st.markdown("---")
-            st.markdown(f"### 🏢 {cust_info[2] if cust_info else 'محل المبيعات'}") # اسم المحل
-            st.write(f"العميل: {row['customer_name']} | الهاتف: {cust_info[1] if cust_info else 'غير متوفر'}")
-            st.write(f"العنوان: {cust_info[3] if cust_info else ''}, {cust_info[4] if cust_info else ''}")
+            st.markdown(f"### 🏢 اسم المحل: {cust[2] if cust else '---'}")
+            st.write(f"**العميل:** {row['customer_name']} | **الهاتف:** {cust[1] if cust else '---'}")
+            st.write(f"**العنوان:** {cust[3] if cust else '---'} | **المحافظة:** {cust[4] if cust else '---'}")
             st.markdown("---")
             
-            # جدول المواد
             items = ast.literal_eval(row['items'])
             st.table(pd.DataFrame(items).T)
             
-            # المجموع والعبارة
             st.markdown(f"### المجموع الكلي: {row['total']} دينار")
-            st.markdown(f"**طريقة الدفع:** {row['payment_type']}")
-            st.info("💡 ملاحظة: بضاعة المباعة لا ترد ولا تستبدل، شكراً لتعاملكم معنا") # <--- العبارة هنا
+            st.write(f"طريقة الدفع: {row['payment_type']}")
+            
+            # --- العبارة الخاصة بك ---
+            st.warning("⚠️ بضاعة المباعة لا ترد ولا تستبدل، شكراً لتعاملكم معنا") 
             st.markdown("---")
             
             if st.button(f"🗑️ حذف الفاتورة", key=f"del_{row['rowid']}"):
                 c.execute("DELETE FROM invoices WHERE rowid=?", (row['rowid'],)); conn.commit(); st.rerun()
 
-with tabs[3]: # العملاء
+with tabs[4]: # العملاء
     with st.form("add_c", clear_on_submit=True):
         c1, c2 = st.columns(2)
-        name = c1.text_input("اسم العميل")
-        phone = c2.text_input("رقم الهاتف")
-        shop = c1.text_input("اسم المحل")
-        addr = c2.text_input("العنوان")
+        name = c1.text_input("اسم العميل"); phone = c2.text_input("رقم الهاتف")
+        shop = c1.text_input("اسم المحل"); addr = c2.text_input("العنوان")
         prov = c1.text_input("المحافظة")
         if st.form_submit_button("إضافة"):
             c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (name, phone, shop, addr, prov)); conn.commit(); st.rerun()
