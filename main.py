@@ -5,7 +5,7 @@ from datetime import datetime
 import ast
 from fpdf import FPDF
 
-st.set_page_config(page_title="Eng. Yasser Pro System", layout="wide")
+st.set_page_config(page_title="Eng. Yasser System", layout="wide")
 
 # --- إعداد قاعدة البيانات ---
 DB_NAME = 'shop_data_pro_v3.db'
@@ -33,8 +33,8 @@ def generate_pdf(invoice_id, customer_name, items, total):
     pdf.output(file_name)
     return file_name
 
-# --- الواجهة ---
-st.title("⚙️ نظام المبرمج ياسر - النسخة المستقرة")
+# --- واجهة النظام ---
+st.title("⚙️ نظام المبرمج ياسر - النسخة النهائية")
 tabs = st.tabs(["🛒 البيع (السلة)", "📦 إضافة مواد", "📊 المخزن", "🧾 الفواتير", "👥 العملاء"])
 
 with tabs[0]: # شاشة البيع
@@ -45,13 +45,12 @@ with tabs[0]: # شاشة البيع
     
     prods = pd.read_sql("SELECT * FROM products", conn)
     
-    # شبكة المنتجات
+    # شبكة المنتجات مع مفاتيح فريدة (idx) لمنع الخطأ
     cols = st.columns(3)
     for idx, row in prods.iterrows():
         with cols[idx % 3]:
             st.info(f"### {row['name']}\nالسعر: {row['price_carton']}\nالكمية: {row['quantity']}")
             if row['quantity'] > 0:
-                # مفاتيح فريدة باستخدام idx لمنع الخطأ
                 qty = st.number_input(f"كمية {row['name']}", min_value=1, max_value=int(row['quantity']), key=f"qty_{idx}")
                 if st.button(f"➕ إضافة {row['name']}", key=f"add_{idx}"):
                     if 'cart' not in st.session_state: st.session_state.cart = {}
@@ -60,10 +59,10 @@ with tabs[0]: # شاشة البيع
             else:
                 st.error("🚫 خارج المخزون")
 
-    # السلة
+    # السلة وإكمال البيع
     if 'cart' in st.session_state and st.session_state.cart:
         st.write("---")
-        st.subheader("🛒 السلة")
+        st.subheader("🛒 محتويات السلة")
         cart_df = pd.DataFrame(st.session_state.cart).T
         st.table(cart_df)
         
@@ -72,7 +71,7 @@ with tabs[0]: # شاشة البيع
                 st.error("خطأ: يجب اختيار عميل أولاً!")
             else:
                 total = sum(d['price'] * d['qty'] for d in st.session_state.cart.values())
-                # الحفظ
+                # الحفظ في قاعدة البيانات
                 c.execute("INSERT INTO invoices VALUES (?,?,?,?)", (selected_customer, str(st.session_state.cart), int(total), datetime.now().strftime("%Y-%m-%d")))
                 # خصم الكميات
                 for name, data in st.session_state.cart.items():
@@ -91,7 +90,7 @@ with tabs[1]: # إضافة مواد
     with st.form("add_prod", clear_on_submit=True):
         n = st.text_input("اسم المادة"); p = st.text_input("السعر"); q = st.text_input("الكمية")
         if st.form_submit_button("إضافة للمخزن"):
-            c.execute("INSERT INTO products VALUES (?,?,?)", (n, int(p), int(q))); conn.commit(); st.success("تم!")
+            c.execute("INSERT INTO products VALUES (?,?,?)", (n, int(p), int(q))); conn.commit(); st.success("تمت الإضافة!")
 
 with tabs[2]: # المخزن
     st.header("📊 جرد المخزن")
@@ -99,10 +98,16 @@ with tabs[2]: # المخزن
 
 with tabs[3]: # الفواتير
     st.header("🧾 سجل الفواتير")
+    # زر تنظيف شامل للطوارئ
+    if st.button("⚠️ تنظيف شامل للفواتير التالفة"):
+        c.execute("DELETE FROM invoices")
+        conn.commit(); st.rerun()
+        
     invoices = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
     for _, row in invoices.iterrows():
         with st.expander(f"فاتورة #{row['rowid']} | العميل: {row['customer_name']}"):
             try:
+                # محاولة قراءة وتصحيح البيانات
                 items = ast.literal_eval(row['items'])
                 for n, d in items.items(): st.write(f"🔹 {n} | {int(d['qty'])} قطعة")
                 st.write(f"المجموع: {int(row['total'])}")
@@ -110,8 +115,8 @@ with tabs[3]: # الفواتير
                     generate_pdf(row['rowid'], row['customer_name'], items, int(row['total']))
                     st.success("تم!")
             except:
-                st.error("فاتورة تالفة.")
-                if st.button(f"🗑️ حذف", key=f"del_{row['rowid']}"):
+                st.error("بيانات الفاتورة تالفة.")
+                if st.button(f"🗑️ حذف هذه الفاتورة", key=f"del_{row['rowid']}"):
                     c.execute("DELETE FROM invoices WHERE rowid=?", (row['rowid'],)); conn.commit(); st.rerun()
 
 with tabs[4]: # العملاء
@@ -119,6 +124,6 @@ with tabs[4]: # العملاء
     with st.form("add_c", clear_on_submit=True):
         n, p = st.columns(2); name = n.text_input("اسم العميل"); phone = p.text_input("رقم الهاتف")
         s, a = st.columns(2); shop = s.text_input("اسم المحل"); addr = a.text_input("موقع المحل")
-        if st.form_submit_button("إضافة"):
+        if st.form_submit_button("إضافة عميل"):
             c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (name, phone, shop, addr, "البصرة")); conn.commit(); st.rerun()
     st.table(pd.read_sql("SELECT * FROM customers", conn))
