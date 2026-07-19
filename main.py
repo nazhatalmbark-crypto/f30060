@@ -73,13 +73,17 @@ with tabs[2]: # الفواتير
     for _, row in invs.iterrows():
         with st.expander(f"فاتورة #{row['rowid']} - {row['customer_name']}"):
             st.write(f"المجموع: {row['total']} IQD")
-            # PDF Generation
+            # PDF Generation - Fixed version
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=12)
             pdf.cell(200, 10, txt=f"Invoice ID: {row['rowid']}", ln=True)
             pdf.cell(200, 10, txt=f"Total: {row['total']} IQD", ln=True)
-            st.download_button(label="📥 Download PDF", data=pdf.output(), file_name=f"invoice_{row['rowid']}.pdf")
+            st.download_button(
+                label="📥 Download PDF", 
+                data=bytes(pdf.output()), 
+                file_name=f"invoice_{row['rowid']}.pdf"
+            )
 
 with tabs[3]: # العملاء
     st.header("👥 إدارة العملاء")
@@ -89,24 +93,4 @@ with tabs[3]: # العملاء
         shop = c1.text_input("اسم المحل"); addr = c2.text_input("عنوان المحل")
         prov = c1.text_input("المحافظة")
         if st.form_submit_button("إضافة عميل"): 
-            c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (name, phone, shop, addr, prov)); conn.commit(); st.rerun()
-    st.table(pd.read_sql("SELECT * FROM customers", conn))
-
-with tabs[4]: # المساعد الذكي
-    st.header("🤖 المساعد الذكي - لوحة التحكم")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("➕ إضافة مادة")
-        with st.form("add_p"):
-            n = st.text_input("اسم المادة"); p = st.number_input("السعر", step=1, format="%d"); q = st.number_input("الكمية", step=1, format="%d")
-            if st.form_submit_button("إضافة"): c.execute("INSERT INTO products VALUES (?,?,?)", (n, p, q)); conn.commit(); st.rerun()
-    with col2:
-        st.subheader("❌ حذف مادة")
-        all_prods = pd.read_sql("SELECT name FROM products", conn)
-        prod_del = st.selectbox("اختر المادة للحذف", all_prods['name'].tolist())
-        if st.button("حذف المادة المحددة"):
-            c.execute("DELETE FROM products WHERE name = ?", (prod_del,))
-            conn.commit(); st.rerun()
-    st.divider()
-    st.subheader("📊 تقرير الجرد")
-    if st.button("تشغيل جرد المخزن"): st.table(pd.read_sql("SELECT * FROM products", conn))
+            c.execute("INSERT INTO customers VALUES (?,?,?,?,?)",
