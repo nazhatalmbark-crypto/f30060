@@ -51,13 +51,12 @@ if st.button("خروج 🚪"): st.session_state.logged_in = False; st.rerun()
 
 tabs = st.tabs(["🛒 البيع", "📦 عرض المخزن", "🧾 الفواتير", "👥 إدارة العملاء", "🤖 المساعد الذكي"])
 
-with tabs[0]: # البيع (الشبكة رجعت)
+with tabs[0]: # البيع
     st.header("🛒 نقطة البيع")
     custs = pd.read_sql("SELECT name FROM customers", conn)
     selected_c = st.selectbox("اختر العميل", ["اختر..."] + custs['name'].tolist())
     
     prods = pd.read_sql("SELECT rowid, * FROM products", conn)
-    # عمل الشبكة (Grid)
     cols = st.columns(3)
     for idx, row in prods.iterrows():
         with cols[idx % 3]:
@@ -99,8 +98,10 @@ with tabs[2]: # الفواتير
             pdf.line(10, 25, 200, 25)
             pdf.ln(10)
             pdf.set_font("Arial", size=12)
+            # حماية النص من الحروف العربية لتجنب الكراش
+            cust_name = str(row['customer_name']).encode('latin-1', 'ignore').decode('latin-1')
             pdf.cell(200, 10, txt=f"Invoice ID: {row['rowid']}", ln=True)
-            pdf.cell(200, 10, txt=f"Customer: {row['customer_name']}", ln=True)
+            pdf.cell(200, 10, txt=f"Customer: {cust_name}", ln=True)
             pdf.line(10, 45, 200, 45)
             pdf.ln(5)
             pdf.set_font("Arial", 'B', 14)
