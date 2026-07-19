@@ -40,10 +40,9 @@ if not st.session_state.logged_in:
 # --- الواجهة ---
 st.title("Eng. Yasser Pro System ✨")
 st.subheader("مستمرين نحو الأفضل")
-
 if st.button("خروج"): st.session_state.logged_in = False; st.rerun()
 
-tabs = st.tabs(["🛒 البيع", "📦 المخزن", "🧾 الفواتير", "👥 إدارة العملاء", "🤖 المساعد الذكي"])
+tabs = st.tabs(["🛒 البيع", "📦 عرض المخزن", "🧾 الفواتير", "👥 إدارة العملاء", "🤖 المساعد الذكي"])
 
 with tabs[0]: # البيع
     st.header("🛒 البيع والطلب")
@@ -64,15 +63,9 @@ with tabs[0]: # البيع
             for n, d in st.session_state.cart.items(): c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (int(d['qty']), n))
             conn.commit(); st.session_state.cart = {}; st.success("تمت العملية! مستمرين نحو الأفضل"); st.rerun()
 
-with tabs[1]: # المخزن
-    st.header("📦 إدارة المخزن")
+with tabs[1]: # عرض المخزن
+    st.header("📦 عرض المخزن")
     st.table(pd.read_sql("SELECT * FROM products", conn))
-    with st.form("new_prod"):
-        n = st.text_input("اسم المادة")
-        p = st.number_input("السعر", min_value=0, step=1, format="%d")
-        q = st.number_input("الكمية", min_value=0, step=1, format="%d")
-        if st.form_submit_button("إضافة مادة"): 
-            c.execute("INSERT INTO products VALUES (?,?,?)", (n, p, q)); conn.commit(); st.rerun()
 
 with tabs[2]: # الفواتير
     st.header("🧾 سجل الفواتير")
@@ -86,24 +79,43 @@ with tabs[2]: # الفواتير
             pdf_bytes = pdf.output(dest='S').encode('latin-1')
             st.download_button(label="📥 تحميل الفاتورة PDF", data=pdf_bytes, file_name=f"invoice_{row['rowid']}.pdf")
 
-with tabs[3]: # إدارة العملاء (المحدّث)
+with tabs[3]: # العملاء
     st.header("👥 إدارة العملاء")
     with st.form("add_cust"):
         c1, c2 = st.columns(2)
-        name = c1.text_input("اسم العميل")
-        phone = c2.text_input("رقم الهاتف")
-        shop = c1.text_input("اسم المحل")
-        addr = c2.text_input("عنوان المحل")
+        name = c1.text_input("اسم العميل"); phone = c2.text_input("رقم الهاتف")
+        shop = c1.text_input("اسم المحل"); addr = c2.text_input("عنوان المحل")
         prov = c1.text_input("المحافظة")
         if st.form_submit_button("إضافة عميل"): 
             c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (name, phone, shop, addr, prov)); conn.commit(); st.rerun()
-    
-    st.subheader("قائمة العملاء")
     st.table(pd.read_sql("SELECT * FROM customers", conn))
 
-with tabs[4]: # المساعد الذكي
-    st.header("🤖 المساعد الذكي")
-    if st.button("فحص المواد الناقصة"):
+with tabs[4]: # المساعد الذكي (المركز الإداري الجديد)
+    st.header("🤖 المساعد الذكي - لوحة التحكم")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("➕ إضافة مادة")
+        with st.form("add_p"):
+            n = st.text_input("اسم المادة"); p = st.number_input("السعر", step=1, format="%d"); q = st.number_input("الكمية", step=1, format="%d")
+            if st.form_submit_button("إضافة"): c.execute("INSERT INTO products VALUES (?,?,?)", (n, p, q)); conn.commit(); st.rerun()
+            
+    with col2:
+        st.subheader("❌ حذف مادة")
+        all_prods = pd.read_sql("SELECT name FROM products", conn)
+        prod_del = st.selectbox("اختر المادة للحذف", all_prods['name'].tolist())
+        if st.button("حذف المادة المحددة"):
+            c.execute("DELETE FROM products WHERE name = ?", (prod_del,))
+            conn.commit(); st.rerun()
+
+    st.divider()
+    st.subheader("📊 تقرير الجرد الكامل")
+    if st.button("تشغيل جرد المخزن"):
+        st.table(pd.read_sql("SELECT * FROM products", conn))
+        
+    st.subheader("⚠️ تنبيهات النقص")
+    if st.button("فحص النواقص"):
         low = pd.read_sql("SELECT * FROM products WHERE quantity < 5", conn)
-        st.warning("المواد التي شارفت على النفاذ:"); st.table(low)
-    if st.button("اقتراح اسم محل"): st.success(random.choice(["ياسر برو للتقنية", "مخازن المستقبل", "مركز ياسر للحاسبات"]))
+        if not low.empty: st.warning("مواد شارفت على النفاذ:"); st.table(low)
+        else: st.success("المخزن مكتمل!")
