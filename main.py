@@ -27,13 +27,20 @@ if not st.session_state.logged_in:
     st.title("🔐 Eng. Yasser Pro System")
     user = st.text_input("اسم المستخدم")
     pw = st.text_input("كلمة المرور", type="password")
-    if st.button("دخول"):
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", (user, hash_pw(pw)))
-        if c.fetchone(): st.session_state.logged_in = True; st.rerun()
-        else: st.error("خطأ!")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("دخول"):
+            c.execute("SELECT * FROM users WHERE username=? AND password=?", (user, hash_pw(pw)))
+            if c.fetchone(): st.session_state.logged_in = True; st.rerun()
+            else: st.error("خطأ في البيانات!")
+    with col2:
+        if st.button("دخول كضيف"):
+            st.session_state.logged_in = True
+            st.rerun()
     st.stop()
 
-# --- الواجهة ---
+# --- الواجهة بعد الدخول ---
 st.title("Eng. Yasser Pro System ✨")
 if st.button("خروج"): st.session_state.logged_in = False; st.rerun()
 
@@ -54,7 +61,7 @@ with tabs[0]: # البيع
             total = sum(d['price'] * d['qty'] for d in st.session_state.cart.values())
             c.execute("INSERT INTO invoices VALUES (?,?,?,?,?)", (selected_c, str(st.session_state.cart), int(total), str(date.today()), "نقد"))
             for n, d in st.session_state.cart.items(): c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (int(d['qty']), n))
-            conn.commit(); st.session_state.cart = {}; st.success("تمت العملية! مستمرين نحو الأفضل"); st.rerun()
+            conn.commit(); st.session_state.cart = {}; st.success("تمت العملية بنجاح!"); st.rerun()
 
 with tabs[1]: # عرض المخزن
     st.header("📦 عرض المخزن")
@@ -65,14 +72,14 @@ with tabs[2]: # الفواتير
     invs = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
     for _, row in invs.iterrows():
         with st.expander(f"فاتورة #{row['rowid']} - {row['customer_name']}"):
-            st.write(f"المجموع: {row['total']} د.ع")
+            st.write(f"المجموع: {row['total']} IQD")
             # PDF Generation
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt=f"Invoice #{row['rowid']} - {row['customer_name']}", ln=True)
+            pdf.cell(200, 10, txt=f"Invoice ID: {row['rowid']}", ln=True)
             pdf.cell(200, 10, txt=f"Total: {row['total']} IQD", ln=True)
-            st.download_button(label="📥 تحميل الفاتورة PDF", data=pdf.output(), file_name=f"invoice_{row['rowid']}.pdf")
+            st.download_button(label="📥 Download PDF", data=pdf.output(), file_name=f"invoice_{row['rowid']}.pdf")
 
 with tabs[3]: # العملاء
     st.header("👥 إدارة العملاء")
@@ -101,9 +108,5 @@ with tabs[4]: # المساعد الذكي
             c.execute("DELETE FROM products WHERE name = ?", (prod_del,))
             conn.commit(); st.rerun()
     st.divider()
-    st.subheader("📊 تقرير الجرد والتنبيهات")
+    st.subheader("📊 تقرير الجرد")
     if st.button("تشغيل جرد المخزن"): st.table(pd.read_sql("SELECT * FROM products", conn))
-    if st.button("فحص النواقص"):
-        low = pd.read_sql("SELECT * FROM products WHERE quantity < 5", conn)
-        if not low.empty: st.warning("مواد شارفت على النفاذ:"); st.table(low)
-        else: st.success("المخزن مكتمل!")
