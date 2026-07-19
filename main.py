@@ -3,10 +3,8 @@ import sqlite3
 import pandas as pd
 import random
 import hashlib
-import os
 from datetime import date
 from fpdf import FPDF
-import ast
 
 st.set_page_config(page_title="Eng. Yasser Pro System", layout="wide")
 
@@ -45,7 +43,7 @@ st.subheader("مستمرين نحو الأفضل")
 
 if st.button("خروج"): st.session_state.logged_in = False; st.rerun()
 
-tabs = st.tabs(["🛒 البيع", "📦 المخزن", "🧾 الفواتير", "👥 العملاء", "🤖 المساعد الذكي"])
+tabs = st.tabs(["🛒 البيع", "📦 المخزن", "🧾 الفواتير", "👥 إدارة العملاء", "🤖 المساعد الذكي"])
 
 with tabs[0]: # البيع
     st.header("🛒 البيع والطلب")
@@ -54,7 +52,6 @@ with tabs[0]: # البيع
     
     prods = pd.read_sql("SELECT rowid, * FROM products", conn)
     for idx, row in prods.iterrows():
-        # تعديل هنا: شلنا الـ 0.0 واعتمدنا أرقام صحيحة
         qty = st.number_input(f"{row['name']} (المتوفر: {row['quantity']})", min_value=0, step=1, format="%d", key=f"q_{idx}")
         if qty > 0:
             if 'cart' not in st.session_state: st.session_state.cart = {}
@@ -89,12 +86,19 @@ with tabs[2]: # الفواتير
             pdf_bytes = pdf.output(dest='S').encode('latin-1')
             st.download_button(label="📥 تحميل الفاتورة PDF", data=pdf_bytes, file_name=f"invoice_{row['rowid']}.pdf")
 
-with tabs[3]: # العملاء
+with tabs[3]: # إدارة العملاء (المحدّث)
     st.header("👥 إدارة العملاء")
     with st.form("add_cust"):
-        n = st.text_input("اسم العميل"); ph = st.text_input("رقم الهاتف")
+        c1, c2 = st.columns(2)
+        name = c1.text_input("اسم العميل")
+        phone = c2.text_input("رقم الهاتف")
+        shop = c1.text_input("اسم المحل")
+        addr = c2.text_input("عنوان المحل")
+        prov = c1.text_input("المحافظة")
         if st.form_submit_button("إضافة عميل"): 
-            c.execute("INSERT INTO customers (name, phone) VALUES (?,?)", (n, ph)); conn.commit(); st.rerun()
+            c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (name, phone, shop, addr, prov)); conn.commit(); st.rerun()
+    
+    st.subheader("قائمة العملاء")
     st.table(pd.read_sql("SELECT * FROM customers", conn))
 
 with tabs[4]: # المساعد الذكي
