@@ -3,17 +3,12 @@ import sqlite3
 import pandas as pd
 import random
 import hashlib
-import shutil
 import os
-from datetime import datetime, date
+from datetime import date
 from fpdf import FPDF
 import ast
 
 st.set_page_config(page_title="Eng. Yasser Pro System", layout="wide")
-
-# --- النسخ الاحتياطي التلقائي عند التشغيل ---
-if not os.path.exists("backups"): os.makedirs("backups")
-shutil.copy("final_system_master.db", f"backups/db_backup_{date.today()}.db")
 
 # --- الإعدادات ---
 DB_NAME = 'final_system_master.db'
@@ -26,88 +21,85 @@ c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT, shop_nam
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, date TEXT, payment_type TEXT)')
 conn.commit()
 
-# --- دالة تشفير الباسورد ---
+# --- دالة التشفير ---
 def hash_pw(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
-# --- الدوال ---
-def get_products(): return pd.read_sql("SELECT rowid, * FROM products", conn)
-def get_customers(): return pd.read_sql("SELECT * FROM customers", conn)
-
-# --- تسجيل الدخول (محصن) ---
+# --- تسجيل الدخول ---
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if not st.session_state.logged_in:
     st.title("🔐 Eng. Yasser Pro System")
+    st.subheader("مستمرين نحو الأفضل")
     user = st.text_input("اسم المستخدم")
     pw = st.text_input("كلمة المرور", type="password")
     c1, c2 = st.columns(2)
     if c1.button("دخول"):
         c.execute("SELECT * FROM users WHERE username=? AND password=?", (user, hash_pw(pw)))
         if c.fetchone(): st.session_state.logged_in = True; st.rerun()
-        else: st.error("خطأ في البيانات!")
+        else: st.error("خطأ!")
     if c2.button("دخول كزائر"): st.session_state.logged_in = True; st.rerun()
     st.stop()
 
 # --- الواجهة ---
-st.title("Eng. Yasser Pro System")
+st.title("Eng. Yasser Pro System ✨")
+st.subheader("مستمرين نحو الأفضل")
+
 if st.button("خروج"): st.session_state.logged_in = False; st.rerun()
 
-tabs = st.tabs(["📊 الإحصائيات", "🛒 البيع", "📦 المخزن", "🧾 الفواتير", "👥 العملاء", "🤖 المساعد الذكي"])
+tabs = st.tabs(["🛒 البيع", "📦 المخزن", "🧾 الفواتير", "👥 العملاء", "🤖 المساعد الذكي"])
 
-with tabs[0]: # الإحصائيات
-    st.header("📊 لوحة التحكم")
-    inv = pd.read_sql("SELECT * FROM invoices", conn)
-    if not inv.empty:
-        col1, col2 = st.columns(2)
-        col1.metric("إجمالي المبيعات", f"{inv['total'].sum()} د.ع")
-        st.bar_chart(inv.groupby('payment_type')['total'].sum())
-
-with tabs[1]: # البيع
+with tabs[0]: # البيع
     st.header("🛒 البيع والطلب")
-    cust = st.selectbox("العميل", ["اختر..."] + get_customers()['name'].tolist())
-    prods = get_products()
+    custs = pd.read_sql("SELECT name FROM customers", conn)
+    selected_c = st.selectbox("اختر العميل", ["اختر..."] + custs['name'].tolist())
+    
+    prods = pd.read_sql("SELECT rowid, * FROM products", conn)
     for idx, row in prods.iterrows():
-        q = st.number_input(f"{row['name']} (متوفر: {row['quantity']})", 0, int(row['quantity']), key=f"q_{idx}")
-        if q > 0:
+        # تعديل هنا: شلنا الـ 0.0 واعتمدنا أرقام صحيحة
+        qty = st.number_input(f"{row['name']} (المتوفر: {row['quantity']})", min_value=0, step=1, format="%d", key=f"q_{idx}")
+        if qty > 0:
             if 'cart' not in st.session_state: st.session_state.cart = {}
-            st.session_state.cart[row['name']] = {'price': int(row['price_carton']), 'qty': int(q)}
+            st.session_state.cart[row['name']] = {'price': int(row['price_carton']), 'qty': int(qty)}
+    
     if 'cart' in st.session_state and st.session_state.cart:
         if st.button("✅ إتمام البيع"):
             total = sum(d['price'] * d['qty'] for d in st.session_state.cart.values())
-            c.execute("INSERT INTO invoices VALUES (?,?,?,?,?)", (cust, str(st.session_state.cart), int(total), str(date.today()), "نقد"))
+            c.execute("INSERT INTO invoices VALUES (?,?,?,?,?)", (selected_c, str(st.session_state.cart), int(total), str(date.today()), "نقد"))
             for n, d in st.session_state.cart.items(): c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (int(d['qty']), n))
-            conn.commit(); st.session_state.cart = {}; st.success("تم!"); st.rerun()
+            conn.commit(); st.session_state.cart = {}; st.success("تمت العملية! مستمرين نحو الأفضل"); st.rerun()
 
-with tabs[2]: # المخزن
-    st.header("📦 جرد المخزن")
-    st.table(get_products())
-    with st.form("new_p"):
-        n = st.text_input("مادة"); p = st.number_input("سعر"); q = st.number_input("كمية")
-        if st.form_submit_button("إضافة"): c.execute("INSERT INTO products VALUES (?,?,?)", (n, p, q)); conn.commit(); st.rerun()
+with tabs[1]: # المخزن
+    st.header("📦 إدارة المخزن")
+    st.table(pd.read_sql("SELECT * FROM products", conn))
+    with st.form("new_prod"):
+        n = st.text_input("اسم المادة")
+        p = st.number_input("السعر", min_value=0, step=1, format="%d")
+        q = st.number_input("الكمية", min_value=0, step=1, format="%d")
+        if st.form_submit_button("إضافة مادة"): 
+            c.execute("INSERT INTO products VALUES (?,?,?)", (n, p, q)); conn.commit(); st.rerun()
 
-with tabs[3]: # الفواتير
+with tabs[2]: # الفواتير
     st.header("🧾 سجل الفواتير")
-    search_date = st.date_input("فلترة حسب التاريخ")
-    invs = pd.read_sql(f"SELECT rowid, * FROM invoices WHERE date='{search_date}'", conn)
+    invs = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
     for _, row in invs.iterrows():
         with st.expander(f"فاتورة #{row['rowid']} - {row['customer_name']}"):
             st.write(f"المجموع: {row['total']} د.ع")
-            if st.button(f"📥 تحميل PDF فاتورة #{row['rowid']}"):
-                pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", size=12)
-                pdf.cell(200, 10, txt=f"Invoice #{row['rowid']} - {row['customer_name']}", ln=True)
-                pdf.cell(200, 10, txt=f"Total: {row['total']} IQD", ln=True)
-                pdf.output(f"invoice_{row['rowid']}.pdf"); st.success("تم التوليد!")
+            pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", size=12)
+            pdf.cell(200, 10, txt=f"Invoice #{row['rowid']} - {row['customer_name']}", ln=True)
+            pdf.cell(200, 10, txt=f"Total: {row['total']} IQD", ln=True)
+            pdf_bytes = pdf.output(dest='S').encode('latin-1')
+            st.download_button(label="📥 تحميل الفاتورة PDF", data=pdf_bytes, file_name=f"invoice_{row['rowid']}.pdf")
 
-with tabs[4]: # العملاء
-    st.table(get_customers())
+with tabs[3]: # العملاء
+    st.header("👥 إدارة العملاء")
+    with st.form("add_cust"):
+        n = st.text_input("اسم العميل"); ph = st.text_input("رقم الهاتف")
+        if st.form_submit_button("إضافة عميل"): 
+            c.execute("INSERT INTO customers (name, phone) VALUES (?,?)", (n, ph)); conn.commit(); st.rerun()
+    st.table(pd.read_sql("SELECT * FROM customers", conn))
 
-with tabs[5]: # المساعد الذكي والمفاجآت
+with tabs[4]: # المساعد الذكي
     st.header("🤖 المساعد الذكي")
-    # التنبيهات
-    low = get_products()[get_products()['quantity'] < 5]
-    if not low.empty: st.warning("تنبيه: مواد ناقصة!"); st.table(low)
-    
-    # مفاجآت برمجية (مخفية)
-    with st.expander("🛠️ إعدادات النظام المتقدمة"):
-        if st.button("تحديث صحة النظام"): st.info("النظام يعمل بكفاءة: 99.9%")
-        st.text_area("🗒️ ملاحظاتك الشخصية (لليوم):")
-        st.write(f"Quote of the day: {random.choice(['النجاح يبدأ بخطوة', 'البرمجة فن وعلم', 'مستمرين نحو الأفضل'])}")
+    if st.button("فحص المواد الناقصة"):
+        low = pd.read_sql("SELECT * FROM products WHERE quantity < 5", conn)
+        st.warning("المواد التي شارفت على النفاذ:"); st.table(low)
+    if st.button("اقتراح اسم محل"): st.success(random.choice(["ياسر برو للتقنية", "مخازن المستقبل", "مركز ياسر للحاسبات"]))
