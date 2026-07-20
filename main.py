@@ -4,47 +4,53 @@ import pandas as pd
 from fpdf import FPDF
 import arabic_reshaper
 from bidi.algorithm import get_display
-import os
 
-# --- دالة تحويل النص العربي ---
-def render_arabic(text):
-    # ترتيب الحروف وتصحيح اتجاهها
+# دالة تحويل النص العربي
+def to_arabic(text):
     reshaped_text = arabic_reshaper.reshape(str(text))
-    bidi_text = get_display(reshaped_text)
-    return bidi_text
+    return get_display(reshaped_text)
 
-# --- دالة الـ PDF الجديدة ---
-def create_safe_pdf(row, items):
+# دالة توليد الـ PDF (بدون خطوط خارجية معقدة حالياً)
+def generate_pdf(row, items):
     pdf = FPDF()
     pdf.add_page()
     
-    # محاولة إضافة الخط العربي (تأكد أن الخط موجود في ملف المشروع)
-    # إذا لم يوجد، سيستخدم الخط الافتراضي (لكن مع المكتبات الجديدة سيتعامل مع الرموز بشكل أفضل)
-    font_path = 'DejaVuSans.ttf' 
-    if os.path.exists(font_path):
-        pdf.add_font("Arabic", "", font_path, uni=True)
-        pdf.set_font("Arabic", size=12)
-    else:
-        # إذا لم تجد الخط، البرنامج لن ينهار، سيحاول كتابة العربية
-        pdf.set_font("Arial", size=12)
-
-    # كتابة الفاتورة
-    pdf.cell(200, 10, render_arabic("فاتورة مبيعات"), ln=True, align='C')
+    # استخدام الخط الافتراضي (Unicode المدمج)
+    # ملاحظة: في fpdf2 الخط الافتراضي يدعم اليونيكود بشكل جيد
+    pdf.set_font("Helvetica", size=12)
+    
+    # العنوان
+    pdf.cell(200, 10, to_arabic("فاتورة مبيعات"), ln=True, align='C')
     pdf.ln(10)
     
-    pdf.cell(200, 10, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=True)
-    pdf.ln(5)
+    # المعلومات
+    pdf.cell(200, 10, to_arabic(f"اسم العميل: {row['customer_name']}"), ln=True)
+    pdf.cell(200, 10, to_arabic(f"التاريخ: {row['date']}"), ln=True)
+    pdf.ln(10)
     
-    # جدول المنتجات
-    pdf.cell(80, 10, render_arabic("المادة"), 1)
-    pdf.cell(30, 10, render_arabic("الكمية"), 1)
-    pdf.cell(40, 10, render_arabic("السعر"), 1)
-    pdf.cell(40, 10, render_arabic("الإجمالي"), 1, ln=True)
+    # الجدول
+    pdf.cell(80, 10, to_arabic("المادة"), 1)
+    pdf.cell(30, 10, to_arabic("الكمية"), 1)
+    pdf.cell(40, 10, to_arabic("السعر"), 1)
+    pdf.cell(40, 10, to_arabic("الإجمالي"), 1, ln=True)
     
     for item, data in items.items():
-        pdf.cell(80, 10, render_arabic(str(item)), 1)
-        pdf.cell(30, 10, str(data['qty']), 1)
-        pdf.cell(40, 10, str(data['price']), 1)
-        pdf.cell(40, 10, str(data['qty'] * data['price']), 1, ln=True)
+        pdf.cell(80, 10, to_arabic(str(item)), 1)
+        pdf.cell(30, 10, to_arabic(str(data['qty'])), 1)
+        pdf.cell(40, 10, to_arabic(str(data['price'])), 1)
+        pdf.cell(40, 10, to_arabic(str(data['qty'] * data['price'])), 1, ln=True)
         
-    return pdf.output(dest='S')
+    return pdf.output() # إرجاع الملف مباشرة
+
+# --- في منطقة عرض الفواتير في الـ UI ---
+# استخدم هذه الطريقة لعرض زر التحميل:
+# ... (داخل التكرار الخاص بالفواتير)
+try:
+    pdf_bytes = generate_pdf(row, items)
+    st.download_button(
+        label="📥 تحميل الفاتورة",
+        data=pdf_bytes,
+        file_name=f"invoice_{row['rowid']}.pdf"
+    )
+except Exception as e:
+    st.error(f"حدث خطأ في تحميل الفاتورة: {e}")
