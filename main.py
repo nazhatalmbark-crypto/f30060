@@ -13,28 +13,25 @@ DB_NAME = 'final_system_master.db'
 conn = sqlite3.connect(DB_NAME, check_same_thread=False)
 c = conn.cursor()
 
-# إنشاء الجداول الأساسية
 c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price_carton INTEGER, quantity INTEGER)')
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, phone TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, date TEXT, payment_type TEXT)')
 
-# تحديث الجدول إذا كان ناقصاً (إصلاح الأعمدة)
+# تحديث الجدول إذا كان ناقصاً
 try:
     c.execute("ALTER TABLE invoices ADD COLUMN payment_type TEXT")
     conn.commit()
 except:
-    pass # العمود موجود مسبقاً
-conn.commit()
+    pass
 
-# --- وظائف مساعدة ---
+# --- دالة حماية النصوص ---
 def safe_pdf_text(text):
     return str(text).encode('latin-1', 'replace').decode('latin-1')
 
 def hash_pw(pw): 
     return hashlib.sha256(pw.encode()).hexdigest()
 
-# إنشاء مستخدم أدمن افتراضي
 c.execute("SELECT COUNT(*) FROM users")
 if c.fetchone()[0] == 0:
     c.execute("INSERT INTO users VALUES (?, ?)", ("admin", hash_pw("1234")))
@@ -68,6 +65,7 @@ if not st.session_state.logged_in:
 st.title("Eng. Yasser Pro System ✨")
 if st.button("تسجيل الخروج"): 
     st.session_state.logged_in = False
+    st.session_state.is_guest = False
     st.rerun()
 
 tabs = st.tabs(["🛒 البيع", "📦 المخزن", "🧾 الفواتير", "👥 العملاء", "🤖 المساعد الذكي"])
@@ -100,7 +98,7 @@ with tabs[2]: # الفواتير
             items = ast.literal_eval(row['items'])
             st.table(pd.DataFrame(items).T)
             
-            # PDF مرتب
+            # PDF (تم إصلاح الطريقة هنا)
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", 'B', 16)
@@ -120,7 +118,9 @@ with tabs[2]: # الفواتير
                 pdf.cell(40, 10, str(data['price']), 1)
                 pdf.cell(40, 10, str(data['qty']*data['price']), 1, 1)
             pdf.cell(190, 10, f"TOTAL: {row['total']} IQD", 1, 1, 'R')
-            st.download_button("📥 تحميل PDF", pdf.output(dest='S').encode('latin-1'), f"inv_{row['rowid']}.pdf")
+            
+            # طريقة تحميل حديثة تمنع الـ AttributeError
+            st.download_button("📥 تحميل PDF", data=pdf.output(), file_name=f"inv_{row['rowid']}.pdf")
 
 with tabs[3]: # العملاء
     st.header("👥 العملاء")
