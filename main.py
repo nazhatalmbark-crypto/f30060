@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 import hashlib
 import ast
+import os
 from datetime import date
 from fpdf import FPDF
 
@@ -24,10 +25,6 @@ try:
     conn.commit()
 except:
     pass
-
-# --- دالة حماية النصوص ---
-def safe_pdf_text(text):
-    return str(text).encode('latin-1', 'replace').decode('latin-1')
 
 def hash_pw(pw): 
     return hashlib.sha256(pw.encode()).hexdigest()
@@ -95,40 +92,83 @@ with tabs[1]: # المخزن
     st.dataframe(pd.read_sql("SELECT * FROM products", conn), use_container_width=True)
 
 with tabs[2]: # الفواتير
-    st.header("🧾 سجل الفواتير وتوليد الـ PDF")
+    st.header("🧾 سجل الفواتير وتوليد الـ PDF (عربي / إنجليزي)")
     invs_df = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
     if invs_df.empty:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
     else:
         for _, row in invs_df.iterrows():
-            with st.expander(f"فاتورة #{row['rowid']} - العميل: {row['customer_name']} | التاريخ: {row['date']}"):
+            with st.expander(f"فاتورة رقم #{row['rowid']} - العميل: {row['customer_name']} | التاريخ: {row['date']}"):
                 items = ast.literal_eval(row['items'])
                 st.table(pd.DataFrame(items).T)
                 
-                # إعداد الـ PDF بشكل مرتب
+                # إعداد الـ PDF مع دعم الخطوط العربية والإنجليزية (Unicode)
                 pdf = FPDF()
                 pdf.add_page()
-                pdf.set_font("Arial", 'B', 16)
-                pdf.cell(200, 10, "INVOICE", ln=True, align='C')
-                pdf.set_font("Arial", size=12)
-                pdf.cell(200, 10, f"Customer: {safe_pdf_text(row['customer_name'])}", ln=True)
-                pdf.cell(200, 10, f"Date: {row['date']}", ln=True)
+                
+                # محاولة تحميل خط يدعم العربية (DejaVuSans المدمج في السيرفر)
+                font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
+                font_bold_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+                
+                if os.path.exists(font_path):
+                    pdf.add_font('UnicodeFont', '', font_path, uni=True)
+                    if os.path.exists(font_bold_path):
+                        pdf.add_font('UnicodeFont', 'B', font_bold_path, uni=True)
+                    else:
+                        pdf.add_font('UnicodeFont', 'B', font_path, uni=True)
+                    pdf.set_font('UnicodeFont', 'B', 16)
+                else:
+                    pdf.set_font("Arial", 'B', 16)
+
+                # رأس الفاتورة (مزدوج اللغة)
+                pdf.cell(200, 10, "INVOICE / فاتورة مبيعات", ln=True, align='C')
+                
+                if os.path.exists(font_path):
+                    pdf.set_font('UnicodeFont', '', 12)
+                else:
+                    pdf.set_font("Arial", size=12)
+                    
+                pdf.ln(5)
+                pdf.cell(200, 8, f"Invoice ID / رقم الفاتورة: #{row['rowid']}", ln=True)
+                pdf.cell(200, 8, f"Customer Name / اسم العميل: {row['customer_name']}", ln=True)
+                pdf.cell(200, 8, f"Date / التاريخ: {row['date']}", ln=True)
                 pdf.ln(5)
                 
-                # جدول الـ PDF
-                pdf.set_fill_color(200, 200, 200)
-                pdf.cell(80, 10, "Item", 1, 0, 'C', True)
-                pdf.cell(30, 10, "Qty", 1, 0, 'C', True)
-                pdf.cell(40, 10, "Price", 1, 0, 'C', True)
-                pdf.cell(40, 10, "Total", 1, 1, 'C', True)
-                for item, data in items.items():
-                    pdf.cell(80, 10, safe_pdf_text(item), 1)
-                    pdf.cell(30, 10, str(data['qty']), 1)
-                    pdf.cell(40, 10, str(data['price']), 1)
-                    pdf.cell(40, 10, str(data['qty']*data['price']), 1, 1)
-                pdf.cell(190, 10, f"TOTAL: {row['total']} IQD", 1, 1, 'R')
+                # جدول الفاتورة
+                if os.path.exists(font_path):
+                    pdf.set_font('UnicodeFont', 'B', 10)
+                else:
+                    pdf.set_font("Arial", 'B', 10)
+                    
+                pdf.set_fill_color(230, 230, 230)
+                pdf.cell(80, 10, "Item Name / اسم المادة", border=1, fill=True, align='C')
+                pdf.cell(30, 10, "Qty / الكمية", border=1, fill=True, align='C')
+                pdf.cell(40, 10, "Price / السعر", border=1, fill=True, align='C')
+                pdf.cell(40, 10, "Total / الإجمالي", border=1, fill=True, ln=True, align='C')
                 
-                # تحويل آمن لبيانات الـ PDF لتجنب أي استثناءات في ستريم ليت
+                if os.path.exists(font_path):
+                    pdf.set_font('UnicodeFont', '', 10)
+                else:
+                    pdf.set_font("Arial", size=10)
+                    
+                for item_name, data in items.items():
+                    q = data['qty']
+                    p = data['price']
+                    tot = q * p
+                    pdf.cell(80, 9, str(item_name), border=1, align='L')
+                    pdf.cell(30, 9, str(q), border=1, align='C')
+                    pdf.cell(40, 9, str(p), border=1, align='R')
+                    pdf.cell(40, 9, str(tot), border=1, ln=True, align='R')
+                
+                pdf.ln(5)
+                if os.path.exists(font_path):
+                    pdf.set_font('UnicodeFont', 'B', 12)
+                else:
+                    pdf.set_font("Arial", 'B', 12)
+                    
+                pdf.cell(190, 10, f"GRAND TOTAL / المجموع الكلي: {row['total']} IQD", border=1, align='R')
+                
+                # تحويل آمن لبيانات الـ PDF للتحميل
                 raw_pdf = pdf.output()
                 if isinstance(raw_pdf, str):
                     pdf_data = raw_pdf.encode('latin-1')
@@ -136,9 +176,9 @@ with tabs[2]: # الفواتير
                     pdf_data = bytes(raw_pdf)
 
                 st.download_button(
-                    label="📥 تحميل PDF", 
+                    label="📥 تحميل الفاتورة PDF (عربي/إنجليزي)", 
                     data=pdf_data, 
-                    file_name=f"inv_{row['rowid']}.pdf", 
+                    file_name=f"invoice_{row['rowid']}.pdf", 
                     mime="application/pdf",
                     key=f"dl_pdf_{row['rowid']}"
                 )
@@ -146,7 +186,8 @@ with tabs[2]: # الفواتير
 with tabs[3]: # العملاء
     st.header("👥 العملاء")
     with st.form("add_c", clear_on_submit=True):
-        n = st.text_input("اسم العميل"); p = st.text_input("هاتف")
+        n = st.text_input("اسم العميل / المحل")
+        p = st.text_input("رقم الهاتف")
         if st.form_submit_button("إضافة"): 
             if n:
                 c.execute("INSERT INTO customers VALUES (?,?)", (n, p))
