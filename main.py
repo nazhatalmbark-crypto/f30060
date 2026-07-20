@@ -2,39 +2,46 @@ def create_safe_pdf(row, items):
     pdf = FPDF()
     pdf.add_page()
     
-    # 1. تعريف الخط (تأكد أن الاسم بين القوسين يطابق اسم الملف الذي رفعته تماماً)
-    font_name = "MyArabicFont"
-    font_filename = "DejaVuSans.ttf"  # <--- غيّر هذا الاسم إذا كان اسم ملفك مختلفاً (مثلاً "Cairo.ttf")
+    # --- إعداد الخط ---
+    # تأكد أن اسم الملف هنا يطابق اسم ملف الخط الذي رفعته في GitHub حرفياً
+    font_filename = "DejaVuSans.ttf" 
     
-    try:
-        pdf.add_font(font_name, "", font_filename, uni=True)
-        pdf.set_font(font_name, size=12)
-    except:
-        # إذا فشل تحميل الخط، سيستخدم الخط الافتراضي ولا ينهار
-        pdf.set_font("Arial", size=12)
-    
-    # العنوان
-    pdf.cell(200, 10, "INVOICE / فاتورة مبيعات", ln=True, align='C')
-    
-    pdf.ln(5)
-    pdf.cell(200, 10, f"Customer / العميل: {row['customer_name']}", ln=True)
-    pdf.ln(5)
-    
-    # الجدول
-    pdf.cell(80, 10, "Item / المادة", 1)
-    pdf.cell(30, 10, "Qty / الكمية", 1)
-    pdf.cell(40, 10, "Price / السعر", 1)
-    pdf.cell(40, 10, "Total / المجموع", 1, ln=True)
-    
-    for item, data in items.items():
-        # استخدام try لحماية كل خلية من الانهيار
+    # نستخدم Latin-1 للترميز لتجنب أي انهيار، ونستبدل الحروف غير المدعومة بعلامة استفهام
+    def clean_text(text):
+        return str(text).encode('latin-1', 'replace').decode('latin-1')
+
+    # محاولة إضافة الخط العربي
+    if os.path.exists(font_filename):
         try:
-            pdf.cell(80, 10, str(item), 1)
+            pdf.add_font("CustomFont", "", font_filename, uni=True)
+            pdf.set_font("CustomFont", size=12)
         except:
-            pdf.cell(80, 10, "Item Name", 1) # إذا فشل الخط، يكتب إنجليزي
+            pdf.set_font("Arial", size=12) # فشل الخط، نستخدم Arial
+    else:
+        pdf.set_font("Arial", size=12) # الملف غير موجود، نستخدم Arial
+    
+    # --- كتابة البيانات ---
+    try:
+        # استخدام clean_text لكل النصوص لضمان عدم حدوث EncodingException
+        pdf.cell(200, 10, clean_text("INVOICE / فاتورة مبيعات"), ln=True, align='C')
+        pdf.ln(10)
+        pdf.cell(200, 10, clean_text(f"Customer: {row['customer_name']}"), ln=True)
+        pdf.ln(5)
+        
+        # الجدول
+        pdf.cell(80, 10, clean_text("Item"), 1)
+        pdf.cell(30, 10, clean_text("Qty"), 1)
+        pdf.cell(40, 10, clean_text("Price"), 1)
+        pdf.cell(40, 10, clean_text("Total"), 1, ln=True)
+        
+        for item, data in items.items():
+            pdf.cell(80, 10, clean_text(str(item)), 1)
+            pdf.cell(30, 10, clean_text(str(data['qty'])), 1)
+            pdf.cell(40, 10, clean_text(str(data['price'])), 1)
+            pdf.cell(40, 10, clean_text(str(data['qty']*data['price'])), 1, ln=True)
             
-        pdf.cell(30, 10, str(data['qty']), 1)
-        pdf.cell(40, 10, str(data['price']), 1)
-        pdf.cell(40, 10, str(data['qty']*data['price']), 1, ln=True)
+    except Exception as e:
+        # إذا فشل الرسم تماماً، يكتب الخطأ داخل ملف الـ PDF لنعرف السبب
+        pdf.cell(200, 10, f"Critical Error: {str(e)}", ln=True)
         
     return pdf.output(dest='S')
