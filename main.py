@@ -53,7 +53,7 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.is_guest = False
                 st.rerun()
-            else: st.error("خطأ!")
+            else: st.error("خطأ في اسم المستخدم أو كلمة المرور!")
     with tab2:
         if st.button("🚀 الدخول السريع كضيف"):
             st.session_state.logged_in = True
@@ -61,8 +61,11 @@ if not st.session_state.logged_in:
             st.rerun()
     st.stop()
 
-# --- الواجهة ---
+# --- الواجهة الرئيسية ---
 st.title("Eng. Yasser Pro System ✨")
+if st.session_state.is_guest:
+    st.info("أنت متصفح الآن في وضع (الضيف).")
+
 if st.button("تسجيل الخروج"): 
     st.session_state.logged_in = False
     st.session_state.is_guest = False
@@ -73,7 +76,7 @@ tabs = st.tabs(["🛒 البيع", "📦 المخزن", "🧾 الفواتير",
 with tabs[0]: # البيع
     st.header("🛒 نقطة البيع")
     custs = pd.read_sql("SELECT name FROM customers", conn)
-    if custs.empty: st.warning("أضف عملاء أولاً!")
+    if custs.empty: st.warning("أضف عملاء أولاً من تبويب العملاء!")
     else:
         selected_c = st.selectbox("اختر العميل", ["اختر..."] + custs['name'].tolist())
         prods = pd.read_sql("SELECT rowid, * FROM products", conn)
@@ -85,60 +88,99 @@ with tabs[0]: # البيع
             total = sum(d['price'] * d['qty'] for d in cart.values())
             c.execute("INSERT INTO invoices VALUES (?,?,?,?,?)", (selected_c, str(cart), int(total), str(date.today()), "نقد"))
             for n, d in cart.items(): c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (int(d['qty']), n))
-            conn.commit(); st.success("تم الحفظ!"); st.rerun()
+            conn.commit(); st.success("تم الحفظ بنجاح!"); st.rerun()
 
 with tabs[1]: # المخزن
     st.header("📦 عرض المخزن")
     st.dataframe(pd.read_sql("SELECT * FROM products", conn), use_container_width=True)
 
 with tabs[2]: # الفواتير
-    st.header("🧾 سجل الفواتير")
-    for _, row in pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn).iterrows():
-        with st.expander(f"فاتورة #{row['rowid']} - {row['customer_name']}"):
-            items = ast.literal_eval(row['items'])
-            st.table(pd.DataFrame(items).T)
-            
-            # PDF (تم إصلاح الطريقة هنا)
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", 'B', 16)
-            pdf.cell(200, 10, "INVOICE", ln=True, align='C')
-            pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, f"Customer: {safe_pdf_text(row['customer_name'])}", ln=True)
-            pdf.ln(5)
-            # الجدول
-            pdf.set_fill_color(200, 200, 200)
-            pdf.cell(80, 10, "Item", 1, 0, 'C', True)
-            pdf.cell(30, 10, "Qty", 1, 0, 'C', True)
-            pdf.cell(40, 10, "Price", 1, 0, 'C', True)
-            pdf.cell(40, 10, "Total", 1, 1, 'C', True)
-            for item, data in items.items():
-                pdf.cell(80, 10, safe_pdf_text(item), 1)
-                pdf.cell(30, 10, str(data['qty']), 1)
-                pdf.cell(40, 10, str(data['price']), 1)
-                pdf.cell(40, 10, str(data['qty']*data['price']), 1, 1)
-            pdf.cell(190, 10, f"TOTAL: {row['total']} IQD", 1, 1, 'R')
-            
-            # طريقة تحميل حديثة تمنع الـ AttributeError
-            st.download_button("📥 تحميل PDF", data=pdf.output(), file_name=f"inv_{row['rowid']}.pdf")
+    st.header("🧾 سجل الفواتير وتوليد الـ PDF")
+    invs_df = pd.read_sql("SELECT rowid, * FROM invoices ORDER BY rowid DESC", conn)
+    if invs_df.empty:
+        st.info("لا توجد فواتير مسجلة حتى الآن.")
+    else:
+        for _, row in invs_df.iterrows():
+            with st.expander(f"فاتورة #{row['rowid']} - العميل: {row['customer_name']} | التاريخ: {row['date']}"):
+                items = ast.literal_eval(row['items'])
+                st.table(pd.DataFrame(items).T)
+                
+                # إعداد الـ PDF بشكل مرتب
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", 'B', 16)
+                pdf.cell(200, 10, "INVOICE", ln=True, align='C')
+                pdf.set_font("Arial", size=12)
+                pdf.cell(200, 10, f"Customer: {safe_pdf_text(row['customer_name'])}", ln=True)
+                pdf.cell(200, 10, f"Date: {row['date']}", ln=True)
+                pdf.ln(5)
+                
+                # جدول الـ PDF
+                pdf.set_fill_color(200, 200, 200)
+                pdf.cell(80, 10, "Item", 1, 0, 'C', True)
+                pdf.cell(30, 10, "Qty", 1, 0, 'C', True)
+                pdf.cell(40, 10, "Price", 1, 0, 'C', True)
+                pdf.cell(40, 10, "Total", 1, 1, 'C', True)
+                for item, data in items.items():
+                    pdf.cell(80, 10, safe_pdf_text(item), 1)
+                    pdf.cell(30, 10, str(data['qty']), 1)
+                    pdf.cell(40, 10, str(data['price']), 1)
+                    pdf.cell(40, 10, str(data['qty']*data['price']), 1, 1)
+                pdf.cell(190, 10, f"TOTAL: {row['total']} IQD", 1, 1, 'R')
+                
+                # تحويل آمن لبيانات الـ PDF لتجنب أي استثناءات في ستريم ليت
+                raw_pdf = pdf.output()
+                if isinstance(raw_pdf, str):
+                    pdf_data = raw_pdf.encode('latin-1')
+                else:
+                    pdf_data = bytes(raw_pdf)
+
+                st.download_button(
+                    label="📥 تحميل PDF", 
+                    data=pdf_data, 
+                    file_name=f"inv_{row['rowid']}.pdf", 
+                    mime="application/pdf",
+                    key=f"dl_pdf_{row['rowid']}"
+                )
 
 with tabs[3]: # العملاء
     st.header("👥 العملاء")
     with st.form("add_c", clear_on_submit=True):
         n = st.text_input("اسم العميل"); p = st.text_input("هاتف")
-        if st.form_submit_button("إضافة"): c.execute("INSERT INTO customers VALUES (?,?)", (n, p)); conn.commit(); st.rerun()
+        if st.form_submit_button("إضافة"): 
+            if n:
+                c.execute("INSERT INTO customers VALUES (?,?)", (n, p))
+                conn.commit()
+                st.success("تم إضافة العميل بنجاح!")
+                st.rerun()
+            else:
+                st.warning("أدخل اسم العميل على الأقل.")
     st.table(pd.read_sql("SELECT * FROM customers", conn))
 
-with tabs[4]: # المساعد
+with tabs[4]: # المساعد الذكي وجرد المخزن
     st.header("🤖 المساعد الذكي - جرد المخزن")
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("➕ إضافة مادة")
+        st.subheader("➕ إضافة مادة جديدة")
         with st.form("add_p", clear_on_submit=True):
-            n = st.text_input("اسم المادة"); p = st.number_input("السعر"); q = st.number_input("الكمية")
-            if st.form_submit_button("حفظ"): c.execute("INSERT INTO products VALUES (?,?,?)", (n, p, q)); conn.commit(); st.rerun()
+            n = st.text_input("اسم المادة")
+            p = st.number_input("السعر", min_value=0, step=1)
+            q = st.number_input("الكمية", min_value=0, step=1)
+            if st.form_submit_button("حفظ المادة"):
+                if n:
+                    c.execute("INSERT INTO products VALUES (?,?,?)", (n, p, q))
+                    conn.commit()
+                    st.success("تم حفظ المادة بنجاح!")
+                    st.rerun()
+                else:
+                    st.warning("أدخل اسم المادة.")
     with c2:
-        st.subheader("📊 جرد المخزن")
-        st.table(pd.read_sql("SELECT * FROM products", conn))
-        if st.button("فحص النواقص"):
-            st.table(pd.read_sql("SELECT * FROM products WHERE quantity < 5", conn))
+        st.subheader("📊 جرد المخزن الشامل")
+        st.dataframe(pd.read_sql("SELECT * FROM products", conn), use_container_width=True)
+        if st.button("🔍 فحص النواقص"):
+            low_stock = pd.read_sql("SELECT * FROM products WHERE quantity < 5", conn)
+            if not low_stock.empty:
+                st.warning("مواد شارفت على النفاذ:")
+                st.table(low_stock)
+            else:
+                st.success("المخزن بحالة ممتازة ولا توجد نواقص حرجة.")
