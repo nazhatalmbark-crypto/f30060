@@ -11,19 +11,18 @@ from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
 
-# --- دالة التحميل التلقائي للخط العربي (محسنة ومضمونة) ---
+# --- دالة التحميل التلقائي للخط العربي (مصصححة) ---
 def ensure_font():
     font_path = 'DejaVuSans.ttf'
     if not os.path.exists(font_path):
         try:
-            # استخدام رابط مباشر وموثوق لملف الخط
             url = "https://github.com/dejavu-fonts/dejavu-fonts.github.io/raw/master/ttf/DejaVuSans.ttf"
             headers = {'User-Agent': 'Mozilla/5.0'}
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req) as response, open(font_path, 'wb') as out_file:
                 out_file.write(response.read())
         except Exception as e:
-            st.warning(ملاحظة: تعذر التحميل التلقائي للخط ({e}). يرجى التأكد من الاتصال بالإنترنت.)
+            st.warning(f"ملاحظة: تعذر التحميل التلقائي للخط ({e}). يرجى التأكد من الاتصال بالإنترنت.")
 
 ensure_font()
 
@@ -64,7 +63,6 @@ def generate_pdf(row, items):
     
     font_path = 'DejaVuSans.ttf'
     if not os.path.exists(font_path):
-        # خط احتياطي في حال لم يتوفر الملف نهائياً
         pdf.set_font("Arial", size=14)
         pdf.cell(200, 10, "Invoice Font Error: DejaVuSans.ttf missing", ln=True, align='C')
         return bytes(pdf.output())
@@ -90,7 +88,7 @@ def generate_pdf(row, items):
     pdf.cell(40, 10, render_arabic("السعر"), 1, 0, 'C')
     pdf.cell(40, 10, render_arabic("الإجمالي"), 1, 1, 'C')
     
-    # محتوى الجدول (المنتجات المقصوصة والكميات)
+    # محتوى الجدول
     for item, data in items.items():
         pdf.cell(80, 10, render_arabic(str(item)), 1)
         pdf.cell(30, 10, str(data['qty']), 1, 0, 'C')
