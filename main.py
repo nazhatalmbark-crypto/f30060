@@ -3,8 +3,6 @@ import sqlite3
 import pandas as pd
 import ast
 import os
-import urllib.request
-import ssl
 from datetime import date
 from fpdf import FPDF
 import arabic_reshaper
@@ -12,33 +10,16 @@ from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
 
-# --- دالة التحميل الذكي المتعدد الروابط للخط العربي ---
+# --- دالة البحث عن الخط في نظام السيرفر (بعد إضافة packages.txt) ---
 def ensure_font():
-    font_path = 'DejaVuSans.ttf'
-    if os.path.exists(font_path) and os.path.getsize(font_path) > 1000:
-        return font_path
-    
-    # روابط بديلة وموثوقة جداً لتحميل الخط
-    urls = [
-        "https://github.com/dejavu-fonts/dejavu-fonts.github.io/raw/master/ttf/DejaVuSans.ttf",
-        "https://cdn.jsdelivr.net/gh/dejavu-fonts/dejavu-fonts.github.io@master/ttf/DejaVuSans.ttf",
-        "https://raw.githubusercontent.com/google/fonts/main/ofl/dejavusans/DejaVuSans.ttf"
+    system_paths = [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+        '/usr/local/share/fonts/DejaVuSans.ttf'
     ]
-    
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    
-    for url in urls:
-        try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, context=ctx, timeout=10) as response, open(font_path, 'wb') as out_file:
-                out_file.write(response.read())
-            if os.path.exists(font_path) and os.path.getsize(font_path) > 1000:
-                return font_path
-        except:
-            continue
-            
+    for path in system_paths:
+        if os.path.exists(path):
+            return path
     return None
 
 # --- قاعدة البيانات وتحديث الجداول تلقائياً ---
@@ -79,7 +60,7 @@ def generate_pdf(row, items):
     font_path = ensure_font()
     if not font_path:
         pdf.set_font("Arial", size=14)
-        pdf.cell(200, 10, "Invoice Font Error: DejaVuSans missing", ln=True, align='C')
+        pdf.cell(200, 10, "Invoice Font Error: DejaVuSans missing from system", ln=True, align='C')
         return bytes(pdf.output())
     
     pdf.add_font("ArabicFont", "", font_path, uni=True)
