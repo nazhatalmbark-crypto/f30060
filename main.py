@@ -6,8 +6,6 @@ import os
 import urllib.request
 from datetime import date
 from fpdf import FPDF
-import arabic_reshaper
-from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
 
@@ -44,49 +42,42 @@ for col_def in [
     except:
         pass
 
-# --- دالة النص العربي ---
-def render_arabic(text):
-    try:
-        reshaped_text = arabic_reshaper.reshape(str(text))
-        return get_display(reshaped_text)
-    except:
-        return str(text)
-
-# --- دالة توليد الفاتورة العربية بالكامل ---
+# --- دالة توليد الفاتورة العربية بالكامل باستخدام fpdf2 الحديثة ---
 def generate_pdf(row, items):
     pdf = FPDF()
+    pdf.set_text_shaping(True)  # تفعيل ميزة تشكيل النصوص العربية و RTL تلقائياً في fpdf2
     pdf.add_page()
     
     font_path = ensure_font()
     if not font_path:
-        pdf.set_font("Arial", size=14)
-        pdf.cell(200, 10, "Invoice Font Error: DejaVuSans missing", ln=True, align='C')
-        return "Invoice Font Error".encode('utf-8')
+        pdf.set_font("helvetica", size=14)
+        pdf.cell(200, 10, "Font Error: DejaVuSans missing", ln=True, align='C')
+        return pdf.output()
     
-    pdf.add_font("ArabicFont", "", font_path, uni=True)
+    pdf.add_font("ArabicFont", "", font_path)
     pdf.set_font("ArabicFont", size=16)
     
     # رأس الفاتورة
-    pdf.cell(200, 10, render_arabic("فاتورة مبيعات رسمية"), ln=True, align='C')
+    pdf.cell(200, 10, "فاتورة مبيعات رسمية", ln=True, align='C')
     pdf.ln(5)
     
     # معلومات العميل والمحل
     pdf.set_font("ArabicFont", size=12)
-    pdf.cell(200, 10, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=True)
-    pdf.cell(200, 10, render_arabic(f"اسم المحل: {row.get('shop_name', 'غير متوفر')}"), ln=True)
-    pdf.cell(200, 10, render_arabic(f"العنوان: {row.get('address', 'غير متوفر')}"), ln=True)
-    pdf.cell(200, 10, render_arabic(f"تاريخ الفاتورة: {row['date']}"), ln=True)
+    pdf.cell(200, 10, f"اسم العميل: {row['customer_name']}", ln=True)
+    pdf.cell(200, 10, f"اسم المحل: {row.get('shop_name', 'غير متوفر')}", ln=True)
+    pdf.cell(200, 10, f"العنوان: {row.get('address', 'غير متوفر')}", ln=True)
+    pdf.cell(200, 10, f"تاريخ الفاتورة: {row['date']}", ln=True)
     pdf.ln(10)
     
     # رأس جدول المنتجات
-    pdf.cell(80, 10, render_arabic("المادة"), 1, 0, 'C')
-    pdf.cell(30, 10, render_arabic("الكمية"), 1, 0, 'C')
-    pdf.cell(40, 10, render_arabic("السعر"), 1, 0, 'C')
-    pdf.cell(40, 10, render_arabic("الإجمالي"), 1, 1, 'C')
+    pdf.cell(80, 10, "المادة", 1, 0, 'C')
+    pdf.cell(30, 10, "الكمية", 1, 0, 'C')
+    pdf.cell(40, 10, "السعر", 1, 0, 'C')
+    pdf.cell(40, 10, "الإجمالي", 1, 1, 'C')
     
     # محتوى الجدول
     for item, data in items.items():
-        pdf.cell(80, 10, render_arabic(str(item)), 1)
+        pdf.cell(80, 10, str(item), 1)
         pdf.cell(30, 10, str(data['qty']), 1, 0, 'C')
         pdf.cell(40, 10, str(data['price']), 1, 0, 'C')
         pdf.cell(40, 10, str(data['qty'] * data['price']), 1, 1, 'C')
@@ -94,12 +85,9 @@ def generate_pdf(row, items):
     # المجموع الكلي النهائي
     pdf.ln(10)
     pdf.set_font("ArabicFont", size=14)
-    pdf.cell(200, 10, render_arabic(f"المجموع الكلي النهائي: {row['total']} دينار"), ln=True, align='R')
+    pdf.cell(200, 10, f"المجموع الكلي النهائي: {row['total']} دينار", ln=True, align='R')
         
-    output = pdf.output()
-    if isinstance(output, str):
-        return output.encode('latin1')
-    return bytes(output)
+    return pdf.output()
 
 # --- تسجيل الدخول ---
 if 'logged_in' not in st.session_state: 
@@ -180,7 +168,7 @@ with tabs[1]: # الفواتير وتحميلها
                 try:
                     pdf_data = generate_pdf(row, items)
                     st.download_button(
-                        label="📥 تحميل الفاتورة PDF (عربي مرتب)", 
+                        label="📥 تحميل الفاتورة PDF (عربي مرتب ونظامي)", 
                         data=pdf_data, 
                         file_name=f"invoice_{row['rowid']}.pdf",
                         mime="application/pdf",
