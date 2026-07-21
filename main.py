@@ -11,15 +11,15 @@ from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
 
-# --- دالة تحميل الخط المضمون 100% من CDN سريع ---
+# --- دالة تحميل الخط المضمون للغة العربية ---
 def ensure_font():
     font_path = "DejaVuSans.ttf"
     if not os.path.exists(font_path) or os.path.getsize(font_path) < 10000:
         try:
             url = "https://cdn.jsdelivr.net/npm/kendo-ui-core@2021.1.224/css/web/fonts/DejaVu/DejaVuSans.ttf"
             urllib.request.urlretrieve(url, font_path)
-        except Exception as e:
-            st.error(f"خطأ في تحميل الخط: {e}")
+        except Exception:
+            pass
     return font_path if os.path.exists(font_path) else None
 
 # --- قاعدة البيانات وتحديث الجداول تلقائياً ---
@@ -30,13 +30,14 @@ c = conn.cursor()
 c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price_carton INTEGER, quantity INTEGER)')
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, shop_name TEXT, phone TEXT, address TEXT, governorate TEXT)')
-c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, shop_name TEXT, address TEXT, items TEXT, total INTEGER, date TEXT, payment_type TEXT)')
+c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, shop_name TEXT, address TEXT, phone TEXT, items TEXT, total INTEGER, date TEXT, payment_type TEXT)')
 
 # ترقية الجداول القديمة تلقائياً إذا كانت ناقصة أعمدة
 for col_def in [
     ("customers", "shop_name", "TEXT"), ("customers", "phone", "TEXT"), 
     ("customers", "address", "TEXT"), ("customers", "governorate", "TEXT"),
-    ("invoices", "shop_name", "TEXT"), ("invoices", "address", "TEXT"), ("invoices", "payment_type", "TEXT")
+    ("invoices", "shop_name", "TEXT"), ("invoices", "address", "TEXT"), 
+    ("invoices", "phone", "TEXT"), ("invoices", "payment_type", "TEXT")
 ]:
     try:
         c.execute(f"ALTER TABLE {col_def[0]} ADD COLUMN {col_def[1]} {col_def[2]}")
@@ -52,7 +53,7 @@ def render_arabic(text):
     except:
         return str(text)
 
-# --- دالة توليد الفاتورة العربية بالكامل ---
+# --- دالة توليد الفاتورة الملونة وبتصميم الدفتر ومع رقم العميل ---
 def generate_pdf(row, items):
     pdf = FPDF()
     pdf.add_page()
@@ -64,37 +65,64 @@ def generate_pdf(row, items):
         return bytes(pdf.output())
     
     pdf.add_font("ArabicFont", "", font_path)
-    pdf.set_font("ArabicFont", size=16)
     
-    # رأس الفاتورة
-    pdf.cell(200, 10, render_arabic("فاتورة مبيعات رسمية"), ln=True, align='C')
-    pdf.ln(5)
+    # --- شريط العنوان الملون (بارز ومرتب) ---
+    pdf.set_fill_color(31, 78, 121) # أزرق غامق احترافي
+    pdf.rect(10, 10, 190, 20, 'F')
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("ArabicFont", size=15)
+    pdf.set_xy(10, 12)
+    pdf.cell(190, 16, render_arabic("Eng. Yasser Pro System - فاتورة مبيعات رسمية"), align='C')
     
-    # معلومات العميل والمحل
+    pdf.ln(25)
+    
+    # --- معلومات العميل (بخلفية ملونة خفيفة) ---
+    pdf.set_text_color(40, 40, 40)
+    pdf.set_font("ArabicFont", size=11)
+    
+    pdf.set_fill_color(245, 247, 250)
+    pdf.rect(10, 35, 190, 32, 'F')
+    
+    pdf.set_xy(15, 38)
+    pdf.cell(90, 7, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=0)
+    pdf.cell(90, 7, render_arabic(f"اسم المحل: {row.get('shop_name', 'غير متوفر')}"), ln=1)
+    
+    pdf.set_xy(15, 47)
+    pdf.cell(90, 7, render_arabic(f"رقم الهاتف: {row.get('phone', 'غير متوفر')}"), ln=0)
+    pdf.cell(90, 7, render_arabic(f"تاريخ الفاتورة: {row['date']}"), ln=1)
+    
+    pdf.set_xy(15, 56)
+    pdf.cell(180, 7, render_arabic(f"العنوان: {row.get('address', 'غير متوفر')}"), ln=1)
+    
+    pdf.ln(15)
+    
+    # --- رأس جدول المنتجات (ملون) ---
+    pdf.set_fill_color(52, 152, 219) # أزرق مميز لرأس الجدول
+    pdf.set_text_color(255, 255, 255)
     pdf.set_font("ArabicFont", size=12)
-    pdf.cell(200, 10, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=True)
-    pdf.cell(200, 10, render_arabic(f"اسم المحل: {row.get('shop_name', 'غير متوفر')}"), ln=True)
-    pdf.cell(200, 10, render_arabic(f"العنوان: {row.get('address', 'غير متوفر')}"), ln=True)
-    pdf.cell(200, 10, render_arabic(f"تاريخ الفاتورة: {row['date']}"), ln=True)
-    pdf.ln(10)
     
-    # رأس جدول المنتجات
-    pdf.cell(80, 10, render_arabic("المادة"), 1, 0, 'C')
-    pdf.cell(30, 10, render_arabic("الكمية"), 1, 0, 'C')
-    pdf.cell(40, 10, render_arabic("السعر"), 1, 0, 'C')
-    pdf.cell(40, 10, render_arabic("الإجمالي"), 1, 1, 'C')
+    pdf.cell(80, 10, render_arabic("المادة"), 1, 0, 'C', fill=True)
+    pdf.cell(30, 10, render_arabic("الكمية"), 1, 0, 'C', fill=True)
+    pdf.cell(40, 10, render_arabic("السعر"), 1, 0, 'C', fill=True)
+    pdf.cell(40, 10, render_arabic("الإجمالي"), 1, 1, 'C', fill=True)
     
-    # محتوى الجدول
+    # --- محتوى الجدول (بتصميم خطوط الدفتر - Ledger lines) ---
+    pdf.set_text_color(40, 40, 40)
+    pdf.set_font("ArabicFont", size=11)
+    pdf.set_draw_color(210, 210, 210) # خطوط رمادية فاتحة تشبه الدفتر
+    
     for item, data in items.items():
-        pdf.cell(80, 10, render_arabic(str(item)), 1)
-        pdf.cell(30, 10, str(data['qty']), 1, 0, 'C')
-        pdf.cell(40, 10, str(data['price']), 1, 0, 'C')
-        pdf.cell(40, 10, str(data['qty'] * data['price']), 1, 1, 'C')
+        pdf.cell(80, 9, render_arabic(str(item)), 'LRB', 0, 'R')
+        pdf.cell(30, 9, str(data['qty']), 'LRB', 0, 'C')
+        pdf.cell(40, 9, str(data['price']), 'LRB', 0, 'C')
+        pdf.cell(40, 9, str(data['qty'] * data['price']), 'LRB', 1, 'C')
         
-    # المجموع الكلي النهائي
-    pdf.ln(10)
-    pdf.set_font("ArabicFont", size=14)
-    pdf.cell(200, 10, render_arabic(f"المجموع الكلي النهائي: {row['total']} دينار"), ln=True, align='R')
+    # --- المجموع الكلي النهائي (تصميم أخضر مميز) ---
+    pdf.ln(5)
+    pdf.set_fill_color(46, 204, 113) # أخضر أنيق
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("ArabicFont", size=13)
+    pdf.cell(190, 12, render_arabic(f"المجموع الكلي النهائي: {row['total']} دينار عراقي"), 1, 1, 'C', fill=True)
         
     return bytes(pdf.output())
 
@@ -103,7 +131,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.title("🔐 تسجيل الدخول للنظام")
+    st.title("🔐 تسجيل الدخول لـ Eng. Yasser Pro System")
     col1, col2 = st.columns(2)
     with col1:
         if st.button("دخول كمسؤول"): 
@@ -114,6 +142,10 @@ if not st.session_state.logged_in:
             st.session_state.logged_in = True
             st.rerun()
     st.stop()
+
+# --- عنوان التطبيق الرئيسي (العِبارة والبراند) ---
+st.title("⚙️ Eng. Yasser Pro System - Master")
+st.markdown("---")
 
 # --- أقسام النظام (Tabs) ---
 tabs = st.tabs(["🛒 البيع (شبكة)", "🧾 الفواتير والتحميل", "📦 المخزن والكميات", "👥 إدارة العملاء", "🤖 المساعد الذكي"])
@@ -127,12 +159,15 @@ with tabs[0]: # البيع بنظام الشبكة وخصم المخزن
     
     shop_name = "غير محدد"
     address = "غير محدد"
+    phone = "غير محدد"
+    
     if sel_cust_name != "اختر العميل...":
         cust_row = custs[custs['name'] == sel_cust_name]
         if not cust_row.empty:
             shop_name = cust_row.iloc[0].get('shop_name', 'غير محدد')
             address = cust_row.iloc[0].get('address', 'غير محدد')
-            st.success(f"📍 المحل: {shop_name} | العنوان: {address}")
+            phone = cust_row.iloc[0].get('phone', 'غير محدد')
+            st.success(f"📍 المحل: {shop_name} | الهاتف: {phone} | العنوان: {address}")
 
     prods = pd.read_sql("SELECT rowid, * FROM products", conn)
     cart = {}
@@ -153,8 +188,8 @@ with tabs[0]: # البيع بنظام الشبكة وخصم المخزن
     if cart and sel_cust_name != "اختر العميل..." and st.button("🛒 إتمام البيع، خصم المخزن، وحفظ الفاتورة"):
         total_amt = sum(d['price'] * d['qty'] for d in cart.values())
         
-        c.execute("INSERT INTO invoices (customer_name, shop_name, address, items, total, date, payment_type) VALUES (?,?,?,?,?,?,?)", 
-                  (sel_cust_name, shop_name, address, str(cart), total_amt, str(date.today()), "نقد"))
+        c.execute("INSERT INTO invoices (customer_name, shop_name, address, phone, items, total, date, payment_type) VALUES (?,?,?,?,?,?,?,?)", 
+                  (sel_cust_name, shop_name, address, phone, str(cart), total_amt, str(date.today()), "نقد"))
         
         for item_name, data in cart.items():
             sold_qty = data['qty']
@@ -171,13 +206,13 @@ with tabs[1]: # الفواتير وتحميلها
         st.info("لا توجد فواتير مسجلة حتى الآن.")
     else:
         for _, row in inv_df.iterrows():
-            with st.expander(f"فاتورة رقم #{row['rowid']} | العميل: {row['customer_name']} | المحل: {row.get('shop_name', '')} | المجموع: {row['total']} د.ع"):
+            with st.expander(f"فاتورة رقم #{row['rowid']} | العميل: {row['customer_name']} | الهاتف: {row.get('phone', '')} | المجموع: {row['total']} د.ع"):
                 items = ast.literal_eval(row['items'])
                 st.table(pd.DataFrame(items).T)
                 try:
                     pdf_data = generate_pdf(row, items)
                     st.download_button(
-                        label="📥 تحميل الفاتورة PDF (عربي مرتب ونظامي)", 
+                        label="📥 تحميل الفاتورة PDF (ملونة ومرتبة كالدفتر)", 
                         data=pdf_data, 
                         file_name=f"invoice_{row['rowid']}.pdf",
                         mime="application/pdf",
