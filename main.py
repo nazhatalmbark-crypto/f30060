@@ -4,6 +4,7 @@ import pandas as pd
 import ast
 import os
 import urllib.request
+import ssl
 from datetime import date
 from fpdf import FPDF
 import arabic_reshaper
@@ -11,34 +12,33 @@ from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
 
-# --- دالة البحث عن الخط (من نظام السيرفر أولاً ثم التحميل كاحتياط) ---
+# --- دالة التحميل الذكي المتعدد الروابط للخط العربي ---
 def ensure_font():
     font_path = 'DejaVuSans.ttf'
-    if os.path.exists(font_path):
+    if os.path.exists(font_path) and os.path.getsize(font_path) > 1000:
         return font_path
     
-    # البحث في مسارات النظام الافتراضية على سيرفرات لينكس (Streamlit Cloud)
-    system_paths = [
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        '/usr/share/fonts/dejavu/DejaVuSans.ttf',
-        '/usr/local/share/fonts/DejaVuSans.ttf'
+    # روابط بديلة وموثوقة جداً لتحميل الخط
+    urls = [
+        "https://github.com/dejavu-fonts/dejavu-fonts.github.io/raw/master/ttf/DejaVuSans.ttf",
+        "https://cdn.jsdelivr.net/gh/dejavu-fonts/dejavu-fonts.github.io@master/ttf/DejaVuSans.ttf",
+        "https://raw.githubusercontent.com/google/fonts/main/ofl/dejavusans/DejaVuSans.ttf"
     ]
-    for path in system_paths:
-        if os.path.exists(path):
-            return path
+    
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    
+    for url in urls:
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, context=ctx, timeout=10) as response, open(font_path, 'wb') as out_file:
+                out_file.write(response.read())
+            if os.path.exists(font_path) and os.path.getsize(font_path) > 1000:
+                return font_path
+        except:
+            continue
             
-    # محاولة التحميل من الإنترنت إذا لم يتوفر في النظام
-    try:
-        url = "https://github.com/dejavu-fonts/dejavu-fonts.github.io/raw/master/ttf/DejaVuSans.ttf"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req) as response, open(font_path, 'wb') as out_file:
-            out_file.write(response.read())
-        if os.path.exists(font_path):
-            return font_path
-    except Exception as e:
-        pass
-        
     return None
 
 # --- قاعدة البيانات وتحديث الجداول تلقائياً ---
