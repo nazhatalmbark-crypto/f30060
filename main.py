@@ -31,12 +31,19 @@ DB_NAME = 'final_system_master.db'
 conn = sqlite3.connect(DB_NAME, check_same_thread=False)
 c = conn.cursor()
 
-c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
+c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, phone TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price_carton INTEGER, quantity INTEGER)')
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, shop_name TEXT, phone TEXT, address TEXT, governorate TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, shop_name TEXT, address TEXT, phone TEXT, items TEXT, total INTEGER, date TEXT, payment_type TEXT)')
 
-# ترقية الجداول تلقائياً
+# ترقية جدول المستخدمين لإضافة الهاتف إذا لم يكن موجوداً
+try:
+    c.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+    conn.commit()
+except:
+    pass
+
+# ترقية الجداول الأخرى تلقائياً
 for col_def in [
     ("customers", "shop_name", "TEXT"), ("customers", "phone", "TEXT"), 
     ("customers", "address", "TEXT"), ("customers", "governorate", "TEXT"),
@@ -137,26 +144,67 @@ def generate_pdf(row, items):
         
     return bytes(pdf.output())
 
-# --- تسجيل الدخول ---
+# --- نظام تسجيل الدخول وإنشاء الحساب الحديث ---
 if 'logged_in' not in st.session_state: 
     st.session_state.logged_in = False
+if 'current_user' not in st.session_state:
+    st.session_state.current_user = ""
 
 if not st.session_state.logged_in:
-    st.title("🔐 تسجيل الدخول لـ Eng. Yasser Pro System - أسعد نفسك بنفسك")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("دخول كمسؤول"): 
-            st.session_state.logged_in = True
-            st.rerun()
-    with col2:
-        if st.button("🚀 دخول الضيف"): 
-            st.session_state.logged_in = True
-            st.rerun()
+    st.markdown("<h1 style='text-align: center;'>🔐 Eng. Yasser Pro System</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</h3>", unsafe_allow_html=True)
+    st.write("---")
+    
+    auth_tab1, auth_tab2 = st.tabs(["🔑 تسجيل الدخول", "📝 إنشاء حساب جديد"])
+    
+    with auth_tab1:
+        st.subheader("تسجيل الدخول إلى حسابك")
+        login_user = st.text_input("اسم المستخدم", key="l_user")
+        login_pass = st.text_input("كلمة المرور", type="password", key="l_pass")
+        
+        if st.button("دخول للنظام"):
+            if login_user == "admin" and login_pass == "admin": # حساب افتراضي للمسؤول
+                st.session_state.logged_in = True
+                st.session_state.current_user = "المسؤول (Admin)"
+                st.success("تم تسجيل الدخول بنجاح!")
+                st.rerun()
+            else:
+                c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (login_user, login_pass))
+                user_record = c.fetchone()
+                if user_record:
+                    st.session_state.logged_in = True
+                    st.session_state.current_user = login_user
+                    st.success(f"أهلاً بك مجدداً، {login_user}!")
+                    st.rerun()
+                else:
+                    st.error("اسم المستخدم أو كلمة المرور غير صحيحة!")
+
+    with auth_tab2:
+        st.subheader("إنشاء حساب جديد بالنظام")
+        new_user = st.text_input("اسم المستخدم الجديد", key="n_user")
+        new_phone = st.text_input("رقم الهاتف", key="n_phone")
+        new_pass = st.text_input("كلمة المرور", type="password", key="n_pass")
+        
+        if st.button("تسجيل حساب جديد"):
+            if new_user and new_pass and new_phone:
+                try:
+                    c.execute("INSERT INTO users (username, password, phone) VALUES (?, ?, ?)", (new_user, new_pass, new_phone))
+                    conn.commit()
+                    st.success("تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول بسرعة من خانة (تسجيل الدخول).")
+                except sqlite3.IntegrityError:
+                    st.error("اسم المستخدم موجود مسبقاً، يرجى اختيار اسم آخر.")
+            else:
+                st.warning("يرجى ملء جميع الحقول المطلوبة (اسم المستخدم، الهاتف، كلمة المرور).")
+                
     st.stop()
 
 # --- عنوان التطبيق والعبارة بالواجهة ---
 st.title("⚙️ Eng. Yasser Pro System - أسعد نفسك بنفسك")
-st.markdown("### « أسعد نفسك بنفسك - مستمرون نحو الأفضل » - النظام الإداري المتكامل والمطور")
+st.markdown(f"### « أسعد نفسك بنفسك - مستمرون نحو الأفضل » | المستخدم الحالي: **{st.session_state.current_user}**")
+if st.button("🚪 تسجيل الخروج"):
+    st.session_state.logged_in = False
+    st.session_state.current_user = ""
+    st.rerun()
 st.markdown("---")
 
 # --- أقسام النظام (Tabs) ---
