@@ -1,5 +1,5 @@
 streamlit
 pandas
-fpdf2
+fpdf
 arabic-reshaper
 python-bidi
