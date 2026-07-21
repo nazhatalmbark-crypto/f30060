@@ -11,7 +11,7 @@ from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
 
-# --- دالة تحميل الخط تلقائياً (بدون الحاجة لملفات نظام خارجية) ---
+# --- دالة تحميل الخط تلقائياً ---
 def ensure_font():
     font_path = "DejaVuSans.ttf"
     if not os.path.exists(font_path):
@@ -61,7 +61,7 @@ def generate_pdf(row, items):
     if not font_path:
         pdf.set_font("Arial", size=14)
         pdf.cell(200, 10, "Invoice Font Error: DejaVuSans missing", ln=True, align='C')
-        return bytes(pdf.output())
+        return "Invoice Font Error".encode('utf-8')
     
     pdf.add_font("ArabicFont", "", font_path, uni=True)
     pdf.set_font("ArabicFont", size=16)
@@ -96,7 +96,10 @@ def generate_pdf(row, items):
     pdf.set_font("ArabicFont", size=14)
     pdf.cell(200, 10, render_arabic(f"المجموع الكلي النهائي: {row['total']} دينار"), ln=True, align='R')
         
-    return bytes(pdf.output())
+    output = pdf.output()
+    if isinstance(output, str):
+        return output.encode('latin1')
+    return bytes(output)
 
 # --- تسجيل الدخول ---
 if 'logged_in' not in st.session_state: 
