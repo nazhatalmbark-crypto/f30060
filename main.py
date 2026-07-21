@@ -3,12 +3,25 @@ import sqlite3
 import pandas as pd
 import ast
 import os
+import urllib.request
 from datetime import date
 from fpdf import FPDF
 import arabic_reshaper
 from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
+
+# --- دالة التحميل التلقائي للخط العربي (عشان ما تعتاز ترفع أي ملف يدوياً!) ---
+def ensure_font():
+    font_path = 'DejaVuSans.ttf'
+    if not os.path.exists(font_path):
+        try:
+            url = "https://github.com/dejavu-fonts/dejavu-fonts.github.io/raw/master/ttf/DejaVuSans.ttf"
+            urllib.request.urlretrieve(url, font_path)
+        except:
+            pass
+
+ensure_font()
 
 # --- دالة النص العربي ---
 def render_arabic(text):
@@ -18,7 +31,7 @@ def render_arabic(text):
     except:
         return str(text)
 
-# --- قاعدة البيانات وجداولها المتقدمة ---
+# --- قاعدة البيانات وجداولها ---
 DB_NAME = 'final_system_master.db'
 conn = sqlite3.connect(DB_NAME, check_same_thread=False)
 c = conn.cursor()
@@ -26,42 +39,52 @@ c = conn.cursor()
 c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price_carton INTEGER, quantity INTEGER)')
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, shop_name TEXT, phone TEXT, address TEXT, governorate TEXT)')
-c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, items TEXT, total INTEGER, date TEXT, payment_type TEXT)')
+c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, shop_name TEXT, address TEXT, items TEXT, total INTEGER, date TEXT, payment_type TEXT)')
 
-# --- دالة توليد الفاتورة العربية ---
+# --- دالة توليد الفاتورة العربية بالتفاصيل الكاملة ---
 def generate_pdf(row, items):
     pdf = FPDF()
     pdf.add_page()
     
     font_path = 'DejaVuSans.ttf'
     if not os.path.exists(font_path):
-        raise Exception("ملف الخط DejaVuSans.ttf غير موجود في مجلد المشروع!")
+        # خط إحتياطي إذا لم يتوفر الخط
+        pdf.set_font("Arial", size=14)
+        pdf.cell(200, 10, "Invoice (Font Error)", ln=True, align='C')
+        return pdf.output(dest='S')
     
     pdf.add_font("ArabicFont", "", font_path, uni=True)
     pdf.set_font("ArabicFont", size=16)
     
+    # رأس الفاتورة
     pdf.cell(200, 10, render_arabic("فاتورة مبيعات رسمية"), ln=True, align='C')
-    pdf.ln(10)
+    pdf.ln(5)
     
+    # معلومات العميل والمحل
     pdf.set_font("ArabicFont", size=12)
     pdf.cell(200, 10, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=True)
+    pdf.cell(200, 10, render_arabic(f"اسم المحل: {row.get('shop_name', 'غير متوفر')}"), ln=True)
+    pdf.cell(200, 10, render_arabic(f"العنوان: {row.get('address', 'غير متوفر')}"), ln=True)
     pdf.cell(200, 10, render_arabic(f"تاريخ الفاتورة: {row['date']}"), ln=True)
     pdf.ln(10)
     
+    # رأس جدول المنتجات
     pdf.cell(80, 10, render_arabic("المادة"), 1, 0, 'C')
     pdf.cell(30, 10, render_arabic("الكمية"), 1, 0, 'C')
     pdf.cell(40, 10, render_arabic("السعر"), 1, 0, 'C')
     pdf.cell(40, 10, render_arabic("الإجمالي"), 1, 1, 'C')
     
+    # محتوى الجدول (المنتجات المقصوصة والكميات)
     for item, data in items.items():
         pdf.cell(80, 10, render_arabic(str(item)), 1)
         pdf.cell(30, 10, str(data['qty']), 1, 0, 'C')
         pdf.cell(40, 10, str(data['price']), 1, 0, 'C')
         pdf.cell(40, 10, str(data['qty'] * data['price']), 1, 1, 'C')
         
+    # المجموع الكلي النهائي
     pdf.ln(10)
     pdf.set_font("ArabicFont", size=14)
-    pdf.cell(200, 10, render_arabic(f"المجموع الكلي: {row['total']} دينار"), ln=True, align='R')
+    pdf.cell(200, 10, render_arabic(f"المجموع الكلي النهائي: {row['total']} دينار"), ln=True, align='R')
         
     return pdf.output(dest='S')
 
@@ -70,7 +93,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.title("🔐 تسجيل الدخول للنظام الشامل")
+    st.title("🔐 تسجيل الدخول للنظام")
     col1, col2 = st.columns(2)
     with col1:
         if st.button("دخول كمسؤول"): 
@@ -85,56 +108,70 @@ if not st.session_state.logged_in:
 # --- أقسام النظام (Tabs) ---
 tabs = st.tabs(["🛒 البيع (شبكة)", "🧾 الفواتير والتحميل", "📦 المخزن والكميات", "👥 إدارة العملاء", "🤖 المساعد الذكي"])
 
-with tabs[0]: # البيع بنظام الشبكة مع خصم الكميات
+with tabs[0]: # البيع بنظام الشبكة وخصم المخزن
     st.header("إدارة المبيعات والطلب (عرض شبكي)")
-    custs = pd.read_sql("SELECT name FROM customers", conn)
-    cust_list = ["اختر العميل..."] + custs['name'].tolist() if not custs.empty else ["اختر العميل..."]
-    sel = st.selectbox("اختر العميل للفاتورة", cust_list)
     
+    # جلب العملاء مع تفاصيلهم
+    custs = pd.read_sql("SELECT * FROM customers", conn)
+    cust_list = ["اختر العميل..."] + custs['name'].tolist() if not custs.empty else ["اختر العميل..."]
+    sel_cust_name = st.selectbox("اختر العميل للفاتورة", cust_list)
+    
+    # جلب تفاصيل العميل المختار (المحل والعنوان)
+    shop_name = "غير محدد"
+    address = "غير محدد"
+    if sel_cust_name != "اختر العميل...":
+        cust_row = custs[custs['name'] == sel_cust_name]
+        if not cust_row.empty:
+            shop_name = cust_row.iloc[0]['shop_name']
+            address = cust_row.iloc[0]['address']
+            st.success(f"📍 المحل: {shop_name} | العنوان: {address}")
+
     prods = pd.read_sql("SELECT rowid, * FROM products", conn)
     cart = {}
     
     if not prods.empty:
-        # عرض المنتجات على شكل أعمدة (شبكة)
+        st.write("---")
+        st.subheader("منتجات المخزن المتاحة:")
         cols = st.columns(3)
         for idx, row in prods.iterrows():
             with cols[idx % 3]:
                 st.markdown(f"**{row['name']}**")
-                st.text(f"السعر: {row['price_carton']} | الباقي بالمخزن: {row['quantity']}")
+                st.text(f"السعر: {row['price_carton']} د.ع\nالمتبقي بالمخزن: {row['quantity']}")
                 q = st.number_input(f"الكمية المطلوبة", min_value=0, max_value=int(row['quantity']) if row['quantity'] > 0 else 0, key=f"q_{idx}")
                 if q > 0: 
                     cart[row['name']] = {'price': row['price_carton'], 'qty': q}
                 st.divider()
                 
-    if cart and sel != "اختر العميل..." and st.button("إتمام البيع وخصم المخزن وحفظ الفاتورة"):
+    if cart and sel_cust_name != "اختر العميل..." and st.button("🛒 إتمام البيع، خصم المخزن، وحفظ الفاتورة"):
         total_amt = sum(d['price'] * d['qty'] for d in cart.values())
         
-        # حفظ الفاتورة
-        c.execute("INSERT INTO invoices VALUES (?,?,?,?,?)", (sel, str(cart), total_amt, str(date.today()), "نقد"))
+        # حفظ الفاتورة مع معلومات العميل والمحل
+        c.execute("INSERT INTO invoices (customer_name, shop_name, address, items, total, date, payment_type) VALUES (?,?,?,?,?,?,?)", 
+                  (sel_cust_name, shop_name, address, str(cart), total_amt, str(date.today()), "نقد"))
         
-        # خصم الكميات من المخزن تلقائياً
+        # خصم الكميات المباعة من المخزن تلقائياً
         for item_name, data in cart.items():
             sold_qty = data['qty']
             c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (sold_qty, item_name))
             
         conn.commit()
-        st.success("تم إتمام البيع، خصم الكميات من المخزن، وحفظ الفاتورة بنجاح!")
+        st.success("✅ تمت العملية بنجاح! تم خصم الكميات من المخزن وحفظ الفاتورة بالمعلومات الكاملة.")
         st.rerun()
 
-with tabs[1]: # الفواتير
-    st.header("سجل الفواتير وطباعتها")
+with tabs[1]: # الفواتير وتحميلها
+    st.header("سجل الفواتير وطباعتها بصيغة PDF")
     inv_df = pd.read_sql("SELECT rowid, * FROM invoices", conn)
     if inv_df.empty:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
     else:
         for _, row in inv_df.iterrows():
-            with st.expander(f"فاتورة رقم #{row['rowid']} - العميل: {row['customer_name']} - المجموع: {row['total']}"):
+            with st.expander(f"فاتورة رقم #{row['rowid']} | العميل: {row['customer_name']} | المحل: {row.get('shop_name', '')} | المجموع: {row['total']} د.ع"):
                 items = ast.literal_eval(row['items'])
                 st.table(pd.DataFrame(items).T)
                 try:
                     pdf_data = generate_pdf(row, items)
                     st.download_button(
-                        label="📥 تحميل الفاتورة PDF (عربي)", 
+                        label="📥 تحميل الفاتورة PDF (عربي مرتب)", 
                         data=pdf_data, 
                         file_name=f"invoice_{row['rowid']}.pdf",
                         mime="application/pdf",
@@ -143,8 +180,8 @@ with tabs[1]: # الفواتير
                 except Exception as e:
                     st.error(f"خطأ في توليد الملف: {e}")
 
-with tabs[2]: # المخزن والكميات المتبقية
-    st.header("إدارة المخزن ومتابعة الكميات المتبقية")
+with tabs[2]: # المخزن والكميات
+    st.header("إدارة المخزن والمواد")
     p_name = st.text_input("اسم المادة الجديدة")
     p_price = st.number_input("سعر الكارتون", min_value=0)
     p_qty = st.number_input("الكمية المتاحة", min_value=0)
@@ -159,18 +196,18 @@ with tabs[2]: # المخزن والكميات المتبقية
     st.dataframe(pd.read_sql("SELECT rowid, * FROM products", conn))
 
 with tabs[3]: # إدارة العملاء بالتفاصيل الكاملة
-    st.header("إدارة العملاء (مع تفاصيل المحل والمحافظة)")
+    st.header("إدارة العملاء وتفاصيل المحلات")
     c_name = st.text_input("اسم العميل")
     c_shop = st.text_input("اسم المحل")
-    c_phone = st.text_input("رقم المحل / الهاتف")
-    c_address = st.text_input("عنوان المحل")
+    c_phone = st.text_input("رقم الهاتف")
+    c_address = st.text_input("عنوان المحل بالتفصيل")
     c_gov = st.selectbox("المحافظة", ["البصرة", "بغداد", "ذي قار", "ميسان", "البصرة - العشار", "البصرة - التنومة", "أخرى"])
     
     if st.button("حفظ العميل الجديد"):
         if c_name:
             c.execute("INSERT INTO customers VALUES (?,?,?,?,?)", (c_name, c_shop, c_phone, c_address, c_gov))
             conn.commit()
-            st.success("تم إضافة العميل وتفاصيله بنجاح!")
+            st.success("تم إضافة العميل بنجاح!")
             st.rerun()
             
     st.subheader("قائمة العملاء المسجلين:")
@@ -178,23 +215,21 @@ with tabs[3]: # إدارة العملاء بالتفاصيل الكاملة
 
 with tabs[4]: # المساعد الذكي
     st.header("🤖 المساعد الذكي لإدارة النظام")
-    st.info("مرحباً بك يا ياسر في مساعدك الذكي. يمكنك من هنا مراجعة حالة النظام وإجراء عمليات سريعة.")
-    
     col_a, col_b = st.columns(2)
     with col_a:
-        st.subheader("📊 إحصائيات سريعة")
+        st.subheader("📊 إحصائيات النظام")
         prod_count = pd.read_sql("SELECT COUNT(*) FROM products", conn).iloc[0, 0]
         cust_count = pd.read_sql("SELECT COUNT(*) FROM customers", conn).iloc[0, 0]
         inv_count = pd.read_sql("SELECT COUNT(*) FROM invoices", conn).iloc[0, 0]
         st.metric("عدد المواد في المخزن", prod_count)
-        st.metric("عدد العملاء المسجلين", cust_count)
-        st.metric("إجمالي الفواتير الصادرة", inv_count)
+        st.metric("عدد العملاء", cust_count)
+        st.metric("إجمالي الفواتير", inv_count)
         
     with col_b:
-        st.subheader("⚡ تنبيهات المخزن")
+        st.subheader("⚡ تنبيهات النواقص")
         low_stock = pd.read_sql("SELECT name, quantity FROM products WHERE quantity <= 5", conn)
         if low_stock.empty:
-            st.success("جميع المواد متوفرة بكميات جيدة ولا توجد نواقص خطيرة.")
+            st.success("المخزن ممتاز، لا توجد نواقص خطيرة.")
         else:
-            st.warning("تنبيه: المواد التالية قاربت على النفاد:")
+            st.warning("تنبيه: المواد التالية قاربت على النفاذ:")
             st.dataframe(low_stock)
