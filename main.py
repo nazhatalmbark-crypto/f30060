@@ -11,15 +11,15 @@ from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
 
-# --- دالة تحميل الخط تلقائياً ---
+# --- دالة تحميل الخط المضمون 100% من CDN سريع ---
 def ensure_font():
     font_path = "DejaVuSans.ttf"
-    if not os.path.exists(font_path):
+    if not os.path.exists(font_path) or os.path.getsize(font_path) < 10000:
         try:
-            url = "https://github.com/dejavu-fonts/dejavu-fonts.github.io/raw/master/ttf/DejaVuSans.ttf"
+            url = "https://cdn.jsdelivr.net/npm/kendo-ui-core@2021.1.224/css/web/fonts/DejaVu/DejaVuSans.ttf"
             urllib.request.urlretrieve(url, font_path)
-        except Exception:
-            pass
+        except Exception as e:
+            st.error(f"خطأ في تحميل الخط: {e}")
     return font_path if os.path.exists(font_path) else None
 
 # --- قاعدة البيانات وتحديث الجداول تلقائياً ---
