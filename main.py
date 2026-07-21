@@ -31,7 +31,7 @@ def render_arabic(text):
     except:
         return str(text)
 
-# --- قاعدة البيانات وتحديث الجداول تلقائياً لحل أي مشاكل سابقة ---
+# --- قاعدة البيانات وتحديث الجداول تلقائياً ---
 DB_NAME = 'final_system_master.db'
 conn = sqlite3.connect(DB_NAME, check_same_thread=False)
 c = conn.cursor()
@@ -53,7 +53,7 @@ for col_def in [
     except:
         pass
 
-# --- دالة توليد الفاتورة العربية بالتفاصيل الكاملة ---
+# --- دالة توليد الفاتورة العربية (تم حل مشكلة الـ bytes هنا) ---
 def generate_pdf(row, items):
     pdf = FPDF()
     pdf.add_page()
@@ -62,7 +62,7 @@ def generate_pdf(row, items):
     if not os.path.exists(font_path):
         pdf.set_font("Arial", size=14)
         pdf.cell(200, 10, "Invoice (Font Error)", ln=True, align='C')
-        return pdf.output(dest='S')
+        return bytes(pdf.output())
     
     pdf.add_font("ArabicFont", "", font_path, uni=True)
     pdf.set_font("ArabicFont", size=16)
@@ -97,7 +97,7 @@ def generate_pdf(row, items):
     pdf.set_font("ArabicFont", size=14)
     pdf.cell(200, 10, render_arabic(f"المجموع الكلي النهائي: {row['total']} دينار"), ln=True, align='R')
         
-    return pdf.output(dest='S')
+    return bytes(pdf.output())
 
 # --- تسجيل الدخول ---
 if 'logged_in' not in st.session_state: 
