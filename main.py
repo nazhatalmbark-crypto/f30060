@@ -36,7 +36,7 @@ c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price_carton INTEGER,
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, shop_name TEXT, phone TEXT, address TEXT, governorate TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, shop_name TEXT, address TEXT, phone TEXT, items TEXT, total INTEGER, date TEXT, payment_type TEXT)')
 
-# ترقية جدول المستخدمين لإضافة الهاتف إذا لم يكن موجوداً
+# ترقية جدول المستخدمين
 try:
     c.execute("ALTER TABLE users ADD COLUMN phone TEXT")
     conn.commit()
@@ -66,7 +66,7 @@ def render_arabic(text):
     except:
         return str(text)
 
-# --- دالة توليد الفاتورة (خط كبير، واضح، مرتب، ومزخرف بأناقة) ---
+# --- دالة توليد الفاتورة الاحترافية ---
 def generate_pdf(row, items):
     pdf = FPDF()
     pdf.add_page()
@@ -79,8 +79,7 @@ def generate_pdf(row, items):
     
     pdf.add_font("ArabicFont", "", font_path)
     
-    # --- شريط العنوان الرئيسي (مزخرف، فخم، ومرتب) ---
-    pdf.set_fill_color(26, 82, 118) # كحلي غامق راقي
+    pdf.set_fill_color(26, 82, 118)
     pdf.rect(10, 10, 190, 26, 'F')
     pdf.set_text_color(255, 255, 255)
     
@@ -94,9 +93,7 @@ def generate_pdf(row, items):
     
     pdf.ln(28)
     
-    # --- معلومات العميل واسم المحل (تصميم دفتر أنيق وواضح جداً) ---
     pdf.set_text_color(40, 40, 40)
-    
     pdf.set_fill_color(248, 249, 250)
     pdf.rect(10, 39, 190, 36, 'F')
     
@@ -114,7 +111,6 @@ def generate_pdf(row, items):
     
     pdf.ln(18)
     
-    # --- رأس جدول المنتجات (مزخرف ومرتب) ---
     pdf.set_fill_color(41, 128, 185)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("ArabicFont", size=12)
@@ -124,7 +120,6 @@ def generate_pdf(row, items):
     pdf.cell(40, 11, render_arabic("◈ السعر ◈"), 1, 0, 'C', fill=True)
     pdf.cell(40, 11, render_arabic("◈ الإجمالي ◈"), 1, 1, 'C', fill=True)
     
-    # --- محتوى الجدول (خط واضح، كبير، ومرتب كالدفتر) ---
     pdf.set_text_color(30, 30, 30)
     pdf.set_font("ArabicFont", size=12)
     pdf.set_draw_color(210, 210, 210)
@@ -135,16 +130,15 @@ def generate_pdf(row, items):
         pdf.cell(40, 10, str(data['price']), 'LRB', 0, 'C')
         pdf.cell(40, 10, str(data['qty'] * data['price']), 'LRB', 1, 'C')
         
-    # --- المجموع الكلي النهائي ---
     pdf.ln(6)
-    pdf.set_fill_color(39, 174, 96) # أخضر زمردي راقي
+    pdf.set_fill_color(39, 174, 96)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("ArabicFont", size=13)
     pdf.cell(190, 13, render_arabic(f"✦ المجموع الكلي النهائي: {row['total']} دينار عراقي ✦"), 1, 1, 'C', fill=True)
         
     return bytes(pdf.output())
 
-# --- نظام تسجيل الدخول وإنشاء الحساب الحديث ---
+# --- نظام تسجيل الدخول ---
 if 'logged_in' not in st.session_state: 
     st.session_state.logged_in = False
 if 'current_user' not in st.session_state:
@@ -163,7 +157,7 @@ if not st.session_state.logged_in:
         login_pass = st.text_input("كلمة المرور", type="password", key="l_pass")
         
         if st.button("دخول للنظام"):
-            if login_user == "admin" and login_pass == "admin": # حساب افتراضي للمسؤول
+            if login_user == "admin" and login_pass == "admin":
                 st.session_state.logged_in = True
                 st.session_state.current_user = "المسؤول (Admin)"
                 st.success("تم تسجيل الدخول بنجاح!")
@@ -190,11 +184,11 @@ if not st.session_state.logged_in:
                 try:
                     c.execute("INSERT INTO users (username, password, phone) VALUES (?, ?, ?)", (new_user, new_pass, new_phone))
                     conn.commit()
-                    st.success("تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول بسرعة من خانة (تسجيل الدخول).")
+                    st.success("تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول بسرعة.")
                 except sqlite3.IntegrityError:
                     st.error("اسم المستخدم موجود مسبقاً، يرجى اختيار اسم آخر.")
             else:
-                st.warning("يرجى ملء جميع الحقول المطلوبة (اسم المستخدم، الهاتف، كلمة المرور).")
+                st.warning("يرجى ملء جميع الحقول المطلوبة.")
                 
     st.stop()
 
@@ -245,41 +239,55 @@ with tabs[0]: # البيع بنظام الشبكة وخصم المخزن
                     cart[row['name']] = {'price': row['price_carton'], 'qty': q}
                 st.divider()
                 
-    if cart and sel_cust_name != "اختر العميل..." and st.button("🛒 إتمام البيع، خصم المخزن، وحفظ الفاتورة"):
-        total_amt = sum(d['price'] * d['qty'] for d in cart.values())
-        
-        c.execute("INSERT INTO invoices (customer_name, shop_name, address, phone, items, total, date, payment_type) VALUES (?,?,?,?,?,?,?,?)", 
-                  (sel_cust_name, shop_name, address, phone, str(cart), total_amt, str(date.today()), "نقد"))
-        
-        for item_name, data in cart.items():
-            sold_qty = data['qty']
-            c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (sold_qty, item_name))
-            
-        conn.commit()
-        st.success("✅ تمت العملية بنجاح! تم خصم الكميات من المخزن وحفظ الفاتورة بالمعلومات الكاملة.")
-        st.rerun()
+    if cart and sel_cust_name != "اختر العميل...":
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            if st.button("🛒 إتمام البيع، خصم المخزن، وحفظ الفاتورة"):
+                total_amt = sum(d['price'] * d['qty'] for d in cart.values())
+                c.execute("INSERT INTO invoices (customer_name, shop_name, address, phone, items, total, date, payment_type) VALUES (?,?,?,?,?,?,?,?)", 
+                          (sel_cust_name, shop_name, address, phone, str(cart), total_amt, str(date.today()), "نقد"))
+                
+                for item_name, data in cart.items():
+                    sold_qty = data['qty']
+                    c.execute("UPDATE products SET quantity = quantity - ? WHERE name = ?", (sold_qty, item_name))
+                    
+                conn.commit()
+                st.success("✅ تمت العملية بنجاح! تم خصم الكميات من المخزن وحفظ الفاتورة.")
+                st.rerun()
+        with col_b2:
+            if st.button("🗑️ تفريغ السلة"):
+                st.rerun()
 
-with tabs[1]: # الفواتير وتحميلها
+with tabs[1]: # الفواتير وتحميلها مع إمكانية الحذف
     st.header("سجل الفواتير وطباعتها بصيغة PDF")
     inv_df = pd.read_sql("SELECT rowid, * FROM invoices", conn)
     if inv_df.empty:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
     else:
         for _, row in inv_df.iterrows():
-            with st.expander(f"فاتورة رقم #{row['rowid']} | العميل: {row['customer_name']} | المحل: {row.get('shop_name', '')} | الهاتف: {row.get('phone', '')} | المجموع: {row['total']} د.ع"):
+            with st.expander(f"فاتورة رقم #{row['rowid']} | العميل: {row['customer_name']} | المحل: {row.get('shop_name', '')} | المجموع: {row['total']} د.ع"):
                 items = ast.literal_eval(row['items'])
                 st.table(pd.DataFrame(items).T)
-                try:
-                    pdf_data = generate_pdf(row, items)
-                    st.download_button(
-                        label="📥 تحميل الفاتورة PDF (خط كبير، واضح، ومزخرف بأناقة)", 
-                        data=pdf_data, 
-                        file_name=f"invoice_{row['rowid']}.pdf",
-                        mime="application/pdf",
-                        key=f"dl_{row['rowid']}"
-                    )
-                except Exception as e:
-                    st.error(f"خطأ في توليد الملف: {e}")
+                
+                col_inv1, col_inv2 = st.columns(2)
+                with col_inv1:
+                    try:
+                        pdf_data = generate_pdf(row, items)
+                        st.download_button(
+                            label="📥 تحميل الفاتورة PDF", 
+                            data=pdf_data, 
+                            file_name=f"invoice_{row['rowid']}.pdf",
+                            mime="application/pdf",
+                            key=f"dl_{row['rowid']}"
+                        )
+                    except Exception as e:
+                        st.error(f"خطأ: {e}")
+                with col_inv2:
+                    if st.button(f"🗑️ حذف الفاتورة #{row['rowid']}", key=f"del_inv_{row['rowid']}"):
+                        c.execute("DELETE FROM invoices WHERE rowid = ?", (row['rowid'],))
+                        conn.commit()
+                        st.success(f"تم حذف الفاتورة رقم #{row['rowid']} بنجاح!")
+                        st.rerun()
 
 with tabs[2]: # المخزن والكميات
     st.header("إدارة المخزن والمواد")
@@ -294,9 +302,22 @@ with tabs[2]: # المخزن والكميات
             st.rerun()
             
     st.subheader("حالة المخزن الحالية:")
-    st.dataframe(pd.read_sql("SELECT rowid, * FROM products", conn))
+    prods_df = pd.read_sql("SELECT rowid, * FROM products", conn)
+    if not prods_df.empty:
+        for _, p_row in prods_df.iterrows():
+            col_p1, col_p2 = st.columns([4, 1])
+            with col_p1:
+                st.text(f"المادة: {p_row['name']} | السعر: {p_row['price_carton']} د.ع | الكمية: {p_row['quantity']}")
+            with col_p2:
+                if st.button("حذف", key=f"del_prod_{p_row['rowid']}"):
+                    c.execute("DELETE FROM products WHERE rowid = ?", (p_row['rowid'],))
+                    conn.commit()
+                    st.success("تم حذف المادة بنجاح!")
+                    st.rerun()
+    else:
+        st.info("المخزن فارغ حالياً.")
 
-with tabs[3]: # إدارة العملاء بالتفاصيل الكاملة
+with tabs[3]: # إدارة العملاء
     st.header("إدارة العملاء وتفاصيل المحلات")
     c_name = st.text_input("اسم العميل")
     c_shop = st.text_input("اسم المحل")
@@ -313,17 +334,22 @@ with tabs[3]: # إدارة العملاء بالتفاصيل الكاملة
             
     st.dataframe(pd.read_sql("SELECT rowid, * FROM customers", conn))
 
-with tabs[4]: # المساعد الذكي
+with tabs[4]: # المساعد الذكي المتطور (مع الجرد، إضافة وحذف مواد المخزن، وإحصائيات المبيعات)
     st.header("🤖 المساعد الذكي لإدارة النظام - أسعد نفسك بنفسك")
+    st.markdown("مرحباً بك في لوحة تحكم المساعد الذكي. يمكنك من هنا إجراء جرد شامل، إضافة منتجات جديدة، وحذف المواد غير الضرورية مباشرةً.")
+    
     col_a, col_b = st.columns(2)
     with col_a:
-        st.subheader("📊 إحصائيات النظام")
+        st.subheader("📊 إحصائيات النظام العامة")
         prod_count = pd.read_sql("SELECT COUNT(*) FROM products", conn).iloc[0, 0]
         cust_count = pd.read_sql("SELECT COUNT(*) FROM customers", conn).iloc[0, 0]
         inv_count = pd.read_sql("SELECT COUNT(*) FROM invoices", conn).iloc[0, 0]
+        total_sales = pd.read_sql("SELECT SUM(total) FROM invoices", conn).iloc[0, 0] or 0
+        
         st.metric("عدد المواد في المخزن", prod_count)
         st.metric("عدد العملاء", cust_count)
-        st.metric("إجمالي الفواتير", inv_count)
+        st.metric("إجمالي الفواتير المصدرة", inv_count)
+        st.metric("إجمالي إيرادات المبيعات", f"{total_sales:,} د.ع")
         
     with col_b:
         st.subheader("⚡ تنبيهات النواقص")
@@ -333,3 +359,37 @@ with tabs[4]: # المساعد الذكي
         else:
             st.warning("تنبيه: المواد التالية قاربت على النفاذ:")
             st.dataframe(low_stock)
+
+    st.write("---")
+    st.subheader("📦 أدوات المخزن الذكية السريعة")
+    
+    # نموذج إضافة مادة سريعة من المساعد الذكي
+    with st.expander("➕ إضافة مادة جديدة عبر المساعد الذكي"):
+        ai_p_name = st.text_input("اسم المنتج الجديد", key="ai_p_name")
+        ai_p_price = st.number_input("سعر الكارتون", min_value=0, key="ai_p_price")
+        ai_p_qty = st.number_input("الكمية المتاحة", min_value=0, key="ai_p_qty")
+        if st.button("إضافة للمخزن فوراً", key="ai_add_btn"):
+            if ai_p_name:
+                c.execute("INSERT INTO products VALUES (?,?,?)", (ai_p_name, ai_p_price, ai_p_qty))
+                conn.commit()
+                st.success(f"تمت إضافة المادة ({ai_p_name}) بنجاح للمخزن!")
+                st.rerun()
+            else:
+                st.error("يرجى كتابة اسم المادة.")
+
+    # جدول جرد المخزن مع أزرار الحذف السريع
+    st.subheader("📋 جرد المخزن الشامل وإدارة الحذف")
+    stock_df = pd.read_sql("SELECT rowid, * FROM products", conn)
+    if not stock_df.empty:
+        for _, s_row in stock_df.iterrows():
+            col_s1, col_s2 = st.columns([4, 1])
+            with col_s1:
+                st.write(f"🔹 **{s_row['name']}** | السعر: {s_row['price_carton']} د.ع | المخزون: **{s_row['quantity']}**")
+            with col_s2:
+                if st.button("🗑️ حذف المادة", key=f"ai_del_prod_{s_row['rowid']}"):
+                    c.execute("DELETE FROM products WHERE rowid = ?", (s_row['rowid'],))
+                    conn.commit()
+                    st.success(f"تم حذف المادة ({s_row['name']}) بنجاح!")
+                    st.rerun()
+    else:
+        st.info("لا توجد مواد مسجلة في المخزن حالياً.")
