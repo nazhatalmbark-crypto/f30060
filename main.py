@@ -11,7 +11,7 @@ from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - أسعد نفسك بنفسك", layout="wide")
 
-# --- دالة تحميل خط أميري عالي الجودة ---
+# --- دالة تحميل الخط ---
 def ensure_font():
     font_path = "Amiri-Regular.ttf"
     if not os.path.exists(font_path) or os.path.getsize(font_path) < 10000:
@@ -49,7 +49,7 @@ for col_def in [
     except:
         pass
 
-# --- دالة النص العربي الصافي (تمنع التقطيع والبياض وتربط الحروف بدقة) ---
+# --- دالة النص العربي ---
 def render_arabic(text):
     try:
         if not text:
@@ -59,7 +59,7 @@ def render_arabic(text):
     except:
         return str(text)
 
-# --- دالة توليد الفاتورة الاحترافية الملونة وبتصميم الدفتر وبخط عربي واضح 100% ---
+# --- دالة توليد الفاتورة (خط كبير، واضح، مرتب، ومزخرف بأناقة) ---
 def generate_pdf(row, items):
     pdf = FPDF()
     pdf.add_page()
@@ -72,68 +72,68 @@ def generate_pdf(row, items):
     
     pdf.add_font("ArabicFont", "", font_path)
     
-    # --- شريط العنوان الملون (العبارة المطلوبة واضحة ومرتبة) ---
-    pdf.set_fill_color(31, 78, 121) # أزرق غامق احترافي
-    pdf.rect(10, 10, 190, 22, 'F')
+    # --- شريط العنوان الرئيسي (مزخرف، فخم، ومرتب) ---
+    pdf.set_fill_color(26, 82, 118) # كحلي غامق راقي
+    pdf.rect(10, 10, 190, 26, 'F')
     pdf.set_text_color(255, 255, 255)
     
-    pdf.set_font("ArabicFont", size=13)
+    pdf.set_font("ArabicFont", size=14)
     pdf.set_xy(10, 12)
-    pdf.cell(190, 9, render_arabic("Eng. Yasser Pro System - أسعد نفسك بنفسك"), align='C', ln=1)
+    pdf.cell(190, 10, render_arabic("❖ Eng. Yasser Pro System ❖"), align='C', ln=1)
     
-    pdf.set_font("ArabicFont", size=10)
-    pdf.set_xy(10, 22)
-    pdf.cell(190, 7, render_arabic("مستمرون نحو الأفضل - فاتورة مبيعات رسمية"), align='C')
-    
-    pdf.ln(25)
-    
-    # --- معلومات العميل واسم المحل ورقم الهاتف (معالجة بالكامل وبدون أي أخطاء أو بياض) ---
-    pdf.set_text_color(40, 40, 40)
     pdf.set_font("ArabicFont", size=11)
+    pdf.set_xy(10, 22)
+    pdf.cell(190, 7, render_arabic("~ [ أسعد نفسك بنفسك - مستمرون نحو الأفضل ] ~"), align='C')
     
-    pdf.set_fill_color(245, 247, 250)
-    pdf.rect(10, 37, 190, 32, 'F')
+    pdf.ln(28)
     
-    pdf.set_xy(15, 40)
-    pdf.cell(90, 7, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=0, align='R')
-    pdf.cell(90, 7, render_arabic(f"اسم المحل: {row.get('shop_name', 'غير متوفر')}"), ln=1, align='R')
+    # --- معلومات العميل واسم المحل (تصميم دفتر أنيق وواضح جداً) ---
+    pdf.set_text_color(40, 40, 40)
     
-    pdf.set_xy(15, 49)
-    pdf.cell(90, 7, render_arabic(f"رقم الهاتف: {row.get('phone', 'غير متوفر')}"), ln=0, align='R')
-    pdf.cell(90, 7, render_arabic(f"تاريخ الفاتورة: {row['date']}"), ln=1, align='R')
+    pdf.set_fill_color(248, 249, 250)
+    pdf.rect(10, 39, 190, 36, 'F')
     
-    pdf.set_xy(15, 58)
-    pdf.cell(180, 7, render_arabic(f"العنوان: {row.get('address', 'غير متوفر')}"), ln=1, align='R')
+    pdf.set_font("ArabicFont", size=12) 
+    pdf.set_xy(15, 42)
+    pdf.cell(90, 8, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=0, align='R')
+    pdf.cell(90, 8, render_arabic(f"اسم المحل: {row.get('shop_name', 'غير متوفر')}"), ln=1, align='R')
     
-    pdf.ln(15)
+    pdf.set_xy(15, 52)
+    pdf.cell(90, 8, render_arabic(f"رقم الهاتف: {row.get('phone', 'غير متوفر')}"), ln=0, align='R')
+    pdf.cell(90, 8, render_arabic(f"تاريخ الفاتورة: {row['date']}"), ln=1, align='R')
     
-    # --- رأس جدول المنتجات (ملون وواضح) ---
-    pdf.set_fill_color(52, 152, 219)
+    pdf.set_xy(15, 62)
+    pdf.cell(180, 8, render_arabic(f"العنوان: {row.get('address', 'غير متوفر')}"), ln=1, align='R')
+    
+    pdf.ln(18)
+    
+    # --- رأس جدول المنتجات (مزخرف ومرتب) ---
+    pdf.set_fill_color(41, 128, 185)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("ArabicFont", size=12)
     
-    pdf.cell(80, 10, render_arabic("المادة"), 1, 0, 'C', fill=True)
-    pdf.cell(30, 10, render_arabic("الكمية"), 1, 0, 'C', fill=True)
-    pdf.cell(40, 10, render_arabic("السعر"), 1, 0, 'C', fill=True)
-    pdf.cell(40, 10, render_arabic("الإجمالي"), 1, 1, 'C', fill=True)
+    pdf.cell(80, 11, render_arabic("◈ المادة ◈"), 1, 0, 'C', fill=True)
+    pdf.cell(30, 11, render_arabic("◈ الكمية ◈"), 1, 0, 'C', fill=True)
+    pdf.cell(40, 11, render_arabic("◈ السعر ◈"), 1, 0, 'C', fill=True)
+    pdf.cell(40, 11, render_arabic("◈ الإجمالي ◈"), 1, 1, 'C', fill=True)
     
-    # --- محتوى الجدول (بخط صافي ومرتب وبدون بياض أو أخطاء بالحروف) ---
-    pdf.set_text_color(40, 40, 40)
-    pdf.set_font("ArabicFont", size=11)
+    # --- محتوى الجدول (خط واضح، كبير، ومرتب كالدفتر) ---
+    pdf.set_text_color(30, 30, 30)
+    pdf.set_font("ArabicFont", size=12)
     pdf.set_draw_color(210, 210, 210)
     
     for item, data in items.items():
-        pdf.cell(80, 9, render_arabic(str(item)), 'LRB', 0, 'R')
-        pdf.cell(30, 9, str(data['qty']), 'LRB', 0, 'C')
-        pdf.cell(40, 9, str(data['price']), 'LRB', 0, 'C')
-        pdf.cell(40, 9, str(data['qty'] * data['price']), 'LRB', 1, 'C')
+        pdf.cell(80, 10, render_arabic(str(item)), 'LRB', 0, 'R')
+        pdf.cell(30, 10, str(data['qty']), 'LRB', 0, 'C')
+        pdf.cell(40, 10, str(data['price']), 'LRB', 0, 'C')
+        pdf.cell(40, 10, str(data['qty'] * data['price']), 'LRB', 1, 'C')
         
     # --- المجموع الكلي النهائي ---
-    pdf.ln(5)
-    pdf.set_fill_color(46, 204, 113)
+    pdf.ln(6)
+    pdf.set_fill_color(39, 174, 96) # أخضر زمردي راقي
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("ArabicFont", size=13)
-    pdf.cell(190, 12, render_arabic(f"المجموع الكلي النهائي: {row['total']} دينار عراقي"), 1, 1, 'C', fill=True)
+    pdf.cell(190, 13, render_arabic(f"✦ المجموع الكلي النهائي: {row['total']} دينار عراقي ✦"), 1, 1, 'C', fill=True)
         
     return bytes(pdf.output())
 
@@ -224,7 +224,7 @@ with tabs[1]: # الفواتير وتحميلها
                 try:
                     pdf_data = generate_pdf(row, items)
                     st.download_button(
-                        label="📥 تحميل الفاتورة PDF (خط عربي صافي ومتصل 100%)", 
+                        label="📥 تحميل الفاتورة PDF (خط كبير، واضح، ومزخرف بأناقة)", 
                         data=pdf_data, 
                         file_name=f"invoice_{row['rowid']}.pdf",
                         mime="application/pdf",
