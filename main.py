@@ -11,28 +11,35 @@ from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
 
-# --- دالة التحميل التلقائي للخط العربي (مصصححة) ---
+# --- دالة البحث عن الخط (من نظام السيرفر أولاً ثم التحميل كاحتياط) ---
 def ensure_font():
     font_path = 'DejaVuSans.ttf'
-    if not os.path.exists(font_path):
-        try:
-            url = "https://github.com/dejavu-fonts/dejavu-fonts.github.io/raw/master/ttf/DejaVuSans.ttf"
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as response, open(font_path, 'wb') as out_file:
-                out_file.write(response.read())
-        except Exception as e:
-            st.warning(f"ملاحظة: تعذر التحميل التلقائي للخط ({e}). يرجى التأكد من الاتصال بالإنترنت.")
-
-ensure_font()
-
-# --- دالة النص العربي ---
-def render_arabic(text):
+    if os.path.exists(font_path):
+        return font_path
+    
+    # البحث في مسارات النظام الافتراضية على سيرفرات لينكس (Streamlit Cloud)
+    system_paths = [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+        '/usr/local/share/fonts/DejaVuSans.ttf'
+    ]
+    for path in system_paths:
+        if os.path.exists(path):
+            return path
+            
+    # محاولة التحميل من الإنترنت إذا لم يتوفر في النظام
     try:
-        reshaped_text = arabic_reshaper.reshape(str(text))
-        return get_display(reshaped_text)
-    except:
-        return str(text)
+        url = "https://github.com/dejavu-fonts/dejavu-fonts.github.io/raw/master/ttf/DejaVuSans.ttf"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req) as response, open(font_path, 'wb') as out_file:
+            out_file.write(response.read())
+        if os.path.exists(font_path):
+            return font_path
+    except Exception as e:
+        pass
+        
+    return None
 
 # --- قاعدة البيانات وتحديث الجداول تلقائياً ---
 DB_NAME = 'final_system_master.db'
@@ -56,15 +63,23 @@ for col_def in [
     except:
         pass
 
+# --- دالة النص العربي ---
+def render_arabic(text):
+    try:
+        reshaped_text = arabic_reshaper.reshape(str(text))
+        return get_display(reshaped_text)
+    except:
+        return str(text)
+
 # --- دالة توليد الفاتورة العربية بالكامل ---
 def generate_pdf(row, items):
     pdf = FPDF()
     pdf.add_page()
     
-    font_path = 'DejaVuSans.ttf'
-    if not os.path.exists(font_path):
+    font_path = ensure_font()
+    if not font_path:
         pdf.set_font("Arial", size=14)
-        pdf.cell(200, 10, "Invoice Font Error: DejaVuSans.ttf missing", ln=True, align='C')
+        pdf.cell(200, 10, "Invoice Font Error: DejaVuSans missing", ln=True, align='C')
         return bytes(pdf.output())
     
     pdf.add_font("ArabicFont", "", font_path, uni=True)
