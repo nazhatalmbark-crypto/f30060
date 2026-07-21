@@ -9,17 +9,21 @@ from fpdf import FPDF
 import arabic_reshaper
 from bidi.algorithm import get_display
 
-st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
+st.set_page_config(page_title="Eng. Yasser Pro System - أسعد نفسك بنفسك", layout="wide")
 
-# --- دالة تحميل الخط المضمون للغة العربية ---
+# --- دالة تحميل الخط العربي الأصلي (الأميري) لضمان عدم وجود بياض أو تقطيع ---
 def ensure_font():
-    font_path = "DejaVuSans.ttf"
+    font_path = "Amiri-Regular.ttf"
     if not os.path.exists(font_path) or os.path.getsize(font_path) < 10000:
         try:
-            url = "https://cdn.jsdelivr.net/npm/kendo-ui-core@2021.1.224/css/web/fonts/DejaVu/DejaVuSans.ttf"
+            url = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/amiri-regular.ttf"
             urllib.request.urlretrieve(url, font_path)
         except Exception:
-            pass
+            try:
+                url_alt = "https://cdn.jsdelivr.net/npm/kendo-ui-core@2021.1.224/css/web/fonts/DejaVu/DejaVuSans.ttf"
+                urllib.request.urlretrieve(url_alt, font_path)
+            except:
+                pass
     return font_path if os.path.exists(font_path) else None
 
 # --- قاعدة البيانات وتحديث الجداول تلقائياً ---
@@ -32,7 +36,7 @@ c.execute('CREATE TABLE IF NOT EXISTS products (name TEXT, price_carton INTEGER,
 c.execute('CREATE TABLE IF NOT EXISTS customers (name TEXT, shop_name TEXT, phone TEXT, address TEXT, governorate TEXT)')
 c.execute('CREATE TABLE IF NOT EXISTS invoices (customer_name TEXT, shop_name TEXT, address TEXT, phone TEXT, items TEXT, total INTEGER, date TEXT, payment_type TEXT)')
 
-# ترقية الجداول القديمة تلقائياً إذا كانت ناقصة أعمدة
+# ترقية الجداول تلقائياً
 for col_def in [
     ("customers", "shop_name", "TEXT"), ("customers", "phone", "TEXT"), 
     ("customers", "address", "TEXT"), ("customers", "governorate", "TEXT"),
@@ -45,7 +49,7 @@ for col_def in [
     except:
         pass
 
-# --- دالة النص العربي ---
+# --- دالة النص العربي بدون بياض أو تقطيع ---
 def render_arabic(text):
     try:
         reshaped_text = arabic_reshaper.reshape(str(text))
@@ -53,7 +57,7 @@ def render_arabic(text):
     except:
         return str(text)
 
-# --- دالة توليد الفاتورة الملونة وبتصميم الدفتر ومع رقم العميل ---
+# --- دالة توليد الفاتورة الملونة وبتصميم الدفتر ورقم العميل والعبارة المطلوبة ---
 def generate_pdf(row, items):
     pdf = FPDF()
     pdf.add_page()
@@ -61,38 +65,46 @@ def generate_pdf(row, items):
     font_path = ensure_font()
     if not font_path:
         pdf.set_font("helvetica", size=14)
-        pdf.cell(200, 10, "Font Error: DejaVuSans missing", ln=True, align='C')
+        pdf.cell(200, 10, "Font Error: Font missing", ln=True, align='C')
         return bytes(pdf.output())
     
     pdf.add_font("ArabicFont", "", font_path)
     
-    # --- شريط العنوان الملون (بارز ومرتب) ---
+    try:
+        pdf.set_text_shaping(True)
+    except:
+        pass
+    
+    # --- شريط العنوان الملون (بارز ومرتب مع العبارة الكاملة) ---
     pdf.set_fill_color(31, 78, 121) # أزرق غامق احترافي
-    pdf.rect(10, 10, 190, 20, 'F')
+    pdf.rect(10, 10, 190, 22, 'F')
     pdf.set_text_color(255, 255, 255)
-    pdf.set_font("ArabicFont", size=15)
+    pdf.set_font("ArabicFont", size=13)
     pdf.set_xy(10, 12)
-    pdf.cell(190, 16, render_arabic("Eng. Yasser Pro System - فاتورة مبيعات رسمية"), align='C')
+    pdf.cell(190, 9, render_arabic("Eng. Yasser Pro System - أسعد نفسك بنفسك"), align='C', ln=1)
+    pdf.set_font("ArabicFont", size=10)
+    pdf.set_xy(10, 22)
+    pdf.cell(190, 7, render_arabic("مستمرون نحو الأفضل - فاتورة مبيعات رسمية"), align='C')
     
     pdf.ln(25)
     
-    # --- معلومات العميل (بخلفية ملونة خفيفة) ---
+    # --- معلومات العميل (مع رقم العميل والمحل بخلفية ملونة خفيفة) ---
     pdf.set_text_color(40, 40, 40)
     pdf.set_font("ArabicFont", size=11)
     
     pdf.set_fill_color(245, 247, 250)
-    pdf.rect(10, 35, 190, 32, 'F')
+    pdf.rect(10, 37, 190, 32, 'F')
     
-    pdf.set_xy(15, 38)
-    pdf.cell(90, 7, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=0)
-    pdf.cell(90, 7, render_arabic(f"اسم المحل: {row.get('shop_name', 'غير متوفر')}"), ln=1)
+    pdf.set_xy(15, 40)
+    pdf.cell(90, 7, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=0, align='R')
+    pdf.cell(90, 7, render_arabic(f"اسم المحل: {row.get('shop_name', 'غير متوفر')}"), ln=1, align='R')
     
-    pdf.set_xy(15, 47)
-    pdf.cell(90, 7, render_arabic(f"رقم الهاتف: {row.get('phone', 'غير متوفر')}"), ln=0)
-    pdf.cell(90, 7, render_arabic(f"تاريخ الفاتورة: {row['date']}"), ln=1)
+    pdf.set_xy(15, 49)
+    pdf.cell(90, 7, render_arabic(f"رقم الهاتف: {row.get('phone', 'غير متوفر')}"), ln=0, align='R')
+    pdf.cell(90, 7, render_arabic(f"تاريخ الفاتورة: {row['date']}"), ln=1, align='R')
     
-    pdf.set_xy(15, 56)
-    pdf.cell(180, 7, render_arabic(f"العنوان: {row.get('address', 'غير متوفر')}"), ln=1)
+    pdf.set_xy(15, 58)
+    pdf.cell(180, 7, render_arabic(f"العنوان: {row.get('address', 'غير متوفر')}"), ln=1, align='R')
     
     pdf.ln(15)
     
@@ -117,7 +129,7 @@ def generate_pdf(row, items):
         pdf.cell(40, 9, str(data['price']), 'LRB', 0, 'C')
         pdf.cell(40, 9, str(data['qty'] * data['price']), 'LRB', 1, 'C')
         
-    # --- المجموع الكلي النهائي (تصميم أخضر مميز) ---
+    # --- المجموع الكلي النهائي ---
     pdf.ln(5)
     pdf.set_fill_color(46, 204, 113) # أخضر أنيق
     pdf.set_text_color(255, 255, 255)
@@ -131,7 +143,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.title("🔐 تسجيل الدخول لـ Eng. Yasser Pro System")
+    st.title("🔐 تسجيل الدخول لـ Eng. Yasser Pro System - أسعد نفسك بنفسك")
     col1, col2 = st.columns(2)
     with col1:
         if st.button("دخول كمسؤول"): 
@@ -143,8 +155,9 @@ if not st.session_state.logged_in:
             st.rerun()
     st.stop()
 
-# --- عنوان التطبيق الرئيسي (العِبارة والبراند) ---
-st.title("⚙️ Eng. Yasser Pro System - Master")
+# --- عنوان التطبيق الرئيسي والعبارة الكاملة ---
+st.title("⚙️ Eng. Yasser Pro System - أسعد نفسك بنفسك")
+st.markdown("### « أسعد نفسك بنفسك - مستمرون نحو الأفضل » - النظام الإداري المتكامل والمطور")
 st.markdown("---")
 
 # --- أقسام النظام (Tabs) ---
@@ -206,13 +219,13 @@ with tabs[1]: # الفواتير وتحميلها
         st.info("لا توجد فواتير مسجلة حتى الآن.")
     else:
         for _, row in inv_df.iterrows():
-            with st.expander(f"فاتورة رقم #{row['rowid']} | العميل: {row['customer_name']} | الهاتف: {row.get('phone', '')} | المجموع: {row['total']} د.ع"):
+            with st.expander(f"فاتورة رقم #{row['rowid']} | العميل: {row['customer_name']} | المحل: {row.get('shop_name', '')} | الهاتف: {row.get('phone', '')} | المجموع: {row['total']} د.ع"):
                 items = ast.literal_eval(row['items'])
                 st.table(pd.DataFrame(items).T)
                 try:
                     pdf_data = generate_pdf(row, items)
                     st.download_button(
-                        label="📥 تحميل الفاتورة PDF (ملونة ومرتبة كالدفتر)", 
+                        label="📥 تحميل الفاتورة PDF (ملونة بتصميم الدفتر)", 
                         data=pdf_data, 
                         file_name=f"invoice_{row['rowid']}.pdf",
                         mime="application/pdf",
@@ -251,11 +264,10 @@ with tabs[3]: # إدارة العملاء بالتفاصيل الكاملة
             st.success("تم إضافة العميل بنجاح!")
             st.rerun()
             
-    st.subheader("قائمة العملاء المسجلين:")
     st.dataframe(pd.read_sql("SELECT rowid, * FROM customers", conn))
 
 with tabs[4]: # المساعد الذكي
-    st.header("🤖 المساعد الذكي لإدارة النظام")
+    st.header("🤖 المساعد الذكي لإدارة النظام - أسعد نفسك بنفسك")
     col_a, col_b = st.columns(2)
     with col_a:
         st.subheader("📊 إحصائيات النظام")
