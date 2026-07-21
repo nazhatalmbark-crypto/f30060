@@ -6,10 +6,12 @@ import os
 import urllib.request
 from datetime import date
 from fpdf import FPDF
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - أسعد نفسك بنفسك", layout="wide")
 
-# --- دالة تحميل خط أميري عالي الجودة وخالي من التقطيع ---
+# --- دالة تحميل خط أميري عالي الجودة ---
 def ensure_font():
     font_path = "Amiri-Regular.ttf"
     if not os.path.exists(font_path) or os.path.getsize(font_path) < 10000:
@@ -17,7 +19,11 @@ def ensure_font():
             url = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/amiri-regular.ttf"
             urllib.request.urlretrieve(url, font_path)
         except Exception:
-            pass
+            try:
+                url_alt = "https://cdn.jsdelivr.net/npm/kendo-ui-core@2021.1.224/css/web/fonts/DejaVu/DejaVuSans.ttf"
+                urllib.request.urlretrieve(url_alt, font_path)
+            except:
+                pass
     return font_path if os.path.exists(font_path) else None
 
 # --- قاعدة البيانات وتحديث الجداول تلقائياً ---
@@ -43,16 +49,19 @@ for col_def in [
     except:
         pass
 
-# --- دالة توليد الفاتورة الاحترافية بخط صافي وبدون أي بياض ---
+# --- دالة النص العربي الصافي (تمنع التقطيع والبياض وتربط الحروف بدقة) ---
+def render_arabic(text):
+    try:
+        if not text:
+            return ""
+        reshaped_text = arabic_reshaper.reshape(str(text))
+        return get_display(reshaped_text)
+    except:
+        return str(text)
+
+# --- دالة توليد الفاتورة الاحترافية الملونة وبتصميم الدفتر وبخط عربي واضح 100% ---
 def generate_pdf(row, items):
     pdf = FPDF()
-    
-    # تفعيل محرك التشكيل الهندسي للغة العربية (يعالج الحروف المتصلة تلقائياً وبدقة تامة)
-    try:
-        pdf.set_text_shaping(True)
-    except:
-        pass
-        
     pdf.add_page()
     
     font_path = ensure_font()
@@ -70,15 +79,15 @@ def generate_pdf(row, items):
     
     pdf.set_font("ArabicFont", size=13)
     pdf.set_xy(10, 12)
-    pdf.cell(190, 9, "Eng. Yasser Pro System - أسعد نفسك بنفسك", align='C', ln=1)
+    pdf.cell(190, 9, render_arabic("Eng. Yasser Pro System - أسعد نفسك بنفسك"), align='C', ln=1)
     
     pdf.set_font("ArabicFont", size=10)
     pdf.set_xy(10, 22)
-    pdf.cell(190, 7, "مستمرون نحو الأفضل - فاتورة مبيعات رسمية", align='C')
+    pdf.cell(190, 7, render_arabic("مستمرون نحو الأفضل - فاتورة مبيعات رسمية"), align='C')
     
     pdf.ln(25)
     
-    # --- معلومات العميل واسم المحل ورقم الهاتف (مرتبة وبدون بياض) ---
+    # --- معلومات العميل واسم المحل ورقم الهاتف (معالجة بالكامل وبدون أي أخطاء أو بياض) ---
     pdf.set_text_color(40, 40, 40)
     pdf.set_font("ArabicFont", size=11)
     
@@ -86,15 +95,15 @@ def generate_pdf(row, items):
     pdf.rect(10, 37, 190, 32, 'F')
     
     pdf.set_xy(15, 40)
-    pdf.cell(90, 7, f"اسم العميل: {row['customer_name']}", ln=0, align='R')
-    pdf.cell(90, 7, f"اسم المحل: {row.get('shop_name', 'غير متوفر')}", ln=1, align='R')
+    pdf.cell(90, 7, render_arabic(f"اسم العميل: {row['customer_name']}"), ln=0, align='R')
+    pdf.cell(90, 7, render_arabic(f"اسم المحل: {row.get('shop_name', 'غير متوفر')}"), ln=1, align='R')
     
     pdf.set_xy(15, 49)
-    pdf.cell(90, 7, f"رقم الهاتف: {row.get('phone', 'غير متوفر')}", ln=0, align='R')
-    pdf.cell(90, 7, f"تاريخ الفاتورة: {row['date']}", ln=1, align='R')
+    pdf.cell(90, 7, render_arabic(f"رقم الهاتف: {row.get('phone', 'غير متوفر')}"), ln=0, align='R')
+    pdf.cell(90, 7, render_arabic(f"تاريخ الفاتورة: {row['date']}"), ln=1, align='R')
     
     pdf.set_xy(15, 58)
-    pdf.cell(180, 7, f"العنوان: {row.get('address', 'غير متوفر')}", ln=1, align='R')
+    pdf.cell(180, 7, render_arabic(f"العنوان: {row.get('address', 'غير متوفر')}"), ln=1, align='R')
     
     pdf.ln(15)
     
@@ -103,18 +112,18 @@ def generate_pdf(row, items):
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("ArabicFont", size=12)
     
-    pdf.cell(80, 10, "المادة", 1, 0, 'C', fill=True)
-    pdf.cell(30, 10, "الكمية", 1, 0, 'C', fill=True)
-    pdf.cell(40, 10, "السعر", 1, 0, 'C', fill=True)
-    pdf.cell(40, 10, "الإجمالي", 1, 1, 'C', fill=True)
+    pdf.cell(80, 10, render_arabic("المادة"), 1, 0, 'C', fill=True)
+    pdf.cell(30, 10, render_arabic("الكمية"), 1, 0, 'C', fill=True)
+    pdf.cell(40, 10, render_arabic("السعر"), 1, 0, 'C', fill=True)
+    pdf.cell(40, 10, render_arabic("الإجمالي"), 1, 1, 'C', fill=True)
     
-    # --- محتوى الجدول (بخط صافي ومرتب تماماً) ---
+    # --- محتوى الجدول (بخط صافي ومرتب وبدون بياض أو أخطاء بالحروف) ---
     pdf.set_text_color(40, 40, 40)
     pdf.set_font("ArabicFont", size=11)
     pdf.set_draw_color(210, 210, 210)
     
     for item, data in items.items():
-        pdf.cell(80, 9, str(item), 'LRB', 0, 'R')
+        pdf.cell(80, 9, render_arabic(str(item)), 'LRB', 0, 'R')
         pdf.cell(30, 9, str(data['qty']), 'LRB', 0, 'C')
         pdf.cell(40, 9, str(data['price']), 'LRB', 0, 'C')
         pdf.cell(40, 9, str(data['qty'] * data['price']), 'LRB', 1, 'C')
@@ -124,7 +133,7 @@ def generate_pdf(row, items):
     pdf.set_fill_color(46, 204, 113)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("ArabicFont", size=13)
-    pdf.cell(190, 12, f"المجموع الكلي النهائي: {row['total']} دينار عراقي", 1, 1, 'C', fill=True)
+    pdf.cell(190, 12, render_arabic(f"المجموع الكلي النهائي: {row['total']} دينار عراقي"), 1, 1, 'C', fill=True)
         
     return bytes(pdf.output())
 
@@ -215,7 +224,7 @@ with tabs[1]: # الفواتير وتحميلها
                 try:
                     pdf_data = generate_pdf(row, items)
                     st.download_button(
-                        label="📥 تحميل الفاتورة PDF (خط صافي وواضح 100%)", 
+                        label="📥 تحميل الفاتورة PDF (خط عربي صافي ومتصل 100%)", 
                         data=pdf_data, 
                         file_name=f"invoice_{row['rowid']}.pdf",
                         mime="application/pdf",
