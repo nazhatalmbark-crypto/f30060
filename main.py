@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 import ast
 import os
+import urllib.request
 from datetime import date
 from fpdf import FPDF
 import arabic_reshaper
@@ -10,17 +11,16 @@ from bidi.algorithm import get_display
 
 st.set_page_config(page_title="Eng. Yasser Pro System - Master", layout="wide")
 
-# --- دالة البحث عن الخط في نظام السيرفر (بعد إضافة packages.txt) ---
+# --- دالة تحميل الخط تلقائياً (بدون الحاجة لملفات نظام خارجية) ---
 def ensure_font():
-    system_paths = [
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        '/usr/share/fonts/dejavu/DejaVuSans.ttf',
-        '/usr/local/share/fonts/DejaVuSans.ttf'
-    ]
-    for path in system_paths:
-        if os.path.exists(path):
-            return path
-    return None
+    font_path = "DejaVuSans.ttf"
+    if not os.path.exists(font_path):
+        try:
+            url = "https://github.com/dejavu-fonts/dejavu-fonts.github.io/raw/master/ttf/DejaVuSans.ttf"
+            urllib.request.urlretrieve(url, font_path)
+        except Exception:
+            pass
+    return font_path if os.path.exists(font_path) else None
 
 # --- قاعدة البيانات وتحديث الجداول تلقائياً ---
 DB_NAME = 'final_system_master.db'
@@ -60,7 +60,7 @@ def generate_pdf(row, items):
     font_path = ensure_font()
     if not font_path:
         pdf.set_font("Arial", size=14)
-        pdf.cell(200, 10, "Invoice Font Error: DejaVuSans missing from system", ln=True, align='C')
+        pdf.cell(200, 10, "Invoice Font Error: DejaVuSans missing", ln=True, align='C')
         return bytes(pdf.output())
     
     pdf.add_font("ArabicFont", "", font_path, uni=True)
