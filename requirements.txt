@@ -1,4 +1,3 @@
+arabic_reshaper
+python-bidi
 streamlit
-pandas
-fpdf2
-uharfbuzz
