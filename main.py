@@ -81,6 +81,8 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'username' not in st.session_state:
     st.session_state.username = ""
+if 'play_sound' not in st.session_state:
+    st.session_state.play_sound = False
 
 if not st.session_state.logged_in:
     st.markdown("<h3 style='text-align: center;'>🔐 بوابة الدخول إلى النظام</h3>", unsafe_allow_html=True)
@@ -124,9 +126,18 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
 
 menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 التقارير والأرباح", "👥 العملاء والديون"])
 
+# --- تشغيل الصوت عند الإضافة للسلة ---
+if st.session_state.play_sound:
+    st.markdown("""
+        <audio autoplay style="display:none;">
+            <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+        </audio>
+    """, unsafe_allow_html=True)
+    st.session_state.play_sound = False
+
 # --- 1. شاشة المبيعات ---
 if menu == "🏪 المبيعات":
-    if 'cart' not in st.session_state: st.session_state.cart = []
+    if 'cart' not in st.session_state: st.session_state.cart = {} # سلة المشتريات كمفتاح معرف المنتج
     tab1, tab2, tab3, tab4 = st.tabs(["شاشة البيع", "الفواتير", "العملاء", "مرتجعات الفواتير"])
     
     with tab1:
@@ -144,7 +155,24 @@ if menu == "🏪 المبيعات":
                             st.write(f"💰 **السعر:** {clean_price} دينار")
                             st.write(f"📦 **المتوفر:** {prod[3]} قطعة")
                             if st.button(f"إضافة للسلة", key=f"add_{prod[0]}"):
-                                st.session_state.cart.append({'id': prod[0], 'name': prod[1], 'price': clean_price})
+                                prod_id = prod[0]
+                                max_qty = prod[3]
+                                if prod_id in st.session_state.cart:
+                                    if st.session_state.cart[prod_id]['qty'] < max_qty:
+                                        st.session_state.cart[prod_id]['qty'] += 1
+                                    else:
+                                        st.warning("الكمية المطلوبة تتجاوز المخزون المتوفر!")
+                                else:
+                                    if max_qty > 0:
+                                        st.session_state.cart[prod_id] = {
+                                            'name': prod[1],
+                                            'price': clean_price,
+                                            'qty': 1,
+                                            'max_qty': max_qty
+                                        }
+                                    else:
+                                        st.warning("المنتج نفذ من المخزون!")
+                                st.session_state.play_sound = True
                                 st.rerun()
                     prod_count += 1
             if prod_count == 0:
@@ -179,11 +207,47 @@ if menu == "🏪 المبيعات":
         st.subheader("↩️ مرتجعات الفواتير")
         st.info("قريباً...")
 
-    with st.sidebar.expander("🛒 سلة المشتريات وإتمام الفاتورة"):
-        total = sum(i['price'] for i in st.session_state.cart)
-        for idx, item in enumerate(st.session_state.cart):
-            st.write(f"{item['name']} - {item['price']} دينار")
-        st.write(f"### المجموع: {total} دينار")
+    with st.sidebar.expander("🛒 سلة المشتريات وإتمام الفاتورة", expanded=True):
+        total = 0
+        items_to_remove = []
+        
+        if st.session_state.cart:
+            for prod_id, item in list(st.session_state.cart.items()):
+                item_total = item['price'] * item['qty']
+                total += item_total
+                st.markdown(f"**{item['name']}**")
+                
+                # أزرار التحكم بالكمية والحذف داخل السلة
+                c1, c2, c3, c4 = st.columns(4)
+                with c1:
+                    st.write(f"العدد: {item['qty']}")
+                with c2:
+                    if st.button("➕", key=f"inc_{prod_id}"):
+                        if item['qty'] < item['max_qty']:
+                            item['qty'] += 1
+                            st.rerun()
+                with c3:
+                    if st.button("➖", key=f"dec_{prod_id}"):
+                        if item['qty'] > 1:
+                            item['qty'] -= 1
+                        else:
+                            items_to_remove.append(prod_id)
+                        st.rerun()
+                with c4:
+                    if st.button("🗑️", key=f"del_{prod_id}"):
+                        items_to_remove.append(prod_id)
+                        st.rerun()
+                
+                st.write(f"المجموع: {item_total} دينار")
+                st.markdown("---")
+            
+            for p_id in items_to_remove:
+                del st.session_state.cart[p_id]
+                st.rerun()
+        else:
+            st.info("السلة فارغة.")
+
+        st.write(f"### المجموع الكلي: {total} دينار")
         
         st.markdown("---")
         st.subheader("تفاصيل العميل للفاتورة:")
@@ -207,12 +271,16 @@ if menu == "🏪 المبيعات":
         
         if st.button("✅ تأكيد البيع وحفظ الفاتورة"):
             if cust_name and st.session_state.cart:
-                for item in st.session_state.cart:
-                    run_query("UPDATE products SET quantity = quantity - 1 WHERE id = ?", (item['id'],))
+                # خصم الكميات من المخزون بشكل فعلي
+                for prod_id, item in st.session_state.cart.items():
+                    run_query("UPDATE products SET quantity = quantity - ? WHERE id = ?", (item['qty'], prod_id))
+                
+                # حفظ الفاتورة
                 run_query("INSERT INTO invoices (customer_name, shop_location, phone, governorate, region, total, date) VALUES (?, ?, ?, ?, ?, ?, ?)", 
                           (cust_name, shop_loc, phone_num, governorate, region, total, datetime.now().strftime("%Y-%m-%d %H:%M")))
-                st.session_state.cart = []
-                st.success("تم تثبيت الفاتورة بنجاح وظهرت كافة تفاصيل العميل داخلها!")
+                
+                st.session_state.cart = {}
+                st.success("تم تثبيت الفاتورة بنجاح ونقصت الكميات المباعة من المخزن!")
                 st.rerun()
             else:
                 st.error("يرجى إدخال اسم العميل ووضع منتجات بالسلة.")
