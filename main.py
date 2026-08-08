@@ -84,6 +84,10 @@ if 'username' not in st.session_state:
 if 'play_sound' not in st.session_state:
     st.session_state.play_sound = False
 
+# ضمان أن السلة دائماً نوعها Dictionary لمنع الأخطاء
+if 'cart' not in st.session_state or not isinstance(st.session_state.cart, dict):
+    st.session_state.cart = {}
+
 if not st.session_state.logged_in:
     st.markdown("<h3 style='text-align: center;'>🔐 بوابة الدخول إلى النظام</h3>", unsafe_allow_html=True)
     auth_tab1, auth_tab2 = st.tabs(["تسجيل الدخول", "مستخدم جديد (إنشاء حساب)"])
@@ -137,7 +141,6 @@ if st.session_state.play_sound:
 
 # --- 1. شاشة المبيعات ---
 if menu == "🏪 المبيعات":
-    if 'cart' not in st.session_state: st.session_state.cart = {} # سلة المشتريات كمفتاح معرف المنتج
     tab1, tab2, tab3, tab4 = st.tabs(["شاشة البيع", "الفواتير", "العملاء", "مرتجعات الفواتير"])
     
     with tab1:
