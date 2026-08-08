@@ -6,12 +6,13 @@ from datetime import datetime
 # إعداد الصفحة
 st.set_page_config(page_title="إدارة المبيعات", page_icon="🛍️", layout="wide")
 
-# --- تنسيق الألوان والأزرار ---
+# --- تنسيق الألوان والجداول الاحترافية ---
 st.markdown("""
 <style>
     div.stButton > button { background-color: #1a6b51; color: white; border-radius: 8px; border: none; width: 100%; }
     div.stButton > button:hover { background-color: #14523e; }
     .stTabs [data-baseweb="tab"] { background-color: #e6f2ee; border-radius: 8px; color: #1a6b51; font-weight: bold; }
+    table { width: 100%; direction: rtl; text-align: right; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -128,7 +129,7 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.username = ""
     st.rerun()
 
-menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 التقارير والأرباح", "👥 العملاء والديون"])
+menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 التقارير والفواتير", "👥 العملاء والديون"])
 
 # --- تشغيل الصوت عند الإضافة للسلة ---
 if st.session_state.play_sound:
@@ -141,7 +142,7 @@ if st.session_state.play_sound:
 
 # --- 1. شاشة المبيعات ---
 if menu == "🏪 المبيعات":
-    tab1, tab2, tab3, tab4 = st.tabs(["شاشة البيع", "الفواتير", "العملاء", "مرتجعات الفواتير"])
+    tab1, tab2, tab3 = st.tabs(["شاشة البيع", "العملاء", "مرتجعات الفواتير"])
     
     with tab1:
         search = st.text_input("🔍 ابحث باسم المنتج ...")
@@ -184,21 +185,6 @@ if menu == "🏪 المبيعات":
             st.info("لا توجد منتجات حالياً. يمكنك إضافتها من قسم (إدارة المخزون).")
 
     with tab2:
-        st.subheader("🧾 الفواتير السابقة وتفاصيل العملاء")
-        invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, total, date FROM invoices ORDER BY id DESC", fetch=True)
-        if invs:
-            for inv in invs:
-                clean_total = int(inv[6]) if inv[6] is not None else 0
-                with st.expander(f"فاتورة رقم: {inv[0]} | العميل: {inv[1]} | المجموع: {clean_total} دينار"):
-                    st.write(f"📅 **تاريخ الفاتورة:** {inv[7]}")
-                    st.write(f"👤 **اسم العميل:** {inv[1]}")
-                    st.write(f"🏪 **مكان المحل:** {inv[2]} | 📍 **المنطقة:** {inv[5]} | **المحافظة:** {inv[4]}")
-                    st.write(f"📞 **رقم الهاتف:** {inv[3]}")
-                    st.markdown(f"### المبلغ الإجمالي للفاتورة: {clean_total} دينار")
-        else:
-            st.info("لا توجد فواتير مسجلة.")
-
-    with tab3:
         st.subheader("👥 العملاء")
         custs = run_query("SELECT id, name, shop_location, phone, governorate, region, debt FROM customers", fetch=True)
         if custs:
@@ -206,7 +192,7 @@ if menu == "🏪 المبيعات":
         else:
             st.info("لا توجد عملاء مسجلين.")
 
-    with tab4:
+    with tab3:
         st.subheader("↩️ مرتجعات الفواتير")
         st.info("قريباً...")
 
@@ -220,7 +206,6 @@ if menu == "🏪 المبيعات":
                 total += item_total
                 st.markdown(f"**{item['name']}**")
                 
-                # أزرار التحكم بالكمية والحذف داخل السلة
                 c1, c2, c3, c4 = st.columns(4)
                 with c1:
                     st.write(f"العدد: {item['qty']}")
@@ -274,11 +259,9 @@ if menu == "🏪 المبيعات":
         
         if st.button("✅ تأكيد البيع وحفظ الفاتورة"):
             if cust_name and st.session_state.cart:
-                # خصم الكميات من المخزون بشكل فعلي
                 for prod_id, item in st.session_state.cart.items():
                     run_query("UPDATE products SET quantity = quantity - ? WHERE id = ?", (item['qty'], prod_id))
                 
-                # حفظ الفاتورة
                 run_query("INSERT INTO invoices (customer_name, shop_location, phone, governorate, region, total, date) VALUES (?, ?, ?, ?, ?, ?, ?)", 
                           (cust_name, shop_loc, phone_num, governorate, region, total, datetime.now().strftime("%Y-%m-%d %H:%M")))
                 
@@ -332,16 +315,28 @@ elif menu == "📦 إدارة المخزون":
     else:
         st.info("المخزن فارغ حالياً.")
 
-# --- 3. التقارير والأرباح ---
-elif menu == "📊 التقارير والأرباح":
-    st.title("📊 التقارير والأرباح والفواتير")
-    invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, total, date FROM invoices", fetch=True)
+# --- 3. التقارير والفواتير ---
+elif menu == "📊 التقارير والفواتير":
+    st.title("📊 جدول الفواتير والتقارير المالية")
+    
+    invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, total, date FROM invoices ORDER BY id DESC", fetch=True)
     if invs:
-        df_invs = pd.DataFrame(invs, columns=["رقم الفاتورة", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "المجموع", "التاريخ"])
-        df_invs["المجموع"] = df_invs["المجموع"].astype(int)
-        st.dataframe(df_invs, use_container_width=True)
+        df_invs = pd.DataFrame(invs, columns=["رقم الفاتورة", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "المجموع (دينار)", "التاريخ"])
+        df_invs["المجموع (دينار)"] = df_invs["المجموع (دينار)"].astype(int)
+        
+        # عرض الجدول بشكل احترافي ومرتب
+        st.dataframe(df_invs, use_container_width=True, hide_index=True)
+        
+        # زر لتحميل الفواتير كملف Excel/CSV مدعوم باللغة العربية
+        csv_data = df_invs.to_csv(index=False).encode('utf-8-sig')
+        st.download_button(
+            label="📥 تحميل جدول الفواتير كملف (Excel/CSV)",
+            data=csv_data,
+            file_name=f"invoices_{datetime.now().strftime('%Y-%m-%d')}.csv",
+            mime="text/csv"
+        )
     else:
-        st.info("لا توجد تقارير أو فواتير مسجلة.")
+        st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 # --- 4. العملاء والديون ---
 elif menu == "👥 العملاء والديون":
@@ -369,6 +364,7 @@ elif menu == "👥 العملاء والديون":
     st.subheader("📋 قائمة العملاء المسجلين")
     custs = run_query("SELECT id, name, shop_location, phone, governorate, region, debt FROM customers", fetch=True)
     if custs:
-        st.dataframe(pd.DataFrame(custs, columns=["ID", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "الدين"]), use_container_width=True)
+        df_custs = pd.DataFrame(custs, columns=["ID", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "الدين"])
+        st.dataframe(df_custs, use_container_width=True, hide_index=True)
     else:
         st.info("لا توجد عملاء مسجلين حالياً.")
