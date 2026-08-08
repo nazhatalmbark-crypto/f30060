@@ -12,7 +12,9 @@ st.markdown("""
     div.stButton > button { background-color: #1a6b51; color: white; border-radius: 8px; border: none; width: 100%; }
     div.stButton > button:hover { background-color: #14523e; }
     .stTabs [data-baseweb="tab"] { background-color: #e6f2ee; border-radius: 8px; color: #1a6b51; font-weight: bold; }
-    table { width: 100%; direction: rtl; text-align: right; }
+    table { width: 100%; direction: rtl; text-align: right; border-collapse: collapse; }
+    th, td { padding: 12px; border: 1px solid #ddd; text-align: right; }
+    th { background-color: #1a6b51; color: white; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -129,7 +131,7 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.username = ""
     st.rerun()
 
-menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 التقارير والفواتير", "👥 العملاء والديون"])
+menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 التقارير والفواتير (PDF)", "👥 العملاء والديون"])
 
 # --- تشغيل الصوت عند الإضافة للسلة ---
 if st.session_state.play_sound:
@@ -315,26 +317,70 @@ elif menu == "📦 إدارة المخزون":
     else:
         st.info("المخزن فارغ حالياً.")
 
-# --- 3. التقارير والفواتير ---
-elif menu == "📊 التقارير والفواتير":
-    st.title("📊 جدول الفواتير والتقارير المالية")
+# --- 3. التقارير والفواتير (PDF) ---
+elif menu == "📊 التقارير والفواتير (PDF)":
+    st.title("📊 جدول الفواتير والتقارير المالية (جاهز للطباعة كـ PDF)")
     
     invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, total, date FROM invoices ORDER BY id DESC", fetch=True)
     if invs:
         df_invs = pd.DataFrame(invs, columns=["رقم الفاتورة", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "المجموع (دينار)", "التاريخ"])
         df_invs["المجموع (دينار)"] = df_invs["المجموع (دينار)"].astype(int)
         
-        # عرض الجدول بشكل احترافي ومرتب
+        # عرض الجدول بشكل مرتب وأنيق
         st.dataframe(df_invs, use_container_width=True, hide_index=True)
         
-        # زر لتحميل الفواتير كملف Excel/CSV مدعوم باللغة العربية
-        csv_data = df_invs.to_csv(index=False).encode('utf-8-sig')
-        st.download_button(
-            label="📥 تحميل جدول الفواتير كملف (Excel/CSV)",
-            data=csv_data,
-            file_name=f"invoices_{datetime.now().strftime('%Y-%m-%d')}.csv",
-            mime="text/csv"
-        )
+        st.markdown("---")
+        st.subheader("🖨️ طباعة الفواتير أو حفظها بصيغة PDF")
+        st.info("اضغط على الزر أدناه لفتح نافذة الطباعة، ثم اختر من قائمة الطابعات (Save as PDF / حفظ كـ PDF) لضمان جدول مرتب وبدعم كامل للغة العربية.")
+        
+        # تصميم جدول HTML احترافي للطباعة والـ PDF بدون مشاكل حروف
+        html_table = f"""
+        <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="text-align: center; color: #1a6b51;">قائمة الفواتير والتقارير المالية</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <thead>
+                    <tr style="background-color: #1a6b51; color: white;">
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">رقم الفاتورة</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">اسم العميل</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">مكان المحل</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">الهاتف</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">المحافظة</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">المنطقة</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">المجموع (دينار)</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">التاريخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+        for inv in invs:
+            html_table += f"""
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[0]}</td>
+                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[1]}</td>
+                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[2]}</td>
+                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[3]}</td>
+                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[4]}</td>
+                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[5]}</td>
+                        <td style="border: 1px solid #ddd; padding: 10px;">{int(inv[6]) if inv[6] else 0}</td>
+                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[7]}</td>
+                    </tr>
+            """
+        html_table += """
+                </tbody>
+            </table>
+        </div>
+        <script>
+            function printPDF() {
+                window.print();
+            }
+        </script>
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="printPDF()" style="background-color: #FF4B4B; color: white; padding: 12px 25px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;">🖨️ طباعة أو حفظ كـ PDF الآن</button>
+        </div>
+        """
+        
+        st.components.v1.html(html_table, height=450, scrolling=True)
+        
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
