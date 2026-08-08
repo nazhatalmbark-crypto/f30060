@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
+from fpdf import FPDF
 
 # إعداد الصفحة وتصميم الواجهة
 st.set_page_config(page_title="Eng. Yasser Pro System", page_icon="🛒", layout="wide")
@@ -111,7 +112,7 @@ if menu == "🛒 نقطة البيع (السلة)":
                         st.rerun()
                     st.divider()
 
-               st.markdown(f"### المجموع الكلي: {total_amount} د.ع")
+                st.markdown(f"### المجموع الكلي: {total_amount} د.ع")
                 
                 st.subheader("معلومات العميل لإتمام الفاتورة")
                 cust_name = st.text_input("اسم العميل")
@@ -159,7 +160,7 @@ elif menu == "📦 إدارة المخزون":
     if low_stock_items:
         st.error("⚠️ تنبيه: المنتجات التالية اقتربت على النفاد في المخزون!")
         for item in low_stock_items:
-            st.warning(f"- المنتج: **{Item[0]}** | الكمية المتبقية: **{Item[1]}**")
+            st.warning(f"- المنتج: **{item[0]}** | الكمية المتبقية: **{item[1]}**")
 
     tab1, tab2 = st.tabs(["إضافة منتج جديد", "عرض المنتجات الحالية"])
     
