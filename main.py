@@ -9,13 +9,13 @@ st.set_page_config(page_title="إدارة المبيعات", page_icon="🛍️"
 # --- تنسيق الألوان (CSS) ---
 st.markdown("""
 <style>
-    div.stButton > button { background-color: #1a6b51; color: white; border-radius: 8px; border: none; }
+    div.stButton > button { background-color: #1a6b51; color: white; border-radius: 8px; border: none; width: 100%; }
     div.stButton > button:hover { background-color: #14523e; }
     .stTabs [data-baseweb="tab"] { background-color: #e6f2ee; border-radius: 8px; color: #1a6b51; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
-# العبارة المطلوبة التي طلبتها
+# العبارة المطلوبة
 st.markdown("<h2 style='text-align: center; color: #FF4B4B;'>« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</h2>", unsafe_allow_html=True)
 
 # --- إعداد قاعدة البيانات وتحديث الجداول تلقائياً ---
@@ -49,7 +49,6 @@ def init_db():
                     username TEXT UNIQUE,
                     password TEXT)''')
     
-    # فحص وإضافة الأعمدة تلقائياً لمنع أي أخطاء
     for col, col_type in [('shop_location', 'TEXT'), ('phone', 'TEXT'), ('governorate', 'TEXT'), ('region', 'TEXT'), ('debt', 'REAL DEFAULT 0')]:
         try:
             c.execute(f"ALTER TABLE customers ADD COLUMN {col} {col_type}")
@@ -123,7 +122,6 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.username = ""
     st.rerun()
 
-# القائمة الرئيسية المكتملة بدون أي مساعد ذكي
 menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 التقارير والأرباح", "👥 العملاء والديون"])
 
 # --- 1. شاشة المبيعات ---
@@ -135,16 +133,23 @@ if menu == "🏪 المبيعات":
         search = st.text_input("🔍 ابحث باسم المنتج ...")
         products = run_query("SELECT id, name, price, quantity FROM products", fetch=True)
         if products:
-            cols = st.columns(2)
-            for i, prod in enumerate(products):
+            # عرض المنتجات على شكل شبكة من 3 أعمدة
+            cols = st.columns(3)
+            prod_count = 0
+            for prod in products:
                 if search.lower() in prod[1].lower():
-                    with cols[i % 2]:
+                    clean_price = int(prod[2]) if prod[2] is not None else 0
+                    with cols[prod_count % 3]:
                         with st.container(border=True):
-                            st.markdown(f"**{prod[1]}**")
-                            st.write(f"💰 {prod[2]} دينار &nbsp; | &nbsp; 📦 {prod[3]} قطعة")
-                            if st.button(f"إضافة {prod[1]}", key=f"add_{prod[0]}"):
-                                st.session_state.cart.append({'id': prod[0], 'name': prod[1], 'price': prod[2]})
+                            st.markdown(f"#### {prod[1]}")
+                            st.write(f"💰 **السعر:** {clean_price} دينار")
+                            st.write(f"📦 **المتوفر:** {prod[3]} قطعة")
+                            if st.button(f"إضافة للسلة", key=f"add_{prod[0]}"):
+                                st.session_state.cart.append({'id': prod[0], 'name': prod[1], 'price': clean_price})
                                 st.rerun()
+                    prod_count += 1
+            if prod_count == 0:
+                st.info("لم يتم العثور على المنتج المطلوبة.")
         else:
             st.info("لا توجد منتجات حالياً. يمكنك إضافتها من قسم (إدارة المخزون).")
 
@@ -153,12 +158,13 @@ if menu == "🏪 المبيعات":
         invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, total, date FROM invoices ORDER BY id DESC", fetch=True)
         if invs:
             for inv in invs:
-                with st.expander(f"فاتورة رقم: {inv[0]} | العميل: {inv[1]} | المجموع: {inv[6]} دينار"):
+                clean_total = int(inv[6]) if inv[6] is not None else 0
+                with st.expander(f"فاتورة رقم: {inv[0]} | العميل: {inv[1]} | المجموع: {clean_total} دينار"):
                     st.write(f"📅 **تاريخ الفاتورة:** {inv[7]}")
                     st.write(f"👤 **اسم العميل:** {inv[1]}")
                     st.write(f"🏪 **مكان المحل:** {inv[2]} | 📍 **المنطقة:** {inv[5]} | **المحافظة:** {inv[4]}")
                     st.write(f"📞 **رقم الهاتف:** {inv[3]}")
-                    st.markdown(f"### المبلغ الإجمالي للفاتورة: {inv[6]} دينار")
+                    st.markdown(f"### المبلغ الإجمالي للفاتورة: {clean_total} دينار")
         else:
             st.info("لا توجد فواتير مسجلة.")
 
@@ -212,7 +218,7 @@ if menu == "🏪 المبيعات":
             else:
                 st.error("يرجى إدخال اسم العميل ووضع منتجات بالسلة.")
 
-# --- 2. إدارة المخزون (مع نموذج إضافة منتج جديد بكل سهولة) ---
+# --- 2. إدارة المخزون ---
 elif menu == "📦 إدارة المخزون":
     st.title("📦 إدارة المخزون")
     
@@ -220,17 +226,17 @@ elif menu == "📦 إدارة المخزون":
         st.subheader("➕ إضافة أو تحديث منتج بالمخزن")
         p_name = st.text_input("اسم المنتج")
         p_qty = st.number_input("الكمية", min_value=0, value=1)
-        p_price = st.number_input("السعر (بالدينار)", min_value=0.0, value=0.0)
+        p_price = st.number_input("السعر (بالدينار)", min_value=0, value=0, step=1000)
         submitted_p = st.form_submit_button("حفظ المنتج")
         
         if submitted_p:
             if p_name:
                 exists = run_query("SELECT quantity FROM products WHERE name = ?", (p_name,), fetch=True)
                 if exists:
-                    run_query("UPDATE products SET quantity = quantity + ?, price = ? WHERE name = ?", (p_qty, p_price, p_name))
+                    run_query("UPDATE products SET quantity = quantity + ?, price = ? WHERE name = ?", (p_qty, float(p_price), p_name))
                     st.success(f"تم تحديث كمية وسعر {p_name} بنجاح!")
                 else:
-                    run_query("INSERT INTO products (name, quantity, price) VALUES (?, ?, ?)", (p_name, p_qty, p_price))
+                    run_query("INSERT INTO products (name, quantity, price) VALUES (?, ?, ?)", (p_name, p_qty, float(p_price)))
                     st.success(f"تمت إضافة {p_name} إلى المخزن بنجاح!")
                 st.rerun()
             else:
@@ -240,7 +246,10 @@ elif menu == "📦 إدارة المخزون":
     st.subheader("📋 قائمة المنتجات الحالية")
     prods = run_query("SELECT id, name, price, quantity FROM products", fetch=True)
     if prods:
-        st.dataframe(pd.DataFrame(prods, columns=["ID", "اسم المنتج", "السعر", "العدد"]), use_container_width=True)
+        # عرض المنتجات بالجدول بدون بوينتات للسعر
+        df_prods = pd.DataFrame(prods, columns=["ID", "اسم المنتج", "السعر", "العدد"])
+        df_prods["السعر"] = df_prods["السعر"].astype(int)
+        st.dataframe(df_prods, use_container_width=True)
     else:
         st.info("المخزن فارغ حالياً.")
 
@@ -249,7 +258,9 @@ elif menu == "📊 التقارير والأرباح":
     st.title("📊 التقارير والأرباح والفواتير")
     invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, total, date FROM invoices", fetch=True)
     if invs:
-        st.dataframe(pd.DataFrame(invs, columns=["رقم الفاتورة", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "المجموع", "التاريخ"]), use_container_width=True)
+        df_invs = pd.DataFrame(invs, columns=["رقم الفاتورة", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "المجموع", "التاريخ"])
+        df_invs["المجموع"] = df_invs["المجموع"].astype(int)
+        st.dataframe(df_invs, use_container_width=True)
     else:
         st.info("لا توجد تقارير أو فواتير مسجلة.")
 
