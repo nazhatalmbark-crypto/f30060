@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 
 # إعداد الصفحة
-st.set_page_config(page_title="Prosto - إدارة المبيعات", page_icon="🛍️", layout="wide")
+st.set_page_config(page_title="إدارة المبيعات", page_icon="🛍️", layout="wide")
 
 # --- تنسيق الألوان (CSS) ---
 st.markdown("""
@@ -18,7 +18,7 @@ st.markdown("""
 # العبارة المطلوبة
 st.markdown("<h2 style='text-align: center; color: #FF4B4B;'>« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</h2>", unsafe_allow_html=True)
 
-# --- إعداد قاعدة البيانات وتحديث الجداول وتلافي أخطاء الأعمدة ---
+# --- إعداد قاعدة البيانات وتحديث الجداول تلقائياً ---
 def init_db():
     conn = sqlite3.connect('yasser_pro_pro.db', timeout=10)
     c = conn.cursor()
@@ -49,9 +49,17 @@ def init_db():
                     username TEXT UNIQUE,
                     password TEXT)''')
     
+    # فحص وإضافة الأعمدة تلقائياً لجدول العملاء
     for col, col_type in [('shop_location', 'TEXT'), ('phone', 'TEXT'), ('governorate', 'TEXT'), ('region', 'TEXT'), ('debt', 'REAL DEFAULT 0')]:
         try:
             c.execute(f"ALTER TABLE customers ADD COLUMN {col} {col_type}")
+        except sqlite3.OperationalError:
+            pass
+
+    # فحص وإضافة الأعمدة تلقائياً لجدول الفواتير لمنع أي خطأ
+    for col, col_type in [('shop_location', 'TEXT'), ('phone', 'TEXT'), ('governorate', 'TEXT'), ('region', 'TEXT')]:
+        try:
+            c.execute(f"ALTER TABLE invoices ADD COLUMN {col} {col_type}")
         except sqlite3.OperationalError:
             pass
 
@@ -70,14 +78,14 @@ def run_query(query, params=(), fetch=False):
     conn.close()
     return data
 
-# --- نظام تسجيل الدخول وإنشاء حساب جديد ---
+# --- نظام تسجيل الدخول وإنشاء حساب جديد (بدون اسم بروست) ---
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'username' not in st.session_state:
     st.session_state.username = ""
 
 if not st.session_state.logged_in:
-    st.markdown("<h3 style='text-align: center;'>🔐 بوابة الدخول إلى نظام Prosto</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>🔐 بوابة الدخول إلى النظام</h3>", unsafe_allow_html=True)
     auth_tab1, auth_tab2 = st.tabs(["تسجيل الدخول", "مستخدم جديد (إنشاء حساب)"])
     
     with auth_tab1:
