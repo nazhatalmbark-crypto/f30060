@@ -111,7 +111,7 @@ if menu == "🛒 نقطة البيع (السلة)":
                         st.rerun()
                     st.divider()
 
-                st.markdown(### المجموع الكلي: {total_amount} د.ع)
+               st.markdown(f"### المجموع الكلي: {total_amount} د.ع")
                 
                 st.subheader("معلومات العميل لإتمام الفاتورة")
                 cust_name = st.text_input("اسم العميل")
