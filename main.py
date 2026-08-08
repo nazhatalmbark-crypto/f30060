@@ -6,31 +6,12 @@ from datetime import datetime
 # إعداد الصفحة
 st.set_page_config(page_title="إدارة المبيعات", page_icon="🛍️", layout="wide")
 
-# --- تنسيق الألوان وإزالة أزرار الزائد والناقص نهائياً من حقول الأرقام ---
+# --- تنسيق الألوان والأزرار ---
 st.markdown("""
 <style>
     div.stButton > button { background-color: #1a6b51; color: white; border-radius: 8px; border: none; width: 100%; }
     div.stButton > button:hover { background-color: #14523e; }
     .stTabs [data-baseweb="tab"] { background-color: #e6f2ee; border-radius: 8px; color: #1a6b51; font-weight: bold; }
-    
-    /* إخفاء أزرار الزائد والناقص الخاصة بـ Streamlit والحقول الرقمية بشكل تام */
-    input[type=number]::-webkit-outer-spin-button,
-    input[type=number]::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    input[type=number] {
-        -moz-appearance: textfield;
-    }
-    button[kind="step-up"], button[kind="step-down"] {
-        display: none !important;
-    }
-    div[data-baseweb="spinbutton"] button {
-        display: none !important;
-    }
-    [data-testid="stNumberInputStepUp"], [data-testid="stNumberInputStepDown"] {
-        display: none !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -243,18 +224,28 @@ elif menu == "📦 إدارة المخزون":
     with st.form("add_product_form"):
         st.subheader("➕ إضافة أو تحديث منتج بالمخزن")
         p_name = st.text_input("اسم المنتج")
-        p_qty = st.number_input("الكمية", min_value=0, value=1)
-        p_price = st.number_input("السعر (بالدينار)", min_value=0, value=0, step=1000)
+        p_qty_str = st.text_input("الكمية", value="1")
+        p_price_str = st.text_input("السعر (بالدينار)", value="0")
         submitted_p = st.form_submit_button("حفظ المنتج")
         
         if submitted_p:
             if p_name:
+                try:
+                    p_qty = int(p_qty_str) if p_qty_str.strip() else 0
+                except ValueError:
+                    p_qty = 0
+                    
+                try:
+                    p_price = float(p_price_str) if p_price_str.strip() else 0.0
+                except ValueError:
+                    p_price = 0.0
+                
                 exists = run_query("SELECT quantity FROM products WHERE name = ?", (p_name,), fetch=True)
                 if exists:
-                    run_query("UPDATE products SET quantity = quantity + ?, price = ? WHERE name = ?", (p_qty, float(p_price), p_name))
+                    run_query("UPDATE products SET quantity = quantity + ?, price = ? WHERE name = ?", (p_qty, p_price, p_name))
                     st.success(f"تم تحديث كمية وسعر {p_name} بنجاح!")
                 else:
-                    run_query("INSERT INTO products (name, quantity, price) VALUES (?, ?, ?)", (p_name, p_qty, float(p_price)))
+                    run_query("INSERT INTO products (name, quantity, price) VALUES (?, ?, ?)", (p_name, p_qty, p_price))
                     st.success(f"تمت إضافة {p_name} إلى المخزن بنجاح!")
                 st.rerun()
             else:
