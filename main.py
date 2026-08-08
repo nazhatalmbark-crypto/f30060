@@ -6,12 +6,22 @@ from datetime import datetime
 # إعداد الصفحة
 st.set_page_config(page_title="إدارة المبيعات", page_icon="🛍️", layout="wide")
 
-# --- تنسيق الألوان (CSS) ---
+# --- تنسيق الألوان وإزالة أزرار الزائد والناقص من الحقول (CSS) ---
 st.markdown("""
 <style>
     div.stButton > button { background-color: #1a6b51; color: white; border-radius: 8px; border: none; width: 100%; }
     div.stButton > button:hover { background-color: #14523e; }
     .stTabs [data-baseweb="tab"] { background-color: #e6f2ee; border-radius: 8px; color: #1a6b51; font-weight: bold; }
+    
+    /* إزالة أزرار الزائد والناقص من حقول الأرقام */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -133,7 +143,6 @@ if menu == "🏪 المبيعات":
         search = st.text_input("🔍 ابحث باسم المنتج ...")
         products = run_query("SELECT id, name, price, quantity FROM products", fetch=True)
         if products:
-            # عرض المنتجات على شكل شبكة من 3 أعمدة
             cols = st.columns(3)
             prod_count = 0
             for prod in products:
@@ -149,7 +158,7 @@ if menu == "🏪 المبيعات":
                                 st.rerun()
                     prod_count += 1
             if prod_count == 0:
-                st.info("لم يتم العثور على المنتج المطلوبة.")
+                st.info("لم يتم العثور على المنتج المطلوب.")
         else:
             st.info("لا توجد منتجات حالياً. يمكنك إضافتها من قسم (إدارة المخزون).")
 
@@ -246,7 +255,6 @@ elif menu == "📦 إدارة المخزون":
     st.subheader("📋 قائمة المنتجات الحالية")
     prods = run_query("SELECT id, name, price, quantity FROM products", fetch=True)
     if prods:
-        # عرض المنتجات بالجدول بدون بوينتات للسعر
         df_prods = pd.DataFrame(prods, columns=["ID", "اسم المنتج", "السعر", "العدد"])
         df_prods["السعر"] = df_prods["السعر"].astype(int)
         st.dataframe(df_prods, use_container_width=True)
