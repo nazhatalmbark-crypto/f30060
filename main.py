@@ -7,6 +7,10 @@ from fpdf import FPDF
 # إعداد الصفحة وتصميم الواجهة
 st.set_page_config(page_title="Eng. Yasser Pro System", page_icon="🛒", layout="wide")
 
+# عرض العبارة الخاصة بك في أعلى الواجهة
+st.markdown("<h2 style='text-align: center; color: #FF4B4B;'>« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</h2>", unsafe_allow_html=True)
+st.divider()
+
 # إنشاء وتجهيز قاعدة البيانات
 def init_db():
     conn = sqlite3.connect('yasser_pro_pro.db', timeout=10)
@@ -49,9 +53,37 @@ def run_query(query, params=(), fetch=False):
     conn.close()
     return data
 
-# القائمة الجانبية للتنقل
+# القائمة الجانبية للتنقل (بدون خيار المساعد الذكي كقائمة رئيسية)
 st.sidebar.title("🚀 Eng. Yasser Pro")
 menu = st.sidebar.selectbox("القائمة الرئيسية", ["🛒 نقطة البيع (السلة)", "📦 إدارة المخزون", "📊 التقارير والأرباح", "👥 العملاء والديون"])
+
+# --- المساعد الذكي المصغر (على صفحة بوحده في الشريط الجانبي) ---
+st.sidebar.markdown("---")
+with st.sidebar.expander("🤖 مساعدي الذكي السريع"):
+    st.write("استعلم بسرعة عن الديون أو اطلب جرد للمنتجات:")
+    ai_query = st.text_input("اكتب طلبك (مثلاً: ديون فلان، أو جرد)")
+    if ai_query:
+        if "ديون" in ai_query or "دين" in ai_query:
+            search_name = ai_query.replace("ديون", "").replace("دين", "").strip()
+            if search_name:
+                cust_res = run_query("SELECT name, phone, debt FROM customers WHERE name LIKE ?", (f"%{search_name}%",), fetch=True)
+                if cust_res:
+                    for cr in cust_res:
+                        st.success(f"العميل: {cr[0]} | الهاتف: {cr[1]} | الدين: {cr[2]} د.ع")
+                else:
+                    st.warning("لم يتم العثور على عميل بهذا الاسم.")
+            else:
+                st.info("يرجى كتابة اسم العميل مع الكلمة.")
+        elif "جرد" in ai_query or "مخزون" in ai_query:
+            p_res = run_query("SELECT name, quantity, price FROM products", fetch=True)
+            if p_res:
+                st.write("📦 **جرد المخزون الحالي:**")
+                for pr in p_res:
+                    st.write(f"- {pr[1]}x {pr[0]} ({pr[2]} د.ع)")
+            else:
+                st.info("المخزون فارغ حالياً.")
+        else:
+            st.info("جرب كتابة: (ديون [اسم العميل]) أو كلمة (جرد).")
 
 # ---------------- 1. نقطة البيع (السلة والفاتورة) ----------------
 if menu == "🛒 نقطة البيع (السلة)":
@@ -83,7 +115,6 @@ if menu == "🛒 نقطة البيع (السلة)":
                 add_qty = cols[2].number_input("الكمية", min_value=1, max_value=max(1, qty), value=1, key=f"qty_{p_id}")
                 if cols[3].button("إضافة للسلة ➕", key=f"add_{p_id}"):
                     if qty >= add_qty:
-                        # التحقق إذا المنتج موجود مسبقاً بالسلة
                         found = False
                         for item in st.session_state.cart:
                             if item['id'] == p_id:
@@ -115,12 +146,7 @@ if menu == "🛒 نقطة البيع (السلة)":
                 st.markdown(f"### المجموع الكلي: {total_amount} د.ع")
                 
                 st.subheader("معلومات العميل لإتمام الفاتورة")
-                
-                # جلب أسماء العملاء المسجلين لتسهيل الاختيار أو كتابة اسم جديد
-                existing_customers = run_query("SELECT name FROM customers", fetch=True)
-                cust_names_list = [c[0] for c in existing_customers] if existing_customers else []
-                
-                cust_name = st.text_input("اسم العميل (اكتبه أو اختره)")
+                cust_name = st.text_input("اسم العميل")
                 cust_phone = st.text_input("رقم الهاتف")
                 is_debt = st.checkbox("تسجيل كدين على العميل؟")
 
@@ -128,7 +154,6 @@ if menu == "🛒 نقطة البيع (السلة)":
                     if not cust_name:
                         st.warning("يرجى إدخال اسم العميل على الأقل لإتمام الفاتورة.")
                     else:
-                        # حساب الأرباح وإتمام العملية
                         total_profit = 0
                         current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         
@@ -140,15 +165,12 @@ if menu == "🛒 نقطة البيع (السلة)":
                             item_profit = (item['price'] - cost) * item['qty']
                             total_profit += item_profit
                             
-                            # تحديث المخزون
                             new_qty = old_qty - item['qty']
                             run_query("UPDATE products SET quantity = ? WHERE id = ?", (new_qty, item['id']))
 
-                        # حفظ الفاتورة
                         run_query("INSERT INTO invoices (customer_name, total, profit, date) VALUES (?, ?, ?, ?)", 
                                   (cust_name, total_amount, total_profit, current_date))
 
-                        # تسجيل الدين وإضافة العميل تلقائياً إذا لم يكن موجوداً
                         if is_debt:
                             check_cust = run_query("SELECT id, debt FROM customers WHERE name = ?", (cust_name,), fetch=True)
                             if check_cust:
@@ -165,7 +187,6 @@ if menu == "🛒 نقطة البيع (السلة)":
 elif menu == "📦 إدارة المخزون":
     st.header("📦 إدارة المخزون والمنتجات")
     
-    # تنبيهات انخفاض المخزون
     low_stock_items = run_query("SELECT name, quantity FROM products WHERE quantity <= 3", fetch=True)
     if low_stock_items:
         st.error("⚠️ تنبيه: المنتجات التالية اقتربت على النفاد في المخزون!")
