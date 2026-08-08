@@ -6,14 +6,14 @@ from datetime import datetime
 # إعداد الصفحة
 st.set_page_config(page_title="إدارة المبيعات", page_icon="🛍️", layout="wide")
 
-# --- تنسيق الألوان وإزالة أزرار الزائد والناقص من الحقول (CSS) ---
+# --- تنسيق الألوان وإزالة أزرار الزائد والناقص نهائياً من حقول الأرقام ---
 st.markdown("""
 <style>
     div.stButton > button { background-color: #1a6b51; color: white; border-radius: 8px; border: none; width: 100%; }
     div.stButton > button:hover { background-color: #14523e; }
     .stTabs [data-baseweb="tab"] { background-color: #e6f2ee; border-radius: 8px; color: #1a6b51; font-weight: bold; }
     
-    /* إزالة أزرار الزائد والناقص من حقول الأرقام */
+    /* إخفاء أزرار الزائد والناقص الخاصة بـ Streamlit والحقول الرقمية بشكل تام */
     input[type=number]::-webkit-outer-spin-button,
     input[type=number]::-webkit-inner-spin-button {
         -webkit-appearance: none;
@@ -21,6 +21,15 @@ st.markdown("""
     }
     input[type=number] {
         -moz-appearance: textfield;
+    }
+    button[kind="step-up"], button[kind="step-down"] {
+        display: none !important;
+    }
+    div[data-baseweb="spinbutton"] button {
+        display: none !important;
+    }
+    [data-testid="stNumberInputStepUp"], [data-testid="stNumberInputStepDown"] {
+        display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
