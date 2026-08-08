@@ -27,6 +27,16 @@ def init_db():
                     name TEXT UNIQUE,
                     price REAL DEFAULT 0,
                     quantity INTEGER DEFAULT 0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS customers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    phone TEXT,
+                    debt REAL DEFAULT 0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS invoices (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    customer_name TEXT,
+                    total REAL,
+                    date TEXT)''')
     conn.commit()
     conn.close()
 
@@ -42,24 +52,20 @@ def run_query(query, params=(), fetch=False):
     conn.close()
     return data
 
-# --- المساعد الذكي f30060 (المحدث) ---
+# --- المساعد الذكي f30060 ---
 st.sidebar.markdown("### 🤖 المساعد الذكي f30060")
 with st.sidebar.expander("لوحة تحكم f30060"):
-    user_ai = st.text_area("الأمر (إضافة أو جرد):", help="للإضافة اكتب: اسم,عدد,سعر. للجرد اكتب: جرد")
-    
+    user_ai = st.text_area("الأمر (إضافة أو جرد):", help="للإضافة: اسم,عدد,سعر | للجرد: جرد")
     if st.button("تنفيذ 🚀"):
-        # 1. عملية الجرد
         if "جرد" in user_ai:
             p_res = run_query("SELECT name, quantity, price FROM products", fetch=True)
             report = f"📋 تقرير الجرد الكامل\nالتاريخ: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n--------------------------\n"
             if p_res:
                 for pr in p_res:
-                    report += f"🔹 {pr[0]}: {pr[1]} قطعة | بسعر {pr[2]}\n"
+                    report += f"🔹 {pr[0]}: {pr[1]} قطعة | بسعر {pr[2]} دينار\n"
             else:
                 report += "المخزن فارغ حالياً."
             st.text_area("التقرير:", value=report, height=200)
-
-        # 2. عملية الإضافة (الذكية)
         elif "," in user_ai:
             lines = user_ai.split('\n')
             for line in lines:
@@ -67,49 +73,102 @@ with st.sidebar.expander("لوحة تحكم f30060"):
                     parts = line.split(',')
                     if len(parts) == 3:
                         name, qty, price = parts[0].strip(), int(parts[1].strip()), float(parts[2].strip())
-                        
-                        # تحقق هل المنتج موجود؟
                         exists = run_query("SELECT quantity FROM products WHERE name = ?", (name,), fetch=True)
                         if exists:
-                            # تحديث (جمع الكمية)
                             new_qty = exists[0][0] + qty
                             run_query("UPDATE products SET quantity = ?, price = ? WHERE name = ?", (new_qty, price, name))
                             st.success(f"تم تحديث {name} (+{qty})")
                         else:
-                            # إضافة جديد
                             run_query("INSERT INTO products (name, quantity, price) VALUES (?, ?, ?)", (name, qty, price))
                             st.success(f"تمت إضافة {name} للمخزن!")
 
-# القائمة الرئيسية
-menu = st.sidebar.radio("القائمة", ["🏪 المبيعات", "📦 المخازن"])
+# القائمة الرئيسية المكتملة بكل الأقسام
+menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 التقارير والأرباح", "👥 العملاء والديون"])
 
-# --- واجهة المبيعات ---
+# --- 1. شاشة المبيعات ---
 if menu == "🏪 المبيعات":
     if 'cart' not in st.session_state: st.session_state.cart = []
     tab1, tab2, tab3, tab4 = st.tabs(["شاشة البيع", "الفواتير", "العملاء", "مرتجعات الفواتير"])
     
     with tab1:
+        search = st.text_input("🔍 ابحث باسم المنتج ...")
         products = run_query("SELECT id, name, price, quantity FROM products", fetch=True)
-        cols = st.columns(2)
-        for i, prod in enumerate(products):
-            with cols[i % 2]:
-                with st.container(border=True):
-                    st.markdown(f"**{prod[1]}**")
-                    st.write(f"💰 {prod[2]} د | 📦 {prod[3]} قطعه")
-                    if st.button(f"إضافة {prod[1]}", key=f"add_{prod[0]}"):
-                        st.session_state.cart.append({'id': prod[0], 'name': prod[1], 'price': prod[2]})
-                        st.rerun()
+        if products:
+            cols = st.columns(2)
+            for i, prod in enumerate(products):
+                if search.lower() in prod[1].lower():
+                    with cols[i % 2]:
+                        with st.container(border=True):
+                            st.markdown(f"**{prod[1]}**")
+                            st.write(f"💰 {prod[2]} دينار &nbsp; | &nbsp; 📦 {prod[3]} قطعة")
+                            if st.button(f"إضافة {prod[1]}", key=f"add_{prod[0]}"):
+                                st.session_state.cart.append({'id': prod[0], 'name': prod[1], 'price': prod[2]})
+                                st.rerun()
+        else:
+            st.info("لا توجد منتجات حالياً. استخدم المساعد الذكي f30060 للإضافة.")
+
+    with tab2:
+        st.subheader("🧾 الفواتير السابقة")
+        invs = run_query("SELECT id, customer_name, total, date FROM invoices ORDER BY id DESC", fetch=True)
+        if invs:
+            st.dataframe(pd.DataFrame(invs, columns=["رقم الفاتورة", "العميل", "المبلغ الكلي", "التاريخ"]), use_container_width=True)
+        else:
+            st.info("لا توجد فواتير مسجلة.")
+
+    with tab3:
+        st.subheader("👥 العملاء")
+        custs = run_query("SELECT id, name, phone, debt FROM customers", fetch=True)
+        if custs:
+            st.dataframe(pd.DataFrame(custs, columns=["ID", "الاسم", "الهاتف", "الدين"]), use_container_width=True)
+        else:
+            st.info("لا توجد عملاء مسجلين.")
+
+    with tab4:
+        st.subheader("↩️ مرتجعات الفواتير")
+        st.info("قريباً...")
 
     # السلة في القائمة الجانبية
-    with st.sidebar.expander("🛒 السلة"):
+    with st.sidebar.expander("🛒 سلة المشتريات"):
         total = sum(i['price'] for i in st.session_state.cart)
         for idx, item in enumerate(st.session_state.cart):
-            st.write(f"{item['name']} - {item['price']} د")
+            st.write(f"{item['name']} - {item['price']} دينار")
         st.write(f"### المجموع: {total} دينار")
-        if st.button("تأكيد البيع"):
-            st.session_state.cart = []
-            st.rerun()
+        cust_input = st.text_input("اسم العميل للفاتورة:")
+        if st.button("تأكيد البيع وطباعة الفاتورة"):
+            if cust_input and st.session_state.cart:
+                for item in st.session_state.cart:
+                    run_query("UPDATE products SET quantity = quantity - 1 WHERE id = ?", (item['id'],))
+                run_query("INSERT INTO invoices (customer_name, total, date) VALUES (?, ?, ?)", 
+                          (cust_input, total, datetime.now().strftime("%Y-%m-%d %H:%M")))
+                st.session_state.cart = []
+                st.success("تم تثبيت الفاتورة بنجاح!")
+                st.rerun()
+            else:
+                st.error("يرجى إدخال اسم العميل ووضع منتجات بالسلة.")
 
-elif menu == "📦 المخازن":
-    st.title("📦 إدارة المخازن")
-    st.dataframe(pd.DataFrame(run_query("SELECT * FROM products", fetch=True), columns=["ID", "الاسم", "السعر", "العدد"]))
+# --- 2. إدارة المخزون ---
+elif menu == "📦 إدارة المخزون":
+    st.title("📦 إدارة المخزون")
+    prods = run_query("SELECT id, name, price, quantity FROM products", fetch=True)
+    if prods:
+        st.dataframe(pd.DataFrame(prods, columns=["ID", "اسم المنتج", "السعر", "العدد"]), use_container_width=True)
+    else:
+        st.info("المخزن فارغ.")
+
+# --- 3. التقارير والأرباح ---
+elif menu == "📊 التقارير والأرباح":
+    st.title("📊 التقارير والأرباح والفواتير")
+    invs = run_query("SELECT id, customer_name, total, date FROM invoices", fetch=True)
+    if invs:
+        st.dataframe(pd.DataFrame(invs, columns=["رقم الفاتورة", "العميل", "المجموع", "التاريخ"]), use_container_width=True)
+    else:
+        st.info("لا توجد تقارير أو فواتير مسجلة.")
+
+# --- 4. العملاء والديون ---
+elif menu == "👥 العملاء والديون":
+    st.title("👥 العملاء والديون")
+    custs = run_query("SELECT id, name, phone, debt FROM customers", fetch=True)
+    if custs:
+        st.dataframe(pd.DataFrame(custs, columns=["ID", "الاسم", "الهاتف", "الدين"]), use_container_width=True)
+    else:
+        st.info("لا توجد ديون مسجلة للعملاء.")
