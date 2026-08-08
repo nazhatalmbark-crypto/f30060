@@ -18,7 +18,7 @@ st.markdown("""
 # العبارة المطلوبة
 st.markdown("<h2 style='text-align: center; color: #FF4B4B;'>« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</h2>", unsafe_allow_html=True)
 
-# --- إعداد قاعدة البيانات ---
+# --- إعداد قاعدة البيانات وتحديث الجداول ---
 def init_db():
     conn = sqlite3.connect('yasser_pro_pro.db', timeout=10)
     c = conn.cursor()
@@ -27,14 +27,23 @@ def init_db():
                     name TEXT UNIQUE,
                     price REAL DEFAULT 0,
                     quantity INTEGER DEFAULT 0)''')
+    # جدول العملاء مع التفاصيل الجديدة
     c.execute('''CREATE TABLE IF NOT EXISTS customers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT,
+                    shop_location TEXT,
                     phone TEXT,
+                    governorate TEXT,
+                    region TEXT,
                     debt REAL DEFAULT 0)''')
+    # جدول الفواتير لتخزين تفاصيل العميل بالكامل
     c.execute('''CREATE TABLE IF NOT EXISTS invoices (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     customer_name TEXT,
+                    shop_location TEXT,
+                    phone TEXT,
+                    governorate TEXT,
+                    region TEXT,
                     total REAL,
                     date TEXT)''')
     conn.commit()
@@ -82,7 +91,7 @@ with st.sidebar.expander("لوحة تحكم f30060"):
                             run_query("INSERT INTO products (name, quantity, price) VALUES (?, ?, ?)", (name, qty, price))
                             st.success(f"تمت إضافة {name} للمخزن!")
 
-# القائمة الرئيسية المكتملة بكل الأقسام
+# القائمة الرئيسية المكتملة
 menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 التقارير والأرباح", "👥 العملاء والديون"])
 
 # --- 1. شاشة المبيعات ---
@@ -108,18 +117,24 @@ if menu == "🏪 المبيعات":
             st.info("لا توجد منتجات حالياً. استخدم المساعد الذكي f30060 للإضافة.")
 
     with tab2:
-        st.subheader("🧾 الفواتير السابقة")
-        invs = run_query("SELECT id, customer_name, total, date FROM invoices ORDER BY id DESC", fetch=True)
+        st.subheader("🧾 الفواتير السابقة وتفاصيل العملاء")
+        invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, total, date FROM invoices ORDER BY id DESC", fetch=True)
         if invs:
-            st.dataframe(pd.DataFrame(invs, columns=["رقم الفاتورة", "العميل", "المبلغ الكلي", "التاريخ"]), use_container_width=True)
+            for inv in invs:
+                with st.expander(f"فاتورة رقم: {inv[0]} | العميل: {inv[1]} | المجموع: {inv[6]} دينار"):
+                    st.write(f"📅 **تاريخ الفاتورة:** {inv[7]}")
+                    st.write(f"👤 **اسم العميل:** {inv[1]}")
+                    st.write(f"🏪 **مكان المحل:** {inv[2]} | 📍 **المنطقة:** {inv[5]} | **المحافظة:** {inv[4]}")
+                    st.write(f"📞 **رقم الهاتف:** {inv[3]}")
+                    st.markdown(f"### المبلغ الإجمالي للفاتورة: {inv[6]} دينار")
         else:
             st.info("لا توجد فواتير مسجلة.")
 
     with tab3:
         st.subheader("👥 العملاء")
-        custs = run_query("SELECT id, name, phone, debt FROM customers", fetch=True)
+        custs = run_query("SELECT id, name, shop_location, phone, governorate, region, debt FROM customers", fetch=True)
         if custs:
-            st.dataframe(pd.DataFrame(custs, columns=["ID", "الاسم", "الهاتف", "الدين"]), use_container_width=True)
+            st.dataframe(pd.DataFrame(custs, columns=["ID", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "الدين"]), use_container_width=True)
         else:
             st.info("لا توجد عملاء مسجلين.")
 
@@ -127,21 +142,43 @@ if menu == "🏪 المبيعات":
         st.subheader("↩️ مرتجعات الفواتير")
         st.info("قريباً...")
 
-    # السلة في القائمة الجانبية
-    with st.sidebar.expander("🛒 سلة المشتريات"):
+    # السلة في القائمة الجانبية وإدخال بيانات العميل للفاتورة
+    with st.sidebar.expander("🛒 سلة المشتريات وإتمام الفاتورة"):
         total = sum(i['price'] for i in st.session_state.cart)
         for idx, item in enumerate(st.session_state.cart):
             st.write(f"{item['name']} - {item['price']} دينار")
         st.write(f"### المجموع: {total} دينار")
-        cust_input = st.text_input("اسم العميل للفاتورة:")
-        if st.button("تأكيد البيع وطباعة الفاتورة"):
-            if cust_input and st.session_state.cart:
+        
+        st.markdown("---")
+        st.subheader("تفاصيل العميل للفاتورة:")
+        
+        # جلب العملاء المسجلين للاختيار السريع
+        cust_list = run_query("SELECT name, shop_location, phone, governorate, region FROM customers", fetch=True)
+        cust_names = ["اختيار من العملاء المسجلين..."] + [c[0] for c in cust_list] if cust_list else ["اختيار من العملاء المسجلين..."]
+        
+        selected_cust = st.selectbox("اختر عميل:", cust_names)
+        
+        c_name, c_shop, c_phone, c_gov, c_reg = "", "", "", "", ""
+        if selected_cust != "اختيار من العملاء المسجلين...":
+            for c in cust_list:
+                if c[0] == selected_cust:
+                    c_name, c_shop, c_phone, c_gov, c_reg = c[0], c[1], c[2], c[3], c[4]
+        
+        # الحقول التي ستظهر وتطبع في الفاتورة
+        cust_name = st.text_input("اسم العميل", value=c_name)
+        shop_loc = st.text_input("مكان المحل", value=c_shop)
+        phone_num = st.text_input("رقم العميل", value=c_phone)
+        governorate = st.text_input("المحافظة", value=c_gov)
+        region = st.text_input("المنطقة", value=c_reg)
+        
+        if st.button("✅ تأكيد البيع وحفظ الفاتورة"):
+            if cust_name and st.session_state.cart:
                 for item in st.session_state.cart:
                     run_query("UPDATE products SET quantity = quantity - 1 WHERE id = ?", (item['id'],))
-                run_query("INSERT INTO invoices (customer_name, total, date) VALUES (?, ?, ?)", 
-                          (cust_input, total, datetime.now().strftime("%Y-%m-%d %H:%M")))
+                run_query("INSERT INTO invoices (customer_name, shop_location, phone, governorate, region, total, date) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+                          (cust_name, shop_loc, phone_num, governorate, region, total, datetime.now().strftime("%Y-%m-%d %H:%M")))
                 st.session_state.cart = []
-                st.success("تم تثبيت الفاتورة بنجاح!")
+                st.success("تم تثبيت الفاتورة بنجاح وظهرت كافة تفاصيل العميل داخلها!")
                 st.rerun()
             else:
                 st.error("يرجى إدخال اسم العميل ووضع منتجات بالسلة.")
@@ -158,17 +195,39 @@ elif menu == "📦 إدارة المخزون":
 # --- 3. التقارير والأرباح ---
 elif menu == "📊 التقارير والأرباح":
     st.title("📊 التقارير والأرباح والفواتير")
-    invs = run_query("SELECT id, customer_name, total, date FROM invoices", fetch=True)
+    invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, total, date FROM invoices", fetch=True)
     if invs:
-        st.dataframe(pd.DataFrame(invs, columns=["رقم الفاتورة", "العميل", "المجموع", "التاريخ"]), use_container_width=True)
+        st.dataframe(pd.DataFrame(invs, columns=["رقم الفاتورة", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "المجموع", "التاريخ"]), use_container_width=True)
     else:
         st.info("لا توجد تقارير أو فواتير مسجلة.")
 
 # --- 4. العملاء والديون ---
 elif menu == "👥 العملاء والديون":
-    st.title("👥 العملاء والديون")
-    custs = run_query("SELECT id, name, phone, debt FROM customers", fetch=True)
+    st.title("👥 إضافة وإدارة العملاء والديون")
+    
+    # نموذج إضافة عميل جديد مع كافة التفاصيل
+    with st.form("add_customer_form"):
+        st.subheader("➕ إضافة عميل جديد للقائمة")
+        new_c_name = st.text_input("اسم العميل")
+        new_c_shop = st.text_input("مكان المحل")
+        new_c_phone = st.text_input("رقم العميل")
+        new_c_gov = st.text_input("المحافظة")
+        new_c_reg = st.text_input("المنطقة")
+        submitted = st.form_submit_button("حفظ العميل الجديد")
+        
+        if submitted:
+            if new_c_name:
+                run_query("INSERT INTO customers (name, shop_location, phone, governorate, region, debt) VALUES (?, ?, ?, ?, ?, 0)", 
+                          (new_c_name, new_c_shop, new_c_phone, new_c_gov, new_c_reg))
+                st.success(f"تم حفظ العميل {new_c_name} بنجاح!")
+                st.rerun()
+            else:
+                st.error("يرجى كتابة اسم العميل على الأقل.")
+                
+    st.markdown("---")
+    st.subheader("📋 قائمة العملاء المسجلين")
+    custs = run_query("SELECT id, name, shop_location, phone, governorate, region, debt FROM customers", fetch=True)
     if custs:
-        st.dataframe(pd.DataFrame(custs, columns=["ID", "الاسم", "الهاتف", "الدين"]), use_container_width=True)
+        st.dataframe(pd.DataFrame(custs, columns=["ID", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "الدين"]), use_container_width=True)
     else:
-        st.info("لا توجد ديون مسجلة للعملاء.")
+        st.info("لا توجد عملاء مسجلين حالياً.")
