@@ -64,91 +64,138 @@ with st.sidebar.expander("🤖 مساعدي الذكي السريع"):
         query_text = st.text_input("اكتب اسم العميل للديون أو كلمة 'جرد':")
         if query_text:
             if "جرد" in query_text:
-                p_res = run_query("SELECT name, quantity FROM products", fetch=True)
+                p_res = run_query("SELECT name, quantity, price FROM products", fetch=True)
                 st.write("📦 **جرد المخزون:**")
                 for pr in p_res:
-                    st.write(f"- {pr[0]}: {pr[1]}")
+                    st.write(f"- {pr[0]} | الكمية: {pr[1]} | السعر: {pr[2]} د.ع")
             else:
                 cust_res = run_query("SELECT name, debt FROM customers WHERE name LIKE ?", (f"%{query_text}%",), fetch=True)
-                for cr in cust_res:
-                    st.success(f"العميل: {cr[0]} | الدين: {cr[1]} د.ع")
+                if cust_res:
+                    for cr in cust_res:
+                        st.success(f"العميل: {cr[0]} | الدين: {cr[1]} د.ع")
+                else:
+                    st.warning("لم يتم العثور على العميل.")
     
-    else: # إضافة مخزون بالجملة
-        st.write("اكتب (اسم المنتج, العدد) كل واحد بسطر:")
-        batch_input = st.text_area("مثال:\nبيبسي, 50\nحليب, 20")
-        if st.button("إضافة للمخزن"):
+    else: # إضافة مخزون بالجملة مع السعر الإجباري
+        st.write("اكتب بالتنسيق التالي: `اسم المنتج, العدد, السعر`")
+        batch_input = st.text_area("مثال:\nبيبسي, 50, 1000\nحليب, 20, 750")
+        if st.button("إضافة للمخزن دفعة واحدة"):
             lines = batch_input.split('\n')
+            success_count = 0
             for line in lines:
-                if "," in line:
-                    p_name, p_qty = line.split(',')
-                    p_name = p_name.strip()
-                    try:
-                        p_qty = int(p_qty.strip())
-                        # تحديث أو إضافة
-                        exists = run_query("SELECT quantity FROM products WHERE name = ?", (p_name,), fetch=True)
-                        if exists:
-                            new_q = exists[0][0] + p_qty
-                            run_query("UPDATE products SET quantity = ? WHERE name = ?", (new_q, p_name))
-                        else:
-                            run_query("INSERT INTO products (name, quantity, price, cost) VALUES (?, ?, 0, 0)", (p_name, p_qty))
-                    except:
-                        st.error(f"خطأ في تنسيق السطر: {line}")
-            st.success("تمت الإضافة بنجاح!")
+                if line.strip() and "," in line:
+                    parts = line.split(',')
+                    if len(parts) == 3:
+                        try:
+                            p_name = parts[0].strip()
+                            p_qty = int(parts[1].strip())
+                            p_price = float(parts[2].strip())
+                            
+                            exists = run_query("SELECT quantity FROM products WHERE name = ?", (p_name,), fetch=True)
+                            if exists:
+                                new_q = exists[0][0] + p_qty
+                                run_query("UPDATE products SET quantity = ?, price = ? WHERE name = ?", (new_q, p_price, p_name))
+                            else:
+                                run_query("INSERT INTO products (name, quantity, price, cost) VALUES (?, ?, ?, 0)", (p_name, p_qty, p_price))
+                            success_count += 1
+                        except:
+                            st.error(f"خطأ في قراءة البيانات بالسطر: {line}")
+                    else:
+                        st.error(f"يجب كتابة (الاسم, العدد, السعر) بدقة في السطر: {line}")
+            if success_count > 0:
+                st.success(f"تمت إضافة وتحديث {success_count} منتج بنجاح مع أسعارها وظهرت في نقطة البيع!")
 
 # ---------------- 1. نقطة البيع (السلة) ----------------
 if menu == "🛒 نقطة البيع (السلة)":
-    st.header("🛒 نقطة البيع")
+    st.header("🛒 نقطة البيع - سلة المشتريات")
     products = run_query("SELECT id, name, price, quantity FROM products", fetch=True)
+    
     if not products:
-        st.warning("المخزون فارغ!")
+        st.warning("المخزون فارغ حالياً! استخدم المساعد الجانبي لإضافة المنتجات مع أسعارها.")
     else:
-        if 'cart' not in st.session_state: st.session_state.cart = []
+        if 'cart' not in st.session_state: 
+            st.session_state.cart = []
         
-        # اختيار المنتجات
-        with st.expander("اضغط هنا لاختيار المنتجات للسلة"):
-            for prod in products:
-                p_id, name, price, qty = prod
-                cols = st.columns([2, 1, 1])
-                cols[0].write(f"{name} (المتوفر: {qty})")
-                add_q = cols[1].number_input("العدد", 1, qty, 1, key=f"q_{p_id}")
-                if cols[2].button("إضافة", key=f"add_{p_id}"):
-                    st.session_state.cart.append({'id': p_id, 'name': name, 'price': price, 'qty': add_q})
-                    st.rerun()
+        col1, col2 = st.columns([2, 1])
 
-        # عرض السلة
-        st.subheader("🛍️ السلة")
-        total = 0
-        for i, item in enumerate(st.session_state.cart):
-            st.write(f"{item['name']} - {item['qty']} عدد")
-            total += (item['price'] * item['qty'])
-        
-        st.write(f"### المجموع: {total} د.ع")
-        cust_name = st.text_input("اسم العميل")
-        if st.button("تثبيت الفاتورة"):
-            if cust_name:
-                for item in st.session_state.cart:
-                    # خصم الكمية
-                    run_query("UPDATE products SET quantity = quantity - ? WHERE id = ?", (item['qty'], item['id']))
-                run_query("INSERT INTO invoices (customer_name, total, date) VALUES (?, ?, ?)", (cust_name, total, datetime.now().strftime("%Y-%m-%d")))
-                st.session_state.cart = []
-                st.success("تم الحفظ!")
+        with col1:
+            st.subheader("اختر المنتجات لإضافتها للسلة")
+            search_box = st.text_input("🔍 بحث عن منتج")
+            
+            filtered_prods = [p for p in products if search_box.lower() in p[1].lower()]
+            
+            for prod in filtered_prods:
+                p_id, name, price, qty = prod
+                cols = st.columns([3, 1, 1])
+                cols[0].text(f"{name} (المتوفر: {qty}) - السعر: {price} د.ع")
+                add_q = cols[1].number_input("العدد", min_value=1, max_value=max(1, qty), value=1, key=f"q_{p_id}")
+                if cols[2].button("إضافة ➕", key=f"add_{p_id}"):
+                    if qty >= add_q:
+                        found = False
+                        for item in st.session_state.cart:
+                            if item['id'] == p_id:
+                                item['qty'] += add_q
+                                found = True
+                                break
+                        if not found:
+                            st.session_state.cart.append({'id': p_id, 'name': name, 'price': price, 'qty': add_q})
+                        st.success(f"تم إضافة {name} للسلة!")
+                    else:
+                        st.error("الكمية غير متوفرة بالمخزون!")
+
+        with col2:
+            st.subheader("🛍️ سلة المشتريات")
+            if not st.session_state.cart:
+                st.info("السلة فارغة.")
             else:
-                st.error("أدخل اسم العميل")
+                total = 0
+                for i, item in enumerate(st.session_state.cart):
+                    item_tot = item['price'] * item['qty']
+                    total += item_tot
+                    st.write(f"**{item['name']}** - {item['qty']} عدد | {item_tot} د.ع")
+                    if st.button("حذف ❌", key=f"del_{i}"):
+                        st.session_state.cart.pop(i)
+                        st.rerun()
+                    st.divider()
+                
+                st.markdown(f"### المجموع الكلي: {total} د.ع")
+                cust_name = st.text_input("اسم العميل لإتمام الفاتورة")
+                
+                if st.button("✅ تثبيت وطباعة الفاتورة"):
+                    if cust_name:
+                        for item in st.session_state.cart:
+                            run_query("UPDATE products SET quantity = quantity - ? WHERE id = ?", (item['qty'], item['id']))
+                        run_query("INSERT INTO invoices (customer_name, total, date) VALUES (?, ?, ?)", 
+                                  (cust_name, total, datetime.now().strftime("%Y-%m-%d %H:%M")))
+                        st.session_state.cart = []
+                        st.success("🎉 تم تثبيت الفاتورة بنجاح!")
+                        st.rerun()
+                    else:
+                        st.error("يرجى إدخال اسم العميل.")
 
 # ---------------- 2. إدارة المخزون ----------------
 elif menu == "📦 إدارة المخزون":
     st.header("📦 إدارة المخزون")
-    # (هذا القسم نفس المنطق السابق، تركت لك الحرية هنا للتركيز على المساعد)
-    st.info("استخدم المساعد الجانبي لإضافة المنتجات بسرعة أو قسم إضافة منتج.")
+    prods = run_query("SELECT id, name, price, quantity FROM products", fetch=True)
+    if prods:
+        st.dataframe(pd.DataFrame(prods, columns=["ID", "اسم المنتج", "السعر", "الكمية"]), use_container_width=True)
+    else:
+        st.info("لا توجد منتجات مسجلة.")
 
 # ---------------- 3. التقارير ----------------
 elif menu == "📊 التقارير والأرباح":
-    st.header("📊 التقارير")
-    inv = run_query("SELECT * FROM invoices", fetch=True)
-    st.dataframe(pd.DataFrame(inv, columns=["ID", "العميل", "المجموع", "الربح", "التاريخ"]))
+    st.header("📊 التقارير والفواتير")
+    inv = run_query("SELECT id, customer_name, total, date FROM invoices", fetch=True)
+    if inv:
+        st.dataframe(pd.DataFrame(inv, columns=["رقم الفاتورة", "العميل", "المجموع", "التاريخ"]), use_container_width=True)
+    else:
+        st.info("لا توجد فواتير مسجلة.")
 
 # ---------------- 4. العملاء ----------------
 elif menu == "👥 العملاء والديون":
-    st.header("👥 العملاء")
-    custs = run_query("SELECT * FROM customers", fetch=True)
-    st.dataframe(pd.DataFrame(custs, columns=["ID", "الاسم", "الهاتف", "الديون"]))
+    st.header("👥 العملاء والديون")
+    custs = run_query("SELECT id, name, phone, debt FROM customers", fetch=True)
+    if custs:
+        st.dataframe(pd.DataFrame(custs, columns=["ID", "الاسم", "الهاتف", "الدين"]), use_container_width=True)
+    else:
+        st.info("لا توجد ديون مسجلة.")
