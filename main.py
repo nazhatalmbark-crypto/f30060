@@ -44,13 +44,11 @@ def init_db():
                     region TEXT,
                     total REAL,
                     date TEXT)''')
-    # جدول المستخدمين لتسجيل الدخول وإنشاء حساب
     c.execute('''CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE,
                     password TEXT)''')
     
-    # فحص وإضافة الأعمدة تلقائياً إذا كانت مفقودة لمنع أي خطأ OperationalError
     for col, col_type in [('shop_location', 'TEXT'), ('phone', 'TEXT'), ('governorate', 'TEXT'), ('region', 'TEXT'), ('debt', 'REAL DEFAULT 0')]:
         try:
             c.execute(f"ALTER TABLE customers ADD COLUMN {col} {col_type}")
@@ -109,10 +107,10 @@ if not st.session_state.logged_in:
                     st.error("اسم المستخدم موجود مسبقاً، اختر اسم آخر.")
             else:
                 st.error("يرجى ملء كافة الحقول.")
-    st.stop() # إيقاف عرض باقي التطبيق لحين تسجيل الدخول
+    st.stop()
 
-# --- إذا تم تسجيل الدخول بنجاح، يظهر البرنامج الكامل ---
-st.sidebar.success(مرحباً بك، {st.session_state.username})
+# --- إذا تم تسجيل الدخول بنجاح ---
+st.sidebar.success(f"مرحباً بك، {st.session_state.username}")
 if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.logged_in = False
     st.session_state.username = ""
@@ -199,7 +197,6 @@ if menu == "🏪 المبيعات":
         st.subheader("↩️ مرتجعات الفواتير")
         st.info("قريباً...")
 
-    # السلة في القائمة الجانبية وإدخال بيانات العميل للفاتورة
     with st.sidebar.expander("🛒 سلة المشتريات وإتمام الفاتورة"):
         total = sum(i['price'] for i in st.session_state.cart)
         for idx, item in enumerate(st.session_state.cart):
