@@ -18,7 +18,7 @@ st.markdown("""
 # العبارة المطلوبة
 st.markdown("<h2 style='text-align: center; color: #FF4B4B;'>« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</h2>", unsafe_allow_html=True)
 
-# --- إعداد قاعدة البيانات وتحديث الجداول ---
+# --- إعداد قاعدة البيانات وتحديث الجداول وتلافي أخطاء الأعمدة ---
 def init_db():
     conn = sqlite3.connect('yasser_pro_pro.db', timeout=10)
     c = conn.cursor()
@@ -27,7 +27,6 @@ def init_db():
                     name TEXT UNIQUE,
                     price REAL DEFAULT 0,
                     quantity INTEGER DEFAULT 0)''')
-    # جدول العملاء مع التفاصيل الجديدة
     c.execute('''CREATE TABLE IF NOT EXISTS customers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT,
@@ -36,7 +35,6 @@ def init_db():
                     governorate TEXT,
                     region TEXT,
                     debt REAL DEFAULT 0)''')
-    # جدول الفواتير لتخزين تفاصيل العميل بالكامل
     c.execute('''CREATE TABLE IF NOT EXISTS invoices (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     customer_name TEXT,
@@ -46,6 +44,19 @@ def init_db():
                     region TEXT,
                     total REAL,
                     date TEXT)''')
+    # جدول المستخدمين لتسجيل الدخول وإنشاء حساب
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE,
+                    password TEXT)''')
+    
+    # فحص وإضافة الأعمدة تلقائياً إذا كانت مفقودة لمنع أي خطأ OperationalError
+    for col, col_type in [('shop_location', 'TEXT'), ('phone', 'TEXT'), ('governorate', 'TEXT'), ('region', 'TEXT'), ('debt', 'REAL DEFAULT 0')]:
+        try:
+            c.execute(f"ALTER TABLE customers ADD COLUMN {col} {col_type}")
+        except sqlite3.OperationalError:
+            pass
+
     conn.commit()
     conn.close()
 
@@ -60,6 +71,52 @@ def run_query(query, params=(), fetch=False):
     conn.commit()
     conn.close()
     return data
+
+# --- نظام تسجيل الدخول وإنشاء حساب جديد ---
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'username' not in st.session_state:
+    st.session_state.username = ""
+
+if not st.session_state.logged_in:
+    st.markdown("<h3 style='text-align: center;'>🔐 بوابة الدخول إلى نظام Prosto</h3>", unsafe_allow_html=True)
+    auth_tab1, auth_tab2 = st.tabs(["تسجيل الدخول", "مستخدم جديد (إنشاء حساب)"])
+    
+    with auth_tab1:
+        st.subheader("تسجيل الدخول للنظام")
+        login_user = st.text_input("اسم المستخدم", key="l_user")
+        login_pass = st.text_input("كلمة المرور", type="password", key="l_pass")
+        if st.button("دخول"):
+            user_res = run_query("SELECT * FROM users WHERE username = ? AND password = ?", (login_user, login_pass), fetch=True)
+            if user_res:
+                st.session_state.logged_in = True
+                st.session_state.username = login_user
+                st.success("تم تسجيل الدخول بنجاح!")
+                st.rerun()
+            else:
+                st.error("اسم المستخدم أو كلمة المرور غير صحيحة.")
+                
+    with auth_tab2:
+        st.subheader("إنشاء حساب مستخدم جديد")
+        new_user = st.text_input("اختر اسم مستخدم جديد", key="n_user")
+        new_pass = st.text_input("اختر كلمة المرور", type="password", key="n_pass")
+        if st.button("تسجيل الحساب"):
+            if new_user and new_pass:
+                try:
+                    run_query("INSERT INTO users (username, password) VALUES (?, ?)", (new_user, new_pass))
+                    st.success("تم إنشاء الحساب بنجاح! انتقل لتبويب تسجيل الدخول والدخول.")
+                except sqlite3.IntegrityError:
+                    st.error("اسم المستخدم موجود مسبقاً، اختر اسم آخر.")
+            else:
+                st.error("يرجى ملء كافة الحقول.")
+    st.stop() # إيقاف عرض باقي التطبيق لحين تسجيل الدخول
+
+# --- إذا تم تسجيل الدخول بنجاح، يظهر البرنامج الكامل ---
+st.sidebar.success(مرحباً بك، {st.session_state.username})
+if st.sidebar.button("🚪 تسجيل الخروج"):
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+    st.rerun()
 
 # --- المساعد الذكي f30060 ---
 st.sidebar.markdown("### 🤖 المساعد الذكي f30060")
@@ -152,7 +209,6 @@ if menu == "🏪 المبيعات":
         st.markdown("---")
         st.subheader("تفاصيل العميل للفاتورة:")
         
-        # جلب العملاء المسجلين للاختيار السريع
         cust_list = run_query("SELECT name, shop_location, phone, governorate, region FROM customers", fetch=True)
         cust_names = ["اختيار من العملاء المسجلين..."] + [c[0] for c in cust_list] if cust_list else ["اختيار من العملاء المسجلين..."]
         
@@ -164,7 +220,6 @@ if menu == "🏪 المبيعات":
                 if c[0] == selected_cust:
                     c_name, c_shop, c_phone, c_gov, c_reg = c[0], c[1], c[2], c[3], c[4]
         
-        # الحقول التي ستظهر وتطبع في الفاتورة
         cust_name = st.text_input("اسم العميل", value=c_name)
         shop_loc = st.text_input("مكان المحل", value=c_shop)
         phone_num = st.text_input("رقم العميل", value=c_phone)
@@ -205,7 +260,6 @@ elif menu == "📊 التقارير والأرباح":
 elif menu == "👥 العملاء والديون":
     st.title("👥 إضافة وإدارة العملاء والديون")
     
-    # نموذج إضافة عميل جديد مع كافة التفاصيل
     with st.form("add_customer_form"):
         st.subheader("➕ إضافة عميل جديد للقائمة")
         new_c_name = st.text_input("اسم العميل")
