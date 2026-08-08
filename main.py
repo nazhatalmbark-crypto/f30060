@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import urllib.parse
 
 # إعداد الصفحة
 st.set_page_config(page_title="إدارة المبيعات", page_icon="🛍️", layout="wide")
@@ -12,14 +13,11 @@ st.markdown("""
     div.stButton > button { background-color: #1a6b51; color: white; border-radius: 8px; border: none; width: 100%; }
     div.stButton > button:hover { background-color: #14523e; }
     .stTabs [data-baseweb="tab"] { background-color: #e6f2ee; border-radius: 8px; color: #1a6b51; font-weight: bold; }
-    table { width: 100%; direction: rtl; text-align: right; border-collapse: collapse; }
-    th, td { padding: 12px; border: 1px solid #ddd; text-align: right; }
-    th { background-color: #1a6b51; color: white; }
 </style>
 """, unsafe_allow_html=True)
 
-# العبارة المطلوبة
-st.markdown("<h2 style='text-align: center; color: #FF4B4B;'>« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</h2>", unsafe_allow_html=True)
+# العبارة المطلوبة بتصميم أنيق
+st.markdown("<h2 style='text-align: center; color: #FF4B4B; background-color: #f9f9f9; padding: 10px; border-radius: 10px; border: 1px dashed #FF4B4B;'>« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</h2>", unsafe_allow_html=True)
 
 # --- إعداد قاعدة البيانات وتحديث الجداول تلقائياً ---
 def init_db():
@@ -87,7 +85,6 @@ if 'username' not in st.session_state:
 if 'play_sound' not in st.session_state:
     st.session_state.play_sound = False
 
-# ضمان أن السلة دائماً نوعها Dictionary لمنع الأخطاء
 if 'cart' not in st.session_state or not isinstance(st.session_state.cart, dict):
     st.session_state.cart = {}
 
@@ -131,7 +128,7 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.username = ""
     st.rerun()
 
-menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 التقارير والفواتير (PDF)", "👥 العملاء والديون"])
+menu = st.sidebar.radio("القائمة الرئيسية", ["🏪 المبيعات", "📦 إدارة المخزون", "📊 الفواتير والتقارير الاحترافية", "👥 العملاء والديون"])
 
 # --- تشغيل الصوت عند الإضافة للسلة ---
 if st.session_state.play_sound:
@@ -317,70 +314,99 @@ elif menu == "📦 إدارة المخزون":
     else:
         st.info("المخزن فارغ حالياً.")
 
-# --- 3. التقارير والفواتير (PDF) ---
-elif menu == "📊 التقارير والفواتير (PDF)":
-    st.title("📊 جدول الفواتير والتقارير المالية (جاهز للطباعة كـ PDF)")
+# --- 3. الفواتير والتقارير الاحترافية ---
+elif menu == "📊 الفواتير والتقارير الاحترافية":
+    st.title("📊 الفواتير الإلكترونية المعتمدة")
     
     invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, total, date FROM invoices ORDER BY id DESC", fetch=True)
     if invs:
-        df_invs = pd.DataFrame(invs, columns=["رقم الفاتورة", "اسم العميل", "مكان المحل", "الهاتف", "المحافظة", "المنطقة", "المجموع (دينار)", "التاريخ"])
-        df_invs["المجموع (دينار)"] = df_invs["المجموع (دينار)"].astype(int)
+        # اختيار الفاتورة لعرضها بشكل أنيق
+        inv_options = [f"فاتورة رقم {inv[0]} - العميل: {inv[1]} - المجموع: {int(inv[6]) if inv[6] else 0} دينار" for inv in invs]
+        selected_inv_str = st.selectbox("اختر الفاتورة لعرضها وتصديرها أو إرسالها:", inv_options)
         
-        # عرض الجدول بشكل مرتب وأنيق
-        st.dataframe(df_invs, use_container_width=True, hide_index=True)
+        # استخراج رقم الفاتورة المحددة
+        selected_idx = inv_options.index(selected_inv_str)
+        inv = invs[selected_idx]
         
-        st.markdown("---")
-        st.subheader("🖨️ طباعة الفواتير أو حفظها بصيغة PDF")
-        st.info("اضغط على الزر أدناه لفتح نافذة الطباعة، ثم اختر من قائمة الطابعات (Save as PDF / حفظ كـ PDF) لضمان جدول مرتب وبدعم كامل للغة العربية.")
+        inv_id, cust_name, shop_loc, phone, gov, reg, total_val, date_val = inv
+        total_clean = int(total_val) if total_val else 0
         
-        # تصميم جدول HTML احترافي للطباعة والـ PDF بدون مشاكل حروف
-        html_table = f"""
-        <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2 style="text-align: center; color: #1a6b51;">قائمة الفواتير والتقارير المالية</h2>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        # تصميم الفاتورة الإلكترونية الملونة والفاخرة
+        invoice_html = f"""
+        <div dir="rtl" style="font-family: Arial, sans-serif; background: #ffffff; padding: 25px; border-radius: 15px; border: 2px solid #1a6b51; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 700px; margin: auto;">
+            <div style="text-align: center; border-bottom: 2px solid #1a6b51; padding-bottom: 15px; margin-bottom: 20px;">
+                <h1 style="color: #1a6b51; margin: 0; font-size: 26px;">🛍️ فاتورة مبيعات رسمية</h1>
+                <p style="color: #FF4B4B; font-weight: bold; margin: 5px 0 0 0; font-size: 16px;">« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</p>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; background: #f4faf8; padding: 12px; border-radius: 8px;">
+                <div>
+                    <p style="margin: 4px 0;"><strong>رقم الفاتورة:</strong> #{inv_id}</p>
+                    <p style="margin: 4px 0;"><strong>التاريخ والوقت:</strong> {date_val}</p>
+                </div>
+                <div>
+                    <p style="margin: 4px 0;"><strong>اسم العميل:</strong> {cust_name}</p>
+                    <p style="margin: 4px 0;"><strong>رقم الهاتف:</strong> {phone if phone else 'غير متوفر'}</p>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <p style="margin: 4px 0;"><strong>مكان المحل:</strong> {shop_loc if shop_loc else 'غير محدد'}</p>
+                <p style="margin: 4px 0;"><strong>العنوان:</strong> {gov if gov else ''} - {reg if reg else ''}</p>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <thead>
                     <tr style="background-color: #1a6b51; color: white;">
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">رقم الفاتورة</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">اسم العميل</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">مكان المحل</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">الهاتف</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">المحافظة</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">المنطقة</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">المجموع (دينار)</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">التاريخ</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">بيان الفاتورة</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">المبلغ الإجمالي</th>
                     </tr>
                 </thead>
                 <tbody>
-        """
-        for inv in invs:
-            html_table += f"""
                     <tr>
-                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[0]}</td>
-                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[1]}</td>
-                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[2]}</td>
-                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[3]}</td>
-                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[4]}</td>
-                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[5]}</td>
-                        <td style="border: 1px solid #ddd; padding: 10px;">{int(inv[6]) if inv[6] else 0}</td>
-                        <td style="border: 1px solid #ddd; padding: 10px;">{inv[7]}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd;">قيمة المشتريات والمنتجات المطلوبة للعميل ({cust_name})</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #1a6b51;">{total_clean} دينار</td>
                     </tr>
-            """
-        html_table += """
                 </tbody>
             </table>
-        </div>
-        <script>
-            function printPDF() {
-                window.print();
-            }
-        </script>
-        <div style="text-align: center; margin-top: 20px;">
-            <button onclick="printPDF()" style="background-color: #FF4B4B; color: white; padding: 12px 25px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;">🖨️ طباعة أو حفظ كـ PDF الآن</button>
+            
+            <div style="text-align: left; background: #e6f2ee; padding: 12px; border-radius: 8px; font-size: 18px; font-weight: bold; color: #1a6b51;">
+                المجموع الكلي النهائي: {total_clean} دينار عراقي
+            </div>
         </div>
         """
         
-        st.components.v1.html(html_table, height=450, scrolling=True)
+        # عرض الفاتورة المرتبة على الشاشة
+        st.markdown(invoice_html, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         
+        # أزرار المشاركة المباشرة (تحميل HTML مخصص أو إرسال واتساب)
+        col_dl, col_wa = st.columns(2)
+        
+        with col_dl:
+            # زر تحميل مباشر كملف فاتورة (HTML قابل للفتح بأي متصفح أو حفظه فوراً)
+            st.download_button(
+                label="📥 تحميل الفاتورة كملف جاهز بجهازي",
+                data=invoice_html,
+                file_name=f"Invoice_{inv_id}_{cust_name}.html",
+                mime="text/html",
+                use_container_width=True
+            )
+            
+        with col_wa:
+            # تجهيز نص رسالة الواتساب بشكل مرتب
+            wa_text = f"مرحباً {cust_name} 🛍️\nإليك تفاصيل فاتورتك من متجرنا:\n\n📄 فاتورة رقم: #{inv_id}\n📅 التاريخ: {date_val}\n💰 المجموع الكلي: {total_clean} دينار\n\n« أسعد نفسك بنفسك - مستمرون نحو الأفضل »"
+            encoded_wa_text = urllib.parse.quote(wa_text)
+            wa_url = f"https://wa.me/{phone}?text={encoded_wa_text}" if phone else f"https://wa.me/?text={encoded_wa_text}"
+            
+            st.markdown(f"""
+                <a href="{wa_url}" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #25D366; color: white; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 16px;">
+                        💬 إرسال الفاتورة عبر الواتساب مباشرة
+                    </div>
+                </a>
+            """, unsafe_allow_html=True)
+            
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
