@@ -115,7 +115,12 @@ if menu == "🛒 نقطة البيع (السلة)":
                 st.markdown(f"### المجموع الكلي: {total_amount} د.ع")
                 
                 st.subheader("معلومات العميل لإتمام الفاتورة")
-                cust_name = st.text_input("اسم العميل")
+                
+                # جلب أسماء العملاء المسجلين لتسهيل الاختيار أو كتابة اسم جديد
+                existing_customers = run_query("SELECT name FROM customers", fetch=True)
+                cust_names_list = [c[0] for c in existing_customers] if existing_customers else []
+                
+                cust_name = st.text_input("اسم العميل (اكتبه أو اختره)")
                 cust_phone = st.text_input("رقم الهاتف")
                 is_debt = st.checkbox("تسجيل كدين على العميل؟")
 
@@ -143,9 +148,14 @@ if menu == "🛒 نقطة البيع (السلة)":
                         run_query("INSERT INTO invoices (customer_name, total, profit, date) VALUES (?, ?, ?, ?)", 
                                   (cust_name, total_amount, total_profit, current_date))
 
-                        # تسجيل الدين إذا وجد
+                        # تسجيل الدين وإضافة العميل تلقائياً إذا لم يكن موجوداً
                         if is_debt:
-                            run_query("INSERT INTO customers (name, phone, debt) VALUES (?, ?, ?)", (cust_name, cust_phone, total_amount))
+                            check_cust = run_query("SELECT id, debt FROM customers WHERE name = ?", (cust_name,), fetch=True)
+                            if check_cust:
+                                new_debt = check_cust[0][1] + total_amount
+                                run_query("UPDATE customers SET debt = ? WHERE name = ?", (new_debt, cust_name))
+                            else:
+                                run_query("INSERT INTO customers (name, phone, debt) VALUES (?, ?, ?)", (cust_name, cust_phone, total_amount))
 
                         st.success("🎉 تم تثبيت الفاتورة وتحديث المخزون بنجاح!")
                         st.session_state.cart = []
@@ -214,23 +224,41 @@ elif menu == "📊 التقارير والأرباح":
 
 # ---------------- 4. العملاء والديون ----------------
 elif menu == "👥 العملاء والديون":
-    st.header("👥 إدارة حسابات الديون والذمم للعملاء")
+    st.header("👥 إدارة حسابات الديون والعملاء")
     
-    customers = run_query("SELECT id, name, phone, debt FROM customers", fetch=True)
-    if customers:
-        df_cust = pd.DataFrame(customers, columns=["ID", "اسم العميل", "رقم الهاتف", "الديون المترتبة (د.ع)"])
-        st.dataframe(df_cust, use_container_width=True)
-        
-        st.subheader("تسديد دين عميل")
-        selected_cust = st.selectbox("اختر العميل لتسديد دينه", [c[1] for c in customers])
-        pay_amount = st.number_input("مبلغ التسديد", min_value=0.0, step=1000.0)
-        
-        if st.button("تحديث وتسجيل السداد"):
-            c_info = run_query("SELECT debt FROM customers WHERE name = ?", (selected_cust,), fetch=True)
-            if c_info:
-                new_debt = max(0.0, c_info[0][0] - pay_amount)
-                run_query("UPDATE customers SET debt = ? WHERE name = ?", (new_debt, selected_cust))
-                st.success(f"تم تحديث دين العميل {selected_cust} بنجاح. الدين الحالي: {new_debt} د.ع")
-                st.rerun()
-    else:
-        st.info("لا توجد ديون أو عملاء مسجلين حالياً.")
+    tab_cust1, tab_cust2 = st.tabs(["قائمة العملاء والديون", "➕ إضافة عميل جديد"])
+    
+    with tab_cust1:
+        customers = run_query("SELECT id, name, phone, debt FROM customers", fetch=True)
+        if customers:
+            df_cust = pd.DataFrame(customers, columns=["ID", "اسم العميل", "رقم الهاتف", "الديون المترتبة (د.ع)"])
+            st.dataframe(df_cust, use_container_width=True)
+            
+            st.subheader("تسديد دين عميل")
+            selected_cust = st.selectbox("اختر العميل لتسديد دينه", [c[1] for c in customers])
+            pay_amount = st.number_input("مبلغ التسديد", min_value=0.0, step=1000.0)
+            
+            if st.button("تحديث وتسجيل السداد"):
+                c_info = run_query("SELECT debt FROM customers WHERE name = ?", (selected_cust,), fetch=True)
+                if c_info:
+                    new_debt = max(0.0, c_info[0][0] - pay_amount)
+                    run_query("UPDATE customers SET debt = ? WHERE name = ?", (new_debt, selected_cust))
+                    st.success(f"تم تحديث دين العميل {selected_cust} بنجاح. الدين الحالي: {new_debt} د.ع")
+                    st.rerun()
+        else:
+            st.info("لا توجد ديون أو عملاء مسجلين حالياً.")
+            
+    with tab_cust2:
+        st.subheader("إضافة عميل جديد يدوياً")
+        with st.form("add_customer_form"):
+            new_c_name = st.text_input("اسم العميل")
+            new_c_phone = st.text_input("رقم الهاتف")
+            new_c_debt = st.number_input("دين سابق (إن وجد)", min_value=0.0, step=1000.0)
+            
+            submit_cust = st.form_submit_button("حفظ العميل")
+            if submit_cust:
+                if new_c_name:
+                    run_query("INSERT INTO customers (name, phone, debt) VALUES (?, ?, ?)", (new_c_name, new_c_phone, new_c_debt))
+                    st.success(f"تم إضافة العميل {new_c_name} بنجاح!")
+                else:
+                    st.error("يرجى إدخال اسم العميل على الأقل.")
