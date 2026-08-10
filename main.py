@@ -120,9 +120,9 @@ if 'cart' not in st.session_state or not isinstance(st.session_state.cart, dict)
 # دالة لتشغيل الأصوات التفاعلية
 def play_sfx(sound_type):
     if sound_type == "add":
-        st.session_state.sound_url = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" # صوت نقرة ونجاح خفيف
+        st.session_state.sound_url = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
     elif sound_type == "success":
-        st.session_state.sound_url = "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3" # صوت إنجاز/حفظ فاتورة
+        st.session_state.sound_url = "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"
 
 if not st.session_state.logged_in:
     st.markdown("<h3 style='text-align: center;'>🔐 بوابة الدخول الآمن إلى النظام</h3>", unsafe_allow_html=True)
@@ -180,7 +180,7 @@ menu = st.radio(
 
 st.markdown("---")
 
-# --- تشغيل المؤثر الصوتي التفاعلي تلقائياً عند حدوث أي حدث ---
+# --- تشغيل المؤثر الصوتي التفاعلي تلقائياً ---
 if st.session_state.sound_url:
     st.markdown(f"""
         <audio autoplay style="display:none;">
@@ -382,6 +382,7 @@ elif menu == "📊 الفواتير والتقارير الاحترافية":
         inv_id, cust_name, shop_loc, phone, gov, reg, total_val, date_val = inv
         total_clean = int(total_val) if total_val else 0
         
+        # تصميم الفاتورة بجدول HTML آمن وثابت 100% يمنع أي تداخل أو ظهور أكواد غريبة
         invoice_html = f"""
         <div dir="rtl" style="font-family: 'Cairo', Arial, sans-serif; background: #ffffff; padding: 30px; border-radius: 15px; border: 2px solid #1a6b51; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 700px; margin: auto;">
             <div style="text-align: center; border-bottom: 2px solid #1a6b51; padding-bottom: 15px; margin-bottom: 20px;">
@@ -389,16 +390,18 @@ elif menu == "📊 الفواتير والتقارير الاحترافية":
                 <p style="color: #FF4B4B; font-weight: bold; margin: 5px 0 0 0; font-size: 16px;">« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</p>
             </div>
             
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; background: #f4faf8; padding: 15px; border-radius: 8px;">
-                <div>
-                    <p style="margin: 4px 0; color: #333;"><strong>رقم الفاتورة:</strong> #{inv_id}</p>
-                    <p style="margin: 4px 0; color: #333;"><strong>تاريخ اليوم:</strong> {date_val}</p>
-                </div>
-                <div>
-                    <p style="margin: 4px 0; color: #333;"><strong>اسم العميل:</strong> {cust_name}</p>
-                    <p style="margin: 4px 0; color: #333;"><strong>رقم الهاتف:</strong> {phone if phone else 'غير متوفر'}</p>
-                </div>
-            </div>
+            <table style="width: 100%; margin-bottom: 20px; background: #f4faf8; padding: 15px; border-radius: 8px; border-collapse: collapse;">
+                <tr>
+                    <td style="width: 50%; vertical-align: top; border: none; padding: 5px;">
+                        <p style="margin: 4px 0; color: #333;"><strong>رقم الفاتورة:</strong> #{inv_id}</p>
+                        <p style="margin: 4px 0; color: #333;"><strong>تاريخ اليوم:</strong> {date_val}</p>
+                    </td>
+                    <td style="width: 50%; vertical-align: top; border: none; padding: 5px; text-align: right;">
+                        <p style="margin: 4px 0; color: #333;"><strong>اسم العميل:</strong> {cust_name}</p>
+                        <p style="margin: 4px 0; color: #333;"><strong>رقم الهاتف:</strong> {phone if phone else 'غير متوفر'}</p>
+                    </td>
+                </tr>
+            </table>
             
             <div style="margin-bottom: 20px; background: #f9f9f9; padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
                 <p style="margin: 4px 0; color: #333;"><strong>مكان المحل / مكان العميل:</strong> {shop_loc if shop_loc else 'غير محدد'}</p>
