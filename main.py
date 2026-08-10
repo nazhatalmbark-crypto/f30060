@@ -15,6 +15,12 @@ st.set_page_config(
 # --- تنسيق الألوان والتصميم الاحترافي المتجاوب ---
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Cairo', sans-serif;
+    }
+    
     div.stButton > button { 
         background-color: #1a6b51; 
         color: white; 
@@ -73,7 +79,6 @@ def init_db():
                     username TEXT UNIQUE,
                     password TEXT)''')
     
-    # إضافة الأعمدة تلقائياً إذا لم تكن موجودة (لتفادي أخطاء التحديث)
     for col, col_type in [('shop_location', 'TEXT'), ('phone', 'TEXT'), ('governorate', 'TEXT'), ('region', 'TEXT'), ('debt', 'REAL DEFAULT 0')]:
         try:
             c.execute(f"ALTER TABLE customers ADD COLUMN {col} {col_type}")
@@ -107,10 +112,17 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'username' not in st.session_state:
     st.session_state.username = ""
-if 'play_sound' not in st.session_state:
-    st.session_state.play_sound = False
+if 'sound_url' not in st.session_state:
+    st.session_state.sound_url = None
 if 'cart' not in st.session_state or not isinstance(st.session_state.cart, dict):
     st.session_state.cart = {}
+
+# دالة لتشغيل الأصوات التفاعلية
+def play_sfx(sound_type):
+    if sound_type == "add":
+        st.session_state.sound_url = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" # صوت نقرة ونجاح خفيف
+    elif sound_type == "success":
+        st.session_state.sound_url = "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3" # صوت إنجاز/حفظ فاتورة
 
 if not st.session_state.logged_in:
     st.markdown("<h3 style='text-align: center;'>🔐 بوابة الدخول الآمن إلى النظام</h3>", unsafe_allow_html=True)
@@ -125,6 +137,7 @@ if not st.session_state.logged_in:
             if user_res:
                 st.session_state.logged_in = True
                 st.session_state.username = login_user
+                play_sfx("success")
                 st.success("تم تسجيل الدخول بنجاح!")
                 st.rerun()
             else:
@@ -138,14 +151,15 @@ if not st.session_state.logged_in:
             if new_user and new_pass:
                 try:
                     run_query("INSERT INTO users (username, password) VALUES (?, ?)", (new_user, new_pass))
-                    st.success("تم إنشاء الحساب بنجاح! انتقل لتبويب تسجيل الدخول للخول.")
+                    play_sfx("success")
+                    st.success("تم إنشاء الحساب بنجاح! انتقل لتبويب تسجيل الدخول للدخول.")
                 except sqlite3.IntegrityError:
                     st.error("اسم المستخدم موجود مسبقاً، اختر اسم آخر.")
             else:
                 st.error("يرجى ملء كافة الحقول المطلوبة.")
     st.stop()
 
-# --- الشريط العلوي للمستخدم وتسجيل الخروج (ظاهر ومتجاوب بكل الأجهزة) ---
+# --- الشريط العلوي للمستخدم وتسجيل الخروج ---
 top_col1, top_col2 = st.columns([4, 1])
 with top_col1:
     st.info(f"👤 المستخدم الحالي النشط: **{st.session_state.username}**")
@@ -157,7 +171,7 @@ with top_col2:
 
 st.markdown("---")
 
-# --- القائمة الرئيسية أفقية وواضحة في أعلى الشاشة (تظهر بكل الأجهزة بدون اختفاء) ---
+# --- القائمة الرئيسية أفقية ---
 menu = st.radio(
     "🧭 القائمة الرئيسية للنظام (اختر القسم):", 
     ["🏪 المبيعات", "📦 إدارة المخزون", "📊 الفواتير والتقارير الاحترافية", "👥 العملاء والديون"],
@@ -166,18 +180,18 @@ menu = st.radio(
 
 st.markdown("---")
 
-# --- تشغيل مؤثر صوتي خفيف عند إضافة منتج ---
-if st.session_state.play_sound:
-    st.markdown("""
+# --- تشغيل المؤثر الصوتي التفاعلي تلقائياً عند حدوث أي حدث ---
+if st.session_state.sound_url:
+    st.markdown(f"""
         <audio autoplay style="display:none;">
-            <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+            <source src="{st.session_state.sound_url}" type="audio/mpeg">
         </audio>
     """, unsafe_allow_html=True)
-    st.session_state.play_sound = False
+    st.session_state.sound_url = None
 
 # --- 1. شاشة المبيعات ---
 if menu == "🏪 المبيعات":
-    tab1, tab2, tab3, tab4 = st.tabs(["شاشة البيع", "🛒 سلة المشتريات وإتمام الفاتورة", "العملاء", "مرتجعات الفواتير"])
+    tab1, tab2, tab3, tab4 = st.tabs(["شاشة البيع (شبكة المنتجات)", "🛒 سلة المشتريات وإتمام الفاتورة", "العملاء", "مرتجعات الفواتير"])
     
     with tab1:
         search = st.text_input("🔍 ابحث باسم المنتج السريع ...")
@@ -190,7 +204,7 @@ if menu == "🏪 المبيعات":
                     clean_price = int(prod[2]) if prod[2] is not None else 0
                     with cols[prod_count % 3]:
                         with st.container(border=True):
-                            st.markdown(f"#### {prod[1]}")
+                            st.markdown(f"<h4 style='color: #1a6b51; margin-bottom: 5px;'>{prod[1]}</h4>", unsafe_allow_html=True)
                             st.write(f"💰 **السعر:** {clean_price} دينار")
                             st.write(f"📦 **المتوفر:** {prod[3]} قطعة")
                             if st.button(f"إضافة للسلة", key=f"add_{prod[0]}"):
@@ -211,7 +225,7 @@ if menu == "🏪 المبيعات":
                                         }
                                     else:
                                         st.warning("المنتج نفذ من المخزون!")
-                                st.session_state.play_sound = True
+                                play_sfx("add")
                                 st.rerun()
                     prod_count += 1
             if prod_count == 0:
@@ -236,6 +250,7 @@ if menu == "🏪 المبيعات":
                     if st.button("➕", key=f"inc_{prod_id}"):
                         if item['qty'] < item['max_qty']:
                             item['qty'] += 1
+                            play_sfx("add")
                             st.rerun()
                 with c_minus:
                     if st.button("➖", key=f"dec_{prod_id}"):
@@ -243,10 +258,12 @@ if menu == "🏪 المبيعات":
                             item['qty'] -= 1
                         else:
                             items_to_remove.append(prod_id)
+                        play_sfx("add")
                         st.rerun()
                 with c_del:
                     if st.button("🗑️", key=f"del_{prod_id}"):
                         items_to_remove.append(prod_id)
+                        play_sfx("add")
                         st.rerun()
                 st.markdown("---")
             
@@ -258,7 +275,7 @@ if menu == "🏪 المبيعات":
 
         st.write(f"### 💰 المجموع الكلي: {total} دينار")
         st.markdown("---")
-        st.subheader("تفاصيل العميل للفاتورة:")
+        st.subheader("تفاصيل وعنوان العميل للفاتورة:")
         
         cust_list = run_query("SELECT name, shop_location, phone, governorate, region FROM customers", fetch=True)
         cust_names = ["اختيار من العملاء المسجلين..."] + [c[0] for c in cust_list] if cust_list else ["اختيار من العملاء المسجلين..."]
@@ -272,8 +289,8 @@ if menu == "🏪 المبيعات":
                     c_name, c_shop, c_phone, c_gov, c_reg = c[0], c[1], c[2], c[3], c[4]
         
         cust_name = st.text_input("اسم العميل", value=c_name)
-        shop_loc = st.text_input("مكان المحل", value=c_shop)
-        phone_num = st.text_input("رقم العميل", value=c_phone)
+        shop_loc = st.text_input("مكان المحل / مكان العميل", value=c_shop)
+        phone_num = st.text_input("رقم الهاتف", value=c_phone)
         governorate = st.text_input("المحافظة", value=c_gov)
         region = st.text_input("المنطقة", value=c_reg)
         
@@ -286,6 +303,7 @@ if menu == "🏪 المبيعات":
                           (cust_name, shop_loc, phone_num, governorate, region, total, datetime.now().strftime("%Y-%m-%d %H:%M")))
                 
                 st.session_state.cart = {}
+                play_sfx("success")
                 st.success("تم تثبيت الفاتورة بنجاح ونقصت الكميات المباعة من المخزن! انتقل لتبويب (الفواتير والتقارير) لمشاهدتها وإرسالها.")
                 st.rerun()
             else:
@@ -329,9 +347,11 @@ elif menu == "📦 إدارة المخزون":
                 exists = run_query("SELECT quantity FROM products WHERE name = ?", (p_name,), fetch=True)
                 if exists:
                     run_query("UPDATE products SET quantity = quantity + ?, price = ? WHERE name = ?", (p_qty, p_price, p_name))
+                    play_sfx("success")
                     st.success(f"تم تحديث كمية وسعر {p_name} بنجاح!")
                 else:
                     run_query("INSERT INTO products (name, quantity, price) VALUES (?, ?, ?)", (p_name, p_qty, p_price))
+                    play_sfx("success")
                     st.success(f"تمت إضافة {p_name} إلى المخزن بنجاح!")
                 st.rerun()
             else:
@@ -363,40 +383,44 @@ elif menu == "📊 الفواتير والتقارير الاحترافية":
         total_clean = int(total_val) if total_val else 0
         
         invoice_html = f"""
-        <div dir="rtl" style="font-family: Arial, sans-serif; background: #ffffff; padding: 25px; border-radius: 15px; border: 2px solid #1a6b51; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 700px; margin: auto;">
+        <div dir="rtl" style="font-family: 'Cairo', Arial, sans-serif; background: #ffffff; padding: 30px; border-radius: 15px; border: 2px solid #1a6b51; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 700px; margin: auto;">
             <div style="text-align: center; border-bottom: 2px solid #1a6b51; padding-bottom: 15px; margin-bottom: 20px;">
                 <h1 style="color: #1a6b51; margin: 0; font-size: 26px;">🛍️ فاتورة مبيعات رسمية</h1>
                 <p style="color: #FF4B4B; font-weight: bold; margin: 5px 0 0 0; font-size: 16px;">« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</p>
             </div>
             
-            <div style="margin-bottom: 20px; background: #f4faf8; padding: 12px; border-radius: 8px;">
-                <p style="margin: 4px 0;"><strong>رقم الفاتورة:</strong> #{inv_id}</p>
-                <p style="margin: 4px 0;"><strong>التاريخ والوقت:</strong> {date_val}</p>
-                <p style="margin: 4px 0;"><strong>اسم العميل:</strong> {cust_name}</p>
-                <p style="margin: 4px 0;"><strong>رقم الهاتف:</strong> {phone if phone else 'غير متوفر'}</p>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; background: #f4faf8; padding: 15px; border-radius: 8px;">
+                <div>
+                    <p style="margin: 4px 0; color: #333;"><strong>رقم الفاتورة:</strong> #{inv_id}</p>
+                    <p style="margin: 4px 0; color: #333;"><strong>تاريخ اليوم:</strong> {date_val}</p>
+                </div>
+                <div>
+                    <p style="margin: 4px 0; color: #333;"><strong>اسم العميل:</strong> {cust_name}</p>
+                    <p style="margin: 4px 0; color: #333;"><strong>رقم الهاتف:</strong> {phone if phone else 'غير متوفر'}</p>
+                </div>
             </div>
             
-            <div style="margin-bottom: 20px;">
-                <p style="margin: 4px 0;"><strong>مكان المحل:</strong> {shop_loc if shop_loc else 'غير محدد'}</p>
-                <p style="margin: 4px 0;"><strong>العنوان:</strong> {gov if gov else ''} - {reg if reg else ''}</p>
+            <div style="margin-bottom: 20px; background: #f9f9f9; padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
+                <p style="margin: 4px 0; color: #333;"><strong>مكان المحل / مكان العميل:</strong> {shop_loc if shop_loc else 'غير محدد'}</p>
+                <p style="margin: 4px 0; color: #333;"><strong>العنوان (المحافظة - المنطقة):</strong> {gov if gov else 'غير محدد'} {(' - ' + reg) if reg else ''}</p>
             </div>
             
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <thead>
                     <tr style="background-color: #1a6b51; color: white;">
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">بيان الفاتورة</th>
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">المبلغ الإجمالي</th>
+                        <th style="padding: 12px; border: 1px solid #ddd; text-align: right;">بيان الفاتورة والخدمة</th>
+                        <th style="padding: 12px; border: 1px solid #ddd; text-align: center;">المبلغ الإجمالي</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="padding: 12px; border: 1px solid #ddd;">قيمة المشتريات والمنتجات المطلوبة للعميل ({cust_name})</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; color: #333;">قيمة المشتريات والمنتجات المطلوبة للعميل الكريم ({cust_name})</td>
                         <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #1a6b51;">{total_clean} دينار</td>
                     </tr>
                 </tbody>
             </table>
             
-            <div style="text-align: left; background: #e6f2ee; padding: 12px; border-radius: 8px; font-size: 18px; font-weight: bold; color: #1a6b51;">
+            <div style="text-align: left; background: #e6f2ee; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; color: #1a6b51;">
                 المجموع الكلي النهائي: {total_clean} دينار عراقي
             </div>
         </div>
@@ -417,7 +441,7 @@ elif menu == "📊 الفواتير والتقارير الاحترافية":
             )
             
         with col_wa:
-            wa_text = f"مرحباً {cust_name} 🛍️\nإليك تفاصيل فاتورتك من متجرنا:\n\n📄 فاتورة رقم: #{inv_id}\n📅 التاريخ: {date_val}\n💰 المجموع الكلي: {total_clean} دينار\n\n« أسعد نفسك بنفسك - مستمرون نحو الأفضل »"
+            wa_text = f"مرحباً {cust_name} 🛍️\nإليك تفاصيل فاتورتك من متجرنا:\n\n📄 فاتورة رقم: #{inv_id}\n📅 تاريخ اليوم: {date_val}\n📍 مكان المحل/العميل: {shop_loc}\n💰 المجموع الكلي: {total_clean} دينار\n\n« أسعد نفسك بنفسك - مستمرون نحو الأفضل »"
             encoded_wa_text = urllib.parse.quote(wa_text)
             wa_url = f"https://wa.me/{phone}?text={encoded_wa_text}" if phone else f"https://wa.me/?text={encoded_wa_text}"
             
@@ -439,7 +463,7 @@ elif menu == "👥 العملاء والديون":
     with st.form("add_customer_form"):
         st.subheader("➕ إضافة عميل جديد للقائمة")
         new_c_name = st.text_input("اسم العميل")
-        new_c_shop = st.text_input("مكان المحل")
+        new_c_shop = st.text_input("مكان المحل / مكان العميل")
         new_c_phone = st.text_input("رقم العميل")
         new_c_gov = st.text_input("المحافظة")
         new_c_reg = st.text_input("المنطقة")
@@ -449,6 +473,7 @@ elif menu == "👥 العملاء والديون":
             if new_c_name:
                 run_query("INSERT INTO customers (name, shop_location, phone, governorate, region, debt) VALUES (?, ?, ?, ?, ?, 0)", 
                           (new_c_name, new_c_shop, new_c_phone, new_c_gov, new_c_reg))
+                play_sfx("success")
                 st.success(f"تم حفظ العميل {new_c_name} بنجاح!")
                 st.rerun()
             else:
