@@ -3,10 +3,11 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 import urllib.parse
+import re
 
-# إعداد الصفحة لتكون بعرض الشاشة الكامل ومتجاوبة
+# إعداد الصفحة لتكون عريضة ومتجاوبة
 st.set_page_config(
-    page_title="نظام إدارة المبيعات المعتمد - النسخة الشاملة", 
+    page_title="نظام ياسر المعتمد - النسخة الذكية المتكاملة", 
     page_icon="🛍️", 
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -89,7 +90,6 @@ def init_db():
                     username TEXT UNIQUE,
                     password TEXT)''')
     
-    # تحديث الأعمدة الآمن للجداول القديمة
     for col, col_type in [('shop_location', 'TEXT'), ('phone', 'TEXT'), ('governorate', 'TEXT'), ('region', 'TEXT'), ('debt', 'REAL DEFAULT 0'), ('category', "TEXT DEFAULT 'عام'")]:
         try:
             c.execute(f"ALTER TABLE products ADD COLUMN {col} {col_type}")
@@ -134,7 +134,6 @@ if 'sound_url' not in st.session_state:
 if 'cart' not in st.session_state or not isinstance(st.session_state.cart, dict):
     st.session_state.cart = {}
 
-# دالة لتشغيل الأصوات التفاعلية
 def play_sfx(sound_type):
     if sound_type == "add":
         st.session_state.sound_url = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
@@ -191,13 +190,12 @@ st.markdown("---")
 # --- القائمة الرئيسية أفقية ---
 menu = st.radio(
     "🧭 القائمة الرئيسية للنظام (اختر القسم):", 
-    ["🏪 المبيعات", "📦 إدارة المخزون", "📊 لوحة التحكم والتقارير", "👥 العملاء ودفتر الديون"],
+    ["🏪 المبيعات", "📦 إدارة المخزون", "📊 لوحة التحكم والمساعد الذكي", "👥 العملاء ودفتر الديون"],
     horizontal=True
 )
 
 st.markdown("---")
 
-# --- تشغيل المؤثر الصوتي التفاعلي تلقائياً ---
 if st.session_state.sound_url:
     st.markdown(f"""
         <audio autoplay style="display:none;">
@@ -211,7 +209,6 @@ if menu == "🏪 المبيعات":
     tab1, tab2, tab3, tab4 = st.tabs(["شاشة البيع وتصنيفات المنتجات", "🛒 سلة المشتريات وإتمام الفاتورة", "العملاء", "مرتجعات الفواتير"])
     
     with tab1:
-        # نظام تصنيفات المنتجات
         all_prods_for_cat = run_query("SELECT DISTINCT category FROM products", fetch=True)
         categories = ["الكل"] + [p[0] for p in all_prods_for_cat if p[0]] if all_prods_for_cat else ["الكل"]
         
@@ -302,7 +299,6 @@ if menu == "🏪 المبيعات":
             st.info("السلة فارغة حالياً. اذهب إلى (شاشة البيع) وأضف منتجات.")
 
         st.markdown("---")
-        # الخصم وأجور التوصيل
         col_disc, col_deliv = st.columns(2)
         with col_disc:
             discount = st.number_input("🏷️ مبلغ الخصم (دينار)", min_value=0.0, value=0.0, step=500.0)
@@ -342,17 +338,13 @@ if menu == "🏪 المبيعات":
 
         if st.button("✅ تأكيد البيع وحفظ الفاتورة النهائية"):
             if cust_name and st.session_state.cart:
-                # خصم الكميات من المخزون
                 for prod_id, item in st.session_state.cart.items():
                     run_query("UPDATE products SET quantity = quantity - ? WHERE id = ?", (item['qty'], prod_id))
                 
-                # حفظ الفاتورة
                 run_query("INSERT INTO invoices (customer_name, shop_location, phone, governorate, region, subtotal, discount, delivery, total, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
                           (cust_name, shop_loc, phone_num, governorate, region, subtotal, discount, delivery, final_total, datetime.now().strftime("%Y-%m-%d %H:%M")))
                 
-                # إذا اختار العميل تسجيلها ديناً
                 if add_to_debt:
-                    # تحقق إذا العميل موجود بجدول العملاء لو لا
                     c_exists = run_query("SELECT id FROM customers WHERE name = ?", (cust_name,), fetch=True)
                     if c_exists:
                         run_query("UPDATE customers SET debt = debt + ? WHERE name = ?", (final_total, cust_name))
@@ -362,7 +354,7 @@ if menu == "🏪 المبيعات":
                 
                 st.session_state.cart = {}
                 play_sfx("success")
-                st.success("تم تثبيت الفاتورة بنجاح وتحديث المخزن والديون! انتقل لتبويب (لوحة التحكم والتقارير) لاستعراض الفاتورة.")
+                st.success("تم تثبيت الفاتورة بنجاح وتحديث المخزن والديون!")
                 st.rerun()
             else:
                 st.error("يرجى إدخال اسم العميل على الأقل ووضع منتجات في السلة.")
@@ -426,16 +418,15 @@ elif menu == "📦 إدارة المخزون":
     else:
         st.info("المخزن فارغ حالياً.")
 
-# --- 3. لوحة التحكم والتقارير ---
-elif menu == "📊 لوحة التحكم والتقارير":
-    st.title("📊 لوحة التحكم، الإحصائيات والفواتير")
+# --- 3. لوحة التحكم والمساعد الذكي ---
+elif menu == "📊 لوحة التحكم والمساعد الذكي":
+    st.title("📊 لوحة التحكم، المساعد الذكي المطور والفواتير")
     
-    rep_tab1, rep_tab2 = st.tabs(["📈 لوحة المؤشرات والرسوم البيانية (Dashboard)", "📄 استعراض وفاتورة الطباعة والواتساب"])
+    rep_tab1, rep_tab2 = st.tabs(["📈 لوحة المؤشرات والمساعد الذكي المتطور (AI Commands)", "📄 استعراض وفاتورة الطباعة والواتساب"])
     
     with rep_tab1:
-        st.subheader(" نظرة عامة على أداء المتجر")
+        st.subheader("📊 نظرة عامة على أداء المتجر")
         
-        # حساب المؤشرات
         all_inv = run_query("SELECT total FROM invoices", fetch=True)
         total_sales = sum([i[0] for i in all_inv if i[0]]) if all_inv else 0
         total_invoices_count = len(all_inv) if all_inv else 0
@@ -453,8 +444,63 @@ elif menu == "📊 لوحة التحكم والتقارير":
         m4.metric("قطع المنتجات بالمخزن", f"{total_inventory_items} قطعة")
         
         st.markdown("---")
-        st.subheader("📊 رسم بياني لحركة المبيعات حسب الفواتير المسجلة")
         
+        # --- المساعد الذكي المتطور (تنفيذ الأوامر والاستعلامات) ---
+        st.subheader("🤖 المساعد الذكي المتطور (تنفيد الأوامر عبر المحادثة)")
+        st.caption("اسأل عن أرباحك ومبيعاتك، أو أمره بإضافة منتج مباشرة (مثلاً: ضيف منتج شاحن بسعر 5000 وعدد 10)")
+        
+        user_ai_query = st.text_input("💬 اكتب أمرك أو سؤالك للمساعد هنا ...", key="ai_command_input")
+        
+        if user_ai_query:
+            q_lower = user_ai_query.lower()
+            
+            if "ضيف" in q_lower or "أضف" in q_lower:
+                try:
+                    price_match = re.search(r"(?:سعر|بسعر)\s*(\d+(?:\.\d+)?)", q_lower)
+                    qty_match = re.search(r"(?:عدد|كمية)\s*(\d+)", q_lower)
+                    
+                    if price_match and qty_match:
+                        p_price = float(price_match.group(1))
+                        p_qty = int(qty_match.group(1))
+                        
+                        name_match = re.search(r"منتج\s+(.*?)\s+(?:بسعر|سعر)", user_ai_query)
+                        if name_match:
+                            p_name = name_match.group(1).strip()
+                            
+                            exists = run_query("SELECT quantity FROM products WHERE name = ?", (p_name,), fetch=True)
+                            if exists:
+                                run_query("UPDATE products SET quantity = quantity + ?, price = ? WHERE name = ?", (p_qty, p_price, p_name))
+                                msg = f"تم تحديث المنتج **{p_name}** بنجاح (أُضيف للعدد: {p_qty}، والسعر: {p_price})."
+                            else:
+                                run_query("INSERT INTO products (name, quantity, price, category) VALUES (?, ?, ?, ?)", (p_name, p_qty, p_price, "عام"))
+                                msg = f"تمت إضافة المنتج الجديد **{p_name}** بنجاح إلى المخزن! (السعر: {p_price}، العدد: {p_qty})."
+                            
+                            play_sfx("success")
+                            st.success(f"🤖 **المساعد الذكي:** {msg}")
+                            st.balloons()
+                        else:
+                            st.warning("🤖 **المساعد الذكي:** لم أستطع تمييز اسم المنتج بدقة. تأكد من كتابتها هكذا: (ضيف منتج [الاسم] بسعر [السعر] وعدد [العدد]).")
+                    else:
+                        st.warning("🤖 **المساعد الذكي:** يرجى تحديد السعر والعدد بوضوح في الأمر.")
+                except Exception as e:
+                    st.error(f"🤖 **المساعد الذكي:** حدث خطأ في تحليل الأمر. ({e})")
+                    
+            elif "مبيعات" in q_lower or "بيع" in q_lower or "إيراد" in q_lower:
+                st.info(f"🤖 **المساعد الذكي:** إجمالي المبيعات المسجلة لديك هو **{int(total_sales):,}** دينار عبر {total_invoices_count} فاتورة.")
+            elif "منتج" in q_lower or "مخزن" in q_lower or "بضاعة" in q_lower:
+                prods_count_res = run_query("SELECT COUNT(*), SUM(quantity) FROM products", fetch=True)
+                p_cnt = prods_count_res[0][0] if prods_count_res and prods_count_res[0][0] else 0
+                total_items = prods_count_res[0][1] if prods_count_res and prods_count_res[0][1] else 0
+                st.info(f"🤖 **المساعد الذكي:** لديك حالياً **{p_cnt}** صنف مختلف في المخزن بإجمالي **{total_items}** قطعة.")
+            elif "ديون" in q_lower or "دين" in q_lower:
+                all_custs_debt = run_query("SELECT SUM(debt) FROM customers", fetch=True)
+                total_debt = all_custs_debt[0][0] if all_custs_debt and all_custs_debt[0][0] else 0
+                st.info(f"🤖 **المساعد الذكي:** إجمالي الديون المترتبة بذمة العملاء حالياً هو **{int(total_debt):,}** دينار.")
+            else:
+                st.warning("🤖 **المساعد الذكي:** لم أفهم أمرك بدقة. يمكنك سؤالي عن (المبيعات)، (المنتجات)، (الديون)، أو كتابة أمر إضافة مثل: (ضيف منتج [اسم] بسعر [سعر] وعدد [عدد]).")
+
+        st.markdown("---")
+        st.subheader("📈 رسم بياني لحركة المبيعات حسب الفواتير المسجلة")
         df_inv_chart = run_query("SELECT date, total FROM invoices", fetch=True)
         if df_inv_chart:
             df_chart = pd.DataFrame(df_inv_chart, columns=["التاريخ", "المجموع"])
@@ -463,6 +509,9 @@ elif menu == "📊 لوحة التحكم والتقارير":
             st.info("لا توجد مبيعات كافية لعرض الرسوم البيانية حالياً.")
 
     with rep_tab2:
+        st.subheader("🎨 تخصيص لون الفاتورة")
+        invoice_color = st.color_picker("اختر لون هوية الفاتورة المفضل لديك:", "#1a6b51")
+        
         invs = run_query("SELECT id, customer_name, shop_location, phone, governorate, region, subtotal, discount, delivery, total, date FROM invoices ORDER BY id DESC", fetch=True)
         if invs:
             inv_options = [f"فاتورة رقم {inv[0]} - العميل: {inv[1]} - المجموع: {int(inv[9]) if inv[9] else 0} دينار" for inv in invs]
@@ -478,9 +527,9 @@ elif menu == "📊 لوحة التحكم والتقارير":
             deliv_clean = int(deliv_val) if deliv_val else 0
             
             invoice_html = f"""
-            <div dir="rtl" style="font-family: 'Cairo', Arial, sans-serif; background: #ffffff; padding: 30px; border-radius: 15px; border: 2px solid #1a6b51; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 700px; margin: auto;">
-                <div style="text-align: center; border-bottom: 2px solid #1a6b51; padding-bottom: 15px; margin-bottom: 20px;">
-                    <h1 style="color: #1a6b51; margin: 0; font-size: 26px;">🛍️ فاتورة مبيعات رسمية</h1>
+            <div dir="rtl" style="font-family: 'Cairo', Arial, sans-serif; background: #ffffff; padding: 30px; border-radius: 15px; border: 2px solid {invoice_color}; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 700px; margin: auto;">
+                <div style="text-align: center; border-bottom: 2px solid {invoice_color}; padding-bottom: 15px; margin-bottom: 20px;">
+                    <h1 style="color: {invoice_color}; margin: 0; font-size: 26px;">🛍️ فاتورة مبيعات رسمية</h1>
                     <p style="color: #FF4B4B; font-weight: bold; margin: 5px 0 0 0; font-size: 16px;">« أسعد نفسك بنفسك - مستمرون نحو الأفضل »</p>
                 </div>
                 
@@ -504,7 +553,7 @@ elif menu == "📊 لوحة التحكم والتقارير":
                 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                     <thead>
-                        <tr style="background-color: #1a6b51; color: white;">
+                        <tr style="background-color: {invoice_color}; color: white;">
                             <th style="padding: 12px; border: 1px solid #ddd; text-align: right;">بيان الفاتورة والخدمة</th>
                             <th style="padding: 12px; border: 1px solid #ddd; text-align: center;">المبلغ الإجمالي</th>
                         </tr>
@@ -512,12 +561,12 @@ elif menu == "📊 لوحة التحكم والتقارير":
                     <tbody>
                         <tr>
                             <td style="padding: 12px; border: 1px solid #ddd; color: #333;">مشتريات المنتجات للعميل الكريم ({cust_name})<br><small>الخصم: -{disc_clean} دينار | أجور التوصيل: +{deliv_clean} دينار</small></td>
-                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #1a6b51;">{total_clean} دينار</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: {invoice_color};">{total_clean} دينار</td>
                         </tr>
                     </tbody>
                 </table>
                 
-                <div style="text-align: left; background: #e6f2ee; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; color: #1a6b51;">
+                <div style="text-align: left; background: #e6f2ee; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; color: {invoice_color};">
                     المجموع الكلي النهائي: {total_clean} دينار عراقي
                 </div>
             </div>
@@ -600,10 +649,10 @@ elif menu == "👥 العملاء ودفتر الديون":
                 if c[0] == selected_debt_cust:
                     current_debt = c[1]
             
-            st.info(جملة := f"الدين الحالي على العميل ({selected_debt_cust}) هو: **{current_debt}** دينار")
+            st.info(f"الدين الحالي على العميل ({selected_debt_cust}) هو: **{current_debt}** دينار")
             
             payment_amount = st.number_input("المبلغ المدفوع حالياً (دينار)", min_value=0.0, max_value=float(current_debt), value=float(current_debt), step=1000.0)
-            payment_notes = st.text_input("ملاحظات السند (اختياري - مثلاً: تسديد نقدی)", value="تسديد نقدى")
+            payment_notes = st.text_input("ملاحظات السند (اختياري - مثلاً: تسديد نقدي)", value="تسديد نقدي")
             
             if st.button("✅ تأكيد تسجيل وتسديد الدفعة"):
                 if payment_amount > 0:
