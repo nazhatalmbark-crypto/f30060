@@ -4,7 +4,7 @@ import sqlite3
 # إعداد الصفحة
 st.set_page_config(page_title="Yasser Web - Inventory System", layout="centered")
 
-# --- 1. إعداد قاعدة البيانات لضمان عدم ضياع أي بيانات ---
+# --- 1. إعداد قاعدة البيانات ---
 def init_db():
     conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
@@ -19,6 +19,7 @@ def init_db():
                     quantity INTEGER DEFAULT 0,
                     is_locked INTEGER DEFAULT 0)''')
     
+    # مستخدم افتراضي تجريبي
     try:
         c.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("admin", "1234"))
     except sqlite3.IntegrityError:
@@ -51,15 +52,21 @@ def init_session():
 
 init_session()
 
-# --- 3. قواميس الترجمة ---
+# --- 3. قواميس الترجمة (تتضمن خيارات التسجيل) ---
 translations = {
     "English": {
+        "login_tab": "Login",
+        "register_tab": "Create New Account",
         "login_title": "🔐 Login to Yasser Web",
+        "register_title": "📝 Register New Account",
         "username": "Username",
         "password": "Password",
         "signin": "Sign In",
+        "signup": "Sign Up",
         "login_success": "Login successful!",
         "login_error": "Invalid username or password.",
+        "register_success": "Account created successfully! Please login now.",
+        "user_exists": "Username already exists. Please choose another one.",
         "app_title": "📦 Yasser Web - Inventory System",
         "account_settings": "Account Settings",
         "user": "User",
@@ -83,12 +90,18 @@ translations = {
         "empty": "The inventory is currently empty."
     },
     "العربية": {
+        "login_tab": "تسجيل الدخول",
+        "register_tab": "إنشاء حساب جديد",
         "login_title": "🔐 تسجيل الدخول إلى ياسر ويب",
+        "register_title": "📝 إنشاء حساب جديد",
         "username": "اسم المستخدم",
         "password": "كلمة المرور",
         "signin": "تسجيل الدخول",
+        "signup": "إنشاء الحساب",
         "login_success": "تم تسجيل الدخول بنجاح!",
         "login_error": "اسم المستخدم أو كلمة المرور غير صحيحة.",
+        "register_success": "تم إنشاء الحساب بنجاح! يمكنك تسجيل الدخول الآن.",
+        "user_exists": "اسم المستخدم موجود مسبقاً، يرجى اختيار اسم آخر.",
         "app_title": "📦 ياسر ويب - نظام إدارة المخزون",
         "account_settings": "إعدادات الحساب",
         "user": "المستخدم",
@@ -113,26 +126,47 @@ translations = {
     }
 }
 
-# --- 4. واجهة تسجيل الدخول ---
+# --- 4. واجهة تسجيل الدخول وإنشاء الحساب ---
 def login_screen():
     selected_lang = st.sidebar.selectbox("Language / اللغة", ["English", "العربية"])
     t = translations[selected_lang]
     
-    st.title(t["login_title"])
-    with st.form("login_form"):
-        username = st.text_input(t["username"])
-        password = st.text_input(t["password"], type="password")
-        submit_login = st.form_submit_button(t["signin"])
-        
-        if submit_login:
-            user = run_query("SELECT * FROM users WHERE username = ? AND password = ?", (username, password), fetch=True)
-            if user:
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.success(t["login_success"])
-                st.rerun()
-            else:
-                st.error(t["login_error"])
+    # عمل تبويبين للتنقل بين تسجيل الدخول وإنشاء حساب جديد
+    tab1, tab2 = st.tabs([t["login_tab"], t["register_tab"]])
+    
+    with tab1:
+        st.subheader(t["login_title"])
+        with st.form("login_form"):
+            username = st.text_input(t["username"], key="login_user")
+            password = st.text_input(t["password"], type="password", key="login_pass")
+            submit_login = st.form_submit_button(t["signin"])
+            
+            if submit_login:
+                user = run_query("SELECT * FROM users WHERE username = ? AND password = ?", (username.strip(), password), fetch=True)
+                if user:
+                    st.session_state.logged_in = True
+                    st.session_state.username = username.strip()
+                    st.success(t["login_success"])
+                    st.rerun()
+                else:
+                    st.error(t["login_error"])
+                    
+    with tab2:
+        st.subheader(t["register_title"])
+        with st.form("register_form"):
+            new_username = st.text_input(t["username"], key="reg_user")
+            new_password = st.text_input(t["password"], type="password", key="reg_pass")
+            submit_register = st.form_submit_button(t["signup"])
+            
+            if submit_register:
+                if new_username.strip() and new_password.strip():
+                    try:
+                        run_query("INSERT INTO users (username, password) VALUES (?, ?)", (new_username.strip(), new_password))
+                        st.success(t["register_success"])
+                    except sqlite3.IntegrityError:
+                        st.error(t["user_exists"])
+                else:
+                    st.error("Please fill in all fields.")
 
 # --- 5. التطبيق الرئيسي ---
 def main_app():
