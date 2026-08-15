@@ -5,7 +5,7 @@ from datetime import date
 # إعداد الصفحة
 st.set_page_config(page_title="Yasser Web - Inventory System", layout="wide")
 
-# --- 1. إعداد وتحديث قاعدة البيانات ---
+# --- 1. إعداد وتحديث قاعدة البيانات (مع التحديث التلقائي للجداول القديمة) ---
 def init_db():
     conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
@@ -24,16 +24,40 @@ def init_db():
                     price REAL DEFAULT 0,
                     is_locked INTEGER DEFAULT 0)''')
     
-    # جدول العملاء (بالتفاصيل الكاملة التي طلبتها)
+    # جدول العملاء الأساسي
     c.execute('''CREATE TABLE IF NOT EXISTS customers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT,
-                    phone TEXT,
-                    shop_location TEXT,
-                    governorate TEXT,
-                    landmark TEXT)''')
+                    phone TEXT)''')
     
-    # إضافة حساب الافتراضي
+    # تحديث تلقائي للمخزن إذا كان العمود ناقصاً
+    try:
+        c.execute("ALTER TABLE inventory ADD COLUMN price REAL DEFAULT 0;")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE inventory ADD COLUMN is_locked INTEGER DEFAULT 0;")
+    except sqlite3.OperationalError:
+        pass
+    
+    # تحديث تلقائي لجدول العملاء لإضافة الأعمدة الجديدة بأمان
+    try:
+        c.execute("ALTER TABLE customers ADD COLUMN shop_location TEXT;")
+    except sqlite3.OperationalError:
+        pass
+        
+    try:
+        c.execute("ALTER TABLE customers ADD COLUMN governorate TEXT;")
+    except sqlite3.OperationalError:
+        pass
+        
+    try:
+        c.execute("ALTER TABLE customers ADD COLUMN landmark TEXT;")
+    except sqlite3.OperationalError:
+        pass
+    
+    # إضافة حساب المسؤول الافتراضي
     try:
         c.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("admin", "1234"))
     except sqlite3.IntegrityError:
