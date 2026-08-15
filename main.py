@@ -1,10 +1,11 @@
 import streamlit as st
 import sqlite3
+from datetime import date
 
 # إعداد الصفحة
 st.set_page_config(page_title="Yasser Web - Inventory System", layout="centered")
 
-# --- 1. إعداد قاعدة البيانات ---
+# --- 1. إعداد قاعدة البيانات الدائمة ---
 def init_db():
     conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
@@ -17,6 +18,7 @@ def init_db():
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT UNIQUE,
                     quantity INTEGER DEFAULT 0,
+                    price REAL DEFAULT 0,
                     is_locked INTEGER DEFAULT 0)''')
     
     try:
@@ -38,16 +40,23 @@ def run_query(query, params=(), fetch=False):
     conn.close()
     return data
 
-# --- 2. تهيئة حالة الجلسة ---
+# --- 2. تهيئة الحالة الأساسية ---
 def init_session():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
     if 'username' not in st.session_state:
         st.session_state.username = ""
-    if 'add_operation_count' not in st.session_state:
-        st.session_state.add_operation_count = 0
     if 'is_paid_user' not in st.session_state:
         st.session_state.is_paid_user = False
+    if 'product_daily_adds' not in st.session_state:
+        st.session_state.product_daily_adds = {}  # لتتبع الـ 100 لكل منتج باليوم
+    if 'last_date' not in st.session_state:
+        st.session_state.last_date = str(date.today())
+    
+    # تصفير العدادات اليومية إذا تغير اليوم
+    if st.session_state.last_date != str(date.today()):
+        st.session_state.product_daily_adds = {}
+        st.session_state.last_date = str(date.today())
 
 init_session()
 
@@ -65,27 +74,37 @@ translations = {
         "login_success": "Login successful!",
         "login_error": "Invalid username or password.",
         "register_success": "Account created successfully! Please login now.",
-        "user_exists": "Username already exists. Please choose another one.",
+        "user_exists": "Username already exists.",
         "app_title": "📦 Yasser Web - Inventory System",
         "account_settings": "Account Settings",
         "user": "User",
-        "premium": "Upgrade to Premium (Unlock All Features)",
-        "free_used": "Free Additions Used",
+        "premium": "Premium Account (Unlimited Additions)",
         "logout": "Logout",
         "add_update": "Add or Update Item",
         "item_name": "Item Name",
         "quantity": "Quantity",
+        "price": "Unit Price ($)",
         "save_item": "Save Item",
-        "limit_reached": "Free limit reached (5/5)! Upgrade to Premium for unlimited additions.",
+        "product_limit_reached": "Free limit reached! You can only add up to 100 units per product per day. Upgrade to Premium for unlimited quantity.",
         "item_locked": "is locked. You cannot add quantity to it.",
         "updated": "Successfully updated",
         "added": "Successfully added new item",
         "enter_valid": "Please enter a valid item name.",
-        "inventory_list": "Current Inventory Grid (Saved in Database)",
+        "inventory_grid": "Current Inventory Grid",
         "qty": "Qty",
-        "lock": "Lock (Premium)",
-        "unlock": "Unlock (Premium)",
-        "premium_required": "🔒 Premium Feature",
+        "unit_price": "Price",
+        "total_value": "Total Value",
+        "lock": "Lock",
+        "unlock": "Unlock",
+        "reports_title": "📊 Reports, Totals & Profits",
+        "total_items": "Total Unique Items",
+        "total_qty": "Total Quantity in Stock",
+        "total_capital": "Total Inventory Value",
+        "invoice_title": "🧾 Invoice & Receipt Generator",
+        "select_item": "Select Item for Invoice",
+        "invoice_qty": "Quantity to Sell",
+        "generate_invoice": "Generate Invoice",
+        "download_invoice": "📥 Download Invoice (TXT)",
         "empty": "The inventory is currently empty."
     },
     "العربية": {
@@ -100,32 +119,42 @@ translations = {
         "login_success": "تم تسجيل الدخول بنجاح!",
         "login_error": "اسم المستخدم أو كلمة المرور غير صحيحة.",
         "register_success": "تم إنشاء الحساب بنجاح! يمكنك تسجيل الدخول الآن.",
-        "user_exists": "اسم المستخدم موجود مسبقاً، يرجى اختيار اسم آخر.",
+        "user_exists": "اسم المستخدم موجود مسبقاً.",
         "app_title": "📦 ياسر ويب - نظام إدارة المخزون",
         "account_settings": "إعدادات الحساب",
         "user": "المستخدم",
-        "premium": "ترقية للحساب المدفوع (فتح كافة الميزات)",
-        "free_used": "الإضافات المجانية المستخدمة",
+        "premium": "حساب مدفوع (إضافات غير محدودة لكل المنتجات)",
         "logout": "تسجيل الخروج",
         "add_update": "إضافة أو تحديث مادة",
         "item_name": "اسم المادة",
         "quantity": "الكمية",
+        "price": "سعر المفرد / السعر ($)",
         "save_item": "حفظ المادة",
-        "limit_reached": "وصلت للحد المجاني (5/5)! قم بالترقية للحساب المدفوع لإضافات غير محدودة.",
+        "product_limit_reached": "وصلت للحد المجاني لهذا المنتج! النسخة المجانية تسمح بحد أقصى 100 قطعة لكل منتج يومياً. قم بالترقية للحساب المدفوع لكميات مفتوحة.",
         "item_locked": "مقفلة. لا يمكنك إضافة كمية لها.",
         "updated": "تم تحديث بنجاح",
         "added": "تم إضافة مادة جديدة بنجاح",
         "enter_valid": "الرجاء إدخال اسم مادة صحيح.",
-        "inventory_list": "شبكة المخزون الحالي (محفوظة بقاعدة البيانات)",
+        "inventory_grid": "شبكة المخزون الحالي (عرض مريح)",
         "qty": "الكمية",
-        "lock": "قفل (مدفوع)",
-        "unlock": "فتح القفل (مدفوع)",
-        "premium_required": "🔒 ميزة مدفوعة",
+        "unit_price": "السعر",
+        "total_value": "القيمة الكلية",
+        "lock": "قفل",
+        "unlock": "فتح القفل",
+        "reports_title": "📊 التقارير، المجاميع والأرباح",
+        "total_items": "إجمالي المواد المختلفة",
+        "total_qty": "إجمالي الكمية بالمخزن",
+        "total_capital": "إجمالي قيمة المخزن",
+        "invoice_title": "🧾 مولد الفواتير والإيصالات",
+        "select_item": "اختر المادة للفاتورة",
+        "invoice_qty": "الكمية المباعة",
+        "generate_invoice": "إصدار الفاتورة",
+        "download_invoice": "📥 تحميل الفاتورة (ملف نصي جاهز)",
         "empty": "المخزون فارغ حالياً."
     }
 }
 
-# --- 4. واجهة تسجيل الدخول وإنشاء الحساب ---
+# --- 4. واجهة تسجيل الدخول ---
 def login_screen():
     selected_lang = st.sidebar.selectbox("Language / اللغة", ["English", "العربية"])
     t = translations[selected_lang]
@@ -135,8 +164,8 @@ def login_screen():
     with tab1:
         st.subheader(t["login_title"])
         with st.form("login_form"):
-            username = st.text_input(t["username"], key="login_user")
-            password = st.text_input(t["password"], type="password", key="login_pass")
+            username = st.text_input(t["username"], key="l_user")
+            password = st.text_input(t["password"], type="password", key="l_pass")
             submit_login = st.form_submit_button(t["signin"])
             
             if submit_login:
@@ -152,8 +181,8 @@ def login_screen():
     with tab2:
         st.subheader(t["register_title"])
         with st.form("register_form"):
-            new_username = st.text_input(t["username"], key="reg_user")
-            new_password = st.text_input(t["password"], type="password", key="reg_pass")
+            new_username = st.text_input(t["username"], key="r_user")
+            new_password = st.text_input(t["password"], type="password", key="r_pass")
             submit_register = st.form_submit_button(t["signup"])
             
             if submit_register:
@@ -178,10 +207,8 @@ def main_app():
     
     st.session_state.is_paid_user = st.sidebar.checkbox(t["premium"], st.session_state.is_paid_user)
     
-    if not st.session_state.is_paid_user:
-        st.sidebar.info(f"{t['free_used']}: {st.session_state.add_operation_count} / 5")
-    else:
-        st.sidebar.success("🌟 Premium User: All features unlocked!")
+    if st.session_state.is_paid_user:
+        st.sidebar.success("🌟 Unlimited Premium Access")
     
     if st.sidebar.button(t["logout"]):
         st.session_state.logged_in = False
@@ -191,69 +218,121 @@ def main_app():
     # نموذج إضافة المواد وتحديثها
     with st.form("inventory_form"):
         st.subheader(t["add_update"])
-        item_name = st.text_input(t["item_name"])
+        item_name = st.text_input(t["item_name"]).strip()
         qty = st.number_input(t["quantity"], min_value=1, step=1)
+        price = st.number_input(t["price"], min_value=0.0, step=0.5)
         submit_item = st.form_submit_button(t["save_item"])
     
     if submit_item:
-        if item_name.strip():
-            if not st.session_state.is_paid_user and st.session_state.add_operation_count >= 5:
-                st.error(t["limit_reached"])
-            else:
-                existing_item = run_query("SELECT id, quantity, is_locked FROM inventory WHERE name = ?", (item_name.strip(),), fetch=True)
-                
-                if existing_item:
-                    item_id, current_qty, is_locked = existing_item[0]
-                    if is_locked == 1:
-                        st.warning(f"'{item_name}' {t['item_locked']}")
-                    else:
-                        new_qty = current_qty + qty
-                        run_query("UPDATE inventory SET quantity = ? WHERE id = ?", (new_qty, item_id))
-                        if not st.session_state.is_paid_user:
-                            st.session_state.add_operation_count += 1
-                        st.success(f"{t['updated']} '{item_name}'! New Qty: {new_qty}")
-                        st.rerun()
+        if item_name:
+            # التحقق من حد الـ 100 لكل منتج باليوم للمستخدم المجاني
+            if not st.session_state.is_paid_user:
+                current_product_added = st.session_state.product_daily_adds.get(item_name, 0)
+                if (current_product_added + qty) > 100:
+                    st.error(t["product_limit_reached"])
+                    st.stop()
+
+            existing_item = run_query("SELECT id, quantity, is_locked FROM inventory WHERE name = ?", (item_name,), fetch=True)
+            
+            if existing_item:
+                item_id, current_qty, is_locked = existing_item[0]
+                if is_locked == 1:
+                    st.warning(f"'{item_name}' {t['item_locked']}")
                 else:
-                    run_query("INSERT INTO inventory (name, quantity, is_locked) VALUES (?, ?, 0)", (item_name.strip(), qty))
+                    new_qty = current_qty + qty
+                    run_query("UPDATE inventory SET quantity = ?, price = ? WHERE id = ?", (new_qty, price, item_id))
                     if not st.session_state.is_paid_user:
-                        st.session_state.add_operation_count += 1
-                    st.success(f"{t['added']} '{item_name}'!")
+                        st.session_state.product_daily_adds[item_name] = st.session_state.product_daily_adds.get(item_name, 0) + qty
+                    st.success(f"{t['updated']} '{item_name}'! New Qty: {new_qty}")
                     st.rerun()
+            else:
+                run_query("INSERT INTO inventory (name, quantity, price, is_locked) VALUES (?, ?, ?, 0)", (item_name, qty, price))
+                if not st.session_state.is_paid_user:
+                    st.session_state.product_daily_adds[item_name] = st.session_state.product_daily_adds.get(item_name, 0) + qty
+                st.success(f"{t['added']} '{item_name}'!")
+                st.rerun()
         else:
             st.error(t["enter_valid"])
 
     st.divider()
-    st.subheader(t["inventory_list"])
+    st.subheader(t["inventory_grid"])
     
-    items = run_query("SELECT id, name, quantity, is_locked FROM inventory", fetch=True)
+    items = run_query("SELECT id, name, quantity, price, is_locked FROM inventory", fetch=True)
     
     if items:
-        # عرض المواد على شكل شبكة (Grid Cards) بعمودين لتظهر بشكل منظم وجميل
+        # عرض الشبكة (Grid Cards) بعمودين لراحة العين
         cols = st.columns(2)
         for index, item in enumerate(items):
-            item_id, name, quantity, is_locked = item
+            item_id, name, quantity, price, is_locked = item
             target_col = cols[index % 2]
             with target_col:
                 with st.container(border=True):
-                    st.write(f"📦 **{name}**")
-                    st.write(f"{t['qty']}: **{quantity}**")
+                    st.markdown(f"### 📦 {name}")
+                    st.write(f"**{t['qty']}**: {quantity} | **{t['unit_price']}**: ${price}")
+                    st.write(f"**{t['total_value']}**: ${quantity * price}")
                     
-                    if st.session_state.is_paid_user:
-                        if is_locked == 0:
-                            if st.button(t["lock"], key=f"lock_{item_id}"):
-                                run_query("UPDATE inventory SET is_locked = 1 WHERE id = ?", (item_id,))
-                                st.rerun()
-                        else:
-                            if st.button(t["unlock"], key=f"unlock_{item_id}"):
-                                run_query("UPDATE inventory SET is_locked = 0 WHERE id = ?", (item_id,))
-                                st.rerun()
+                    if is_locked == 0:
+                        if st.button(t["lock"], key=f"lock_{item_id}"):
+                            run_query("UPDATE inventory SET is_locked = 1 WHERE id = ?", (item_id,))
+                            st.rerun()
                     else:
-                        if is_locked == 1:
-                            st.write("🚫 Locked")
-                        else:
-                            st.write(t["premium_required"])
+                        if st.button(t["unlock"], key=f"unlock_{item_id}"):
+                            run_query("UPDATE inventory SET is_locked = 0 WHERE id = ?", (item_id,))
+                            st.rerun()
     else:
         st.info(t["empty"])
+
+    st.divider()
+    
+    # --- التقارير والمجاميع ---
+    st.subheader(t["reports_title"])
+    if items:
+        total_unique = len(items)
+        total_quantity = sum([it[2] for it in items])
+        total_inventory_val = sum([it[2] * it[3] for it in items])
+        
+        col_r1, col_r2, col_r3 = st.columns(3)
+        col_r1.metric(t["total_items"], total_unique)
+        col_r2.metric(t["total_qty"], total_quantity)
+        col_r3.metric(t["total_capital"], f"${total_inventory_val:.2f}")
+
+    st.divider()
+    
+    # --- مولد الفواتير ---
+    st.subheader(t["invoice_title"])
+    if items:
+        item_names = [it[1] for it in items]
+        selected_inv_item = st.selectbox(t["select_item"], item_names)
+        inv_qty = st.number_input(t["invoice_qty"], min_value=1, step=1, value=1)
+        
+        item_data = run_query("SELECT price FROM inventory WHERE name = ?", (selected_inv_item,), fetch=True)
+        item_price = item_data[0][0] if item_data else 0.0
+        total_amount = inv_qty * item_price
+        
+        if st.button(t["generate_invoice"]):
+            st.success(f"Invoice Generated for {selected_inv_item}!")
+            invoice_text = f"""
+=====================================
+          YASSER WEB INVOICE
+=====================================
+Date: {date.today()}
+User: {st.session_state.username}
+-------------------------------------
+Item Name: {selected_inv_item}
+Quantity : {inv_qty}
+Unit Price: ${item_price}
+-------------------------------------
+TOTAL AMOUNT: ${total_amount:.2f}
+=====================================
+Thank you for your business!
+"""
+            st.text(invoice_text)
+            st.download_button(
+                label=t["download_invoice"],
+                data=invoice_text,
+                file_name=f"invoice_{selected_inv_item}.txt",
+                mime="text/plain"
+            )
 
 # --- 6. التوجيه ---
 if not st.session_state.logged_in:
