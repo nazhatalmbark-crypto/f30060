@@ -21,6 +21,12 @@ def init_db():
                     price REAL DEFAULT 0,
                     is_locked INTEGER DEFAULT 0)''')
     
+    c.execute('''CREATE TABLE IF NOT EXISTS customers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE,
+                    phone TEXT,
+                    notes TEXT)''')
+    
     try:
         c.execute("ALTER TABLE inventory ADD COLUMN price REAL DEFAULT 0;")
     except sqlite3.OperationalError:
@@ -68,11 +74,10 @@ if not st.session_state.logged_in:
             else:
                 st.error("اسم المستخدم أو كلمة المرور غير صحيحة.")
 else:
-    # القائمة الجانبية
+    # الشريط الجانبي للإعدادات ورمز التفعيل
     st.sidebar.write(f"المستخدم: **{st.session_state.username}**")
     st.sidebar.divider()
     
-    # خانة رمز التفعيل (2009)
     st.sidebar.subheader("🔐 تفعيل ميزات القفل")
     if not st.session_state.is_unlocked:
         with st.sidebar.form("activation_form"):
@@ -82,7 +87,7 @@ else:
             if submit_code:
                 if code_input == "2009":
                     st.session_state.is_unlocked = True
-                    st.success("تم التفعيل بنجاح!")
+                    st.success("تم تفعيل القفل بنجاح!")
                     st.rerun()
                 else:
                     st.error("رمز التفعيل خطأ!")
@@ -100,13 +105,20 @@ else:
     # العنوان الرئيسي
     st.title("📦 ياسر ويب - نظام إدارة المخزون")
 
-    # --- خانة إضافة أو تحديث المواد ---
-    with st.form("inventory_form"):
-        st.subheader("➕ إضافة أو تحديث مادة جديدة")
-        item_name = st.text_input("اسم المادة").strip()
-        qty = st.number_input("الكمية", min_value=1, step=1)
-        price = st.number_input("سعر المفرد (د.ع)", min_value=0.0, step=250.0)
-        submit_item = st.form_submit_button("حفظ المادة في المخزن")
+    # ==========================================
+    # 1. خانة إضافة مادة جديدة (منفصلة وواضحة)
+    # ==========================================
+    st.subheader("➕ إضافة مادة جديدة للمخزن")
+    with st.form("add_item_form"):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            item_name = st.text_input("اسم المادة").strip()
+        with col2:
+            qty = st.number_input("الكمية", min_value=1, step=1)
+        with col3:
+            price = st.number_input("سعر المفرد (د.ع)", min_value=0.0, step=250.0)
+            
+        submit_item = st.form_submit_button("حفظ المادة الجديدة")
     
     if submit_item:
         if item_name:
@@ -130,33 +142,48 @@ else:
 
     st.divider()
 
-    # جلب المواد من قاعدة البيانات
+    # ==========================================
+    # 2. خانة إضافة عميل جديد (منفصلة وواضحة)
+    # ==========================================
+    st.subheader("👥 إضافة عميل جديد")
+    with st.form("add_customer_form"):
+        c_col1, c_col2 = st.columns(2)
+        with c_col1:
+            cust_name = st.text_input("اسم العميل").strip()
+        with c_col2:
+            cust_phone = st.text_input("رقم الهاتف").strip()
+            
+        cust_notes = st.text_input("ملاحظات أو العنوان").strip()
+        submit_cust = st.form_submit_button("حفظ العميل الجديد")
+        
+    if submit_cust:
+        if cust_name:
+            try:
+                run_query("INSERT INTO customers (name, phone, notes) VALUES (?, ?, ?)", (cust_name, cust_phone, cust_notes))
+                st.success(f"تم إضافة العميل '{cust_name}' بنجاح!")
+                st.rerun()
+            except sqlite3.IntegrityError:
+                st.error("هذا العميل مسجل مسبقاً.")
+        else:
+            st.error("الرجاء إدخال اسم العميل على الأقل.")
+            
+    # عرض العملاء المسجلين بشكل مصغر تحتها
+    customers = run_query("SELECT name, phone, notes FROM customers", fetch=True)
+    if customers:
+        with st.expander("📂 عرض قائمة العملاء المسجلين"):
+            for c in customers:
+                st.write(f"- **{c[0]}** | الهاتف: {c[1] if c[1] else 'لا يوجد'} | ملاحظات: {c[2] if c[2] else 'لا توجد'}")
+
+    st.divider()
+
+    # ==========================================
+    # 3. شبكة المخزون الحالي (Grid Cards) - الأهم
+    # ==========================================
+    st.subheader("📦 شبكة المخزون الحالي (Grid)")
     items = run_query("SELECT id, name, quantity, price, is_locked FROM inventory", fetch=True)
-
-    # --- التقارير المالية وحساب الفلوس تلقائياً ---
+    
     if items:
-        st.subheader("📊 التقارير المالية والأرباح")
-        total_unique = len(items)
-        total_quantity = sum([it[2] for it in items])
-        total_capital = sum([it[2] * it[3] for it in items])
-        
-        col_r1, col_r2, col_r3 = st.columns(3)
-        col_r1.metric("إجمالي المواد المختلفة", total_unique)
-        col_r2.metric("إجمالي الكمية بالمخزن", total_quantity)
-        col_r3.metric("إجمالي فلوسك وقيمة المخزن", f"{total_capital:,.0f} د.ع")
-        
-        st.divider()
-
-        # --- الرسم البياني للمخزن ---
-        st.subheader("📈 الرسم البياني لقيم المواد")
-        chart_data = {it[1]: it[2] * it[3] for it in items}
-        st.bar_chart(chart_data)
-
-        st.divider()
-
-    # --- شبكة المخزون الحالي (Cards) ---
-    st.subheader("📦 شبكة المخزون الحالي")
-    if items:
+        # عرض المواد بشكل شبكة (عمودين لكل سطر) لراحة العين
         cols = st.columns(2)
         for index, item in enumerate(items):
             item_id, name, quantity, price, is_locked = item
@@ -167,10 +194,10 @@ else:
                     st.write(f"**الكمية**: {quantity} | **السعر**: {price:,.0f} د.ع")
                     st.write(f"**القيمة الكلية**: {quantity * price:,.0f} د.ع")
                     
-                    # أزرار القفل تظهر فقط إذا تم إدخال رمز 2009 في الشريط الجانبي
+                    # أزرار القفل تظهر فقط إذا أدخلت رمز 2009 في القائمة الجانبية
                     if st.session_state.is_unlocked:
-                        btn_text = "فتح القفل" if is_locked == 1 else "قفل المادة"
-                        if st.button(btn_text, key=f"lock_btn_{item_id}"):
+                        btn_text = "🔓 فتح القفل" if is_locked == 1 else "🔒 قفل المادة"
+                        if st.button(btn_text, key=f"grid_lock_{item_id}"):
                             new_lock = 0 if is_locked == 1 else 1
                             run_query("UPDATE inventory SET is_locked = ? WHERE id = ?", (new_lock, item_id))
                             st.rerun()
@@ -181,9 +208,32 @@ else:
         st.info("المخزن فارغ حالياً.")
 
     st.divider()
-    
-    # --- مولد الفواتير السريع ---
-    st.subheader("🧾 مولد الفواتير والإيصالات")
+
+    # ==========================================
+    # 4. التقارير المالية والرسوم البيانية
+    # ==========================================
+    if items:
+        st.subheader("📊 التقارير المالية وحساب الفلوس التلقائي")
+        total_unique = len(items)
+        total_quantity = sum([it[2] for it in items])
+        total_capital = sum([it[2] * it[3] for it in items])
+        
+        col_r1, col_r2, col_r3 = st.columns(3)
+        col_r1.metric("إجمالي المواد المختلفة", total_unique)
+        col_r2.metric("إجمالي الكمية بالمخزن", total_quantity)
+        col_r3.metric("إجمالي فلوسك وقيمة المخزن", f"{total_capital:,.0f} د.ع")
+        
+        st.divider()
+        st.subheader("📈 الرسم البياني لقيم المواد")
+        chart_data = {it[1]: it[2] * it[3] for it in items}
+        st.bar_chart(chart_data)
+        
+        st.divider()
+
+    # ==========================================
+    # 5. مولد الفواتير
+    # ==========================================
+    st.subheader("🧾 مولد الفواتير والإيصالات السريعة")
     if items:
         item_names = [it[1] for it in items]
         selected_inv_item = st.selectbox("اختر المادة للفاتورة", item_names)
@@ -216,3 +266,5 @@ else:
                 file_name=f"invoice_{selected_inv_item}.txt",
                 mime="text/plain"
             )
+    else:
+        st.info("المخزن فارغ، لا يمكن إصدار فاتورة.")
