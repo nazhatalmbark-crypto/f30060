@@ -19,7 +19,6 @@ def init_db():
                     quantity INTEGER DEFAULT 0,
                     is_locked INTEGER DEFAULT 0)''')
     
-    # مستخدم افتراضي تجريبي
     try:
         c.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("admin", "1234"))
     except sqlite3.IntegrityError:
@@ -52,7 +51,7 @@ def init_session():
 
 init_session()
 
-# --- 3. قواميس الترجمة (تتضمن خيارات التسجيل) ---
+# --- 3. قواميس الترجمة ---
 translations = {
     "English": {
         "login_tab": "Login",
@@ -82,7 +81,7 @@ translations = {
         "updated": "Successfully updated",
         "added": "Successfully added new item",
         "enter_valid": "Please enter a valid item name.",
-        "inventory_list": "Current Inventory List (Saved in Database)",
+        "inventory_list": "Current Inventory Grid (Saved in Database)",
         "qty": "Qty",
         "lock": "Lock (Premium)",
         "unlock": "Unlock (Premium)",
@@ -117,7 +116,7 @@ translations = {
         "updated": "تم تحديث بنجاح",
         "added": "تم إضافة مادة جديدة بنجاح",
         "enter_valid": "الرجاء إدخال اسم مادة صحيح.",
-        "inventory_list": "قائمة المخزون الحالي (محفوظة بقاعدة البيانات)",
+        "inventory_list": "شبكة المخزون الحالي (محفوظة بقاعدة البيانات)",
         "qty": "الكمية",
         "lock": "قفل (مدفوع)",
         "unlock": "فتح القفل (مدفوع)",
@@ -131,7 +130,6 @@ def login_screen():
     selected_lang = st.sidebar.selectbox("Language / اللغة", ["English", "العربية"])
     t = translations[selected_lang]
     
-    # عمل تبويبين للتنقل بين تسجيل الدخول وإنشاء حساب جديد
     tab1, tab2 = st.tabs([t["login_tab"], t["register_tab"]])
     
     with tab1:
@@ -230,26 +228,30 @@ def main_app():
     items = run_query("SELECT id, name, quantity, is_locked FROM inventory", fetch=True)
     
     if items:
-        for item in items:
+        # عرض المواد على شكل شبكة (Grid Cards) بعمودين لتظهر بشكل منظم وجميل
+        cols = st.columns(2)
+        for index, item in enumerate(items):
             item_id, name, quantity, is_locked = item
-            col1, col2, col3 = st.columns([2, 1, 1])
-            col1.write(f"**{name}**")
-            col2.write(f"{t['qty']}: {quantity}")
-            
-            if st.session_state.is_paid_user:
-                if is_locked == 0:
-                    if col3.button(t["lock"], key=f"lock_{item_id}"):
-                        run_query("UPDATE inventory SET is_locked = 1 WHERE id = ?", (item_id,))
-                        st.rerun()
-                else:
-                    if col3.button(t["unlock"], key=f"unlock_{item_id}"):
-                        run_query("UPDATE inventory SET is_locked = 0 WHERE id = ?", (item_id,))
-                        st.rerun()
-            else:
-                if is_locked == 1:
-                    col3.write("🚫 Locked")
-                else:
-                    col3.write(t["premium_required"])
+            target_col = cols[index % 2]
+            with target_col:
+                with st.container(border=True):
+                    st.write(f"📦 **{name}**")
+                    st.write(f"{t['qty']}: **{quantity}**")
+                    
+                    if st.session_state.is_paid_user:
+                        if is_locked == 0:
+                            if st.button(t["lock"], key=f"lock_{item_id}"):
+                                run_query("UPDATE inventory SET is_locked = 1 WHERE id = ?", (item_id,))
+                                st.rerun()
+                        else:
+                            if st.button(t["unlock"], key=f"unlock_{item_id}"):
+                                run_query("UPDATE inventory SET is_locked = 0 WHERE id = ?", (item_id,))
+                                st.rerun()
+                    else:
+                        if is_locked == 1:
+                            st.write("🚫 Locked")
+                        else:
+                            st.write(t["premium_required"])
     else:
         st.info(t["empty"])
 
