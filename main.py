@@ -5,7 +5,7 @@ from datetime import date
 # إعداد الصفحة
 st.set_page_config(page_title="Yasser Web - Inventory System", layout="centered")
 
-# --- 1. إعداد قاعدة البيانات الدائمة ---
+# --- 1. إعداد وتحديث قاعدة البيانات الدائمة بأمان ---
 def init_db():
     conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
@@ -20,6 +20,12 @@ def init_db():
                     quantity INTEGER DEFAULT 0,
                     price REAL DEFAULT 0,
                     is_locked INTEGER DEFAULT 0)''')
+    
+    # إضافة عمود السعر تلقائياً إذا كانت قاعدة البيانات قديمة ولا يحتويها الجدول
+    try:
+        c.execute("ALTER TABLE inventory ADD COLUMN price REAL DEFAULT 0;")
+    except sqlite3.OperationalError:
+        pass  # العمود موجود مسبقاً ولا داعي لإضافته
     
     try:
         c.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("admin", "1234"))
@@ -49,11 +55,10 @@ def init_session():
     if 'is_paid_user' not in st.session_state:
         st.session_state.is_paid_user = False
     if 'product_daily_adds' not in st.session_state:
-        st.session_state.product_daily_adds = {}  # لتتبع الـ 100 لكل منتج باليوم
+        st.session_state.product_daily_adds = {}
     if 'last_date' not in st.session_state:
         st.session_state.last_date = str(date.today())
     
-    # تصفير العدادات اليومية إذا تغير اليوم
     if st.session_state.last_date != str(date.today()):
         st.session_state.product_daily_adds = {}
         st.session_state.last_date = str(date.today())
@@ -225,7 +230,6 @@ def main_app():
     
     if submit_item:
         if item_name:
-            # التحقق من حد الـ 100 لكل منتج باليوم للمستخدم المجاني
             if not st.session_state.is_paid_user:
                 current_product_added = st.session_state.product_daily_adds.get(item_name, 0)
                 if (current_product_added + qty) > 100:
@@ -260,7 +264,6 @@ def main_app():
     items = run_query("SELECT id, name, quantity, price, is_locked FROM inventory", fetch=True)
     
     if items:
-        # عرض الشبكة (Grid Cards) بعمودين لراحة العين
         cols = st.columns(2)
         for index, item in enumerate(items):
             item_id, name, quantity, price, is_locked = item
