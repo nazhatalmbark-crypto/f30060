@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 import sqlite3
 import pandas as pd
 from datetime import date
-from io import StringIO, BytesIO
+from io import StringIO
 from fpdf import FPDF
 
 # إعداد الصفحة
@@ -23,9 +23,31 @@ window.addEventListener('beforeunload', function (e) {
 def init_db():
     conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, quantity INTEGER DEFAULT 0, price INTEGER DEFAULT 0, selling_price INTEGER DEFAULT 0)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, shop_location TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, customer_name TEXT, total_amount INTEGER, invoice_date TEXT, details_json TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS inventory (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                    name TEXT UNIQUE, 
+                    quantity INTEGER DEFAULT 0, 
+                    price INTEGER DEFAULT 0
+                )''')
+    try:
+        c.execute("ALTER TABLE inventory ADD COLUMN selling_price INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+        
+    c.execute('''CREATE TABLE IF NOT EXISTS customers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                    name TEXT, 
+                    phone TEXT, 
+                    shop_location TEXT
+                )''')
+                
+    c.execute('''CREATE TABLE IF NOT EXISTS invoices (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                    customer_name TEXT, 
+                    total_amount INTEGER, 
+                    invoice_date TEXT, 
+                    details_json TEXT
+                )''')
     conn.commit()
     conn.close()
 
@@ -53,27 +75,52 @@ def generate_pdf(inv_id, c_name, total, details):
     pdf.multi_cell(0, 10, txt=details)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- الشريط الجانبي والأمان والنسخ الاحتياطي الإجباري ---
-st.sidebar.title("🛡️ الأمان والنسخ الاحتياطي")
-st.sidebar.error("⚠️ تنبيه: احرص دائماً على تنزيل النسخة الاحتياطية قبل مغادرة الموقع لضمان عدم ضياع أي بيانات!")
+# --- إدارة حالة الترخيص (النسخة المجانية والمدفوعة) ---
+if 'is_unlocked' not in st.session_state:
+    st.session_state.is_unlocked = False
 
-with open("yasser_web.db", "rb") as f:
-    db_bytes = f.read()
+# --- الشريط الجانبي والترخيص والنسخ الاحتياطي ---
+st.sidebar.title("🛡️ لوحة التحكم والأمان")
 
-st.sidebar.download_button(
-    label="💾 تحميل النسخة الاحتياطية الآن (Backup)",
-    data=db_bytes,
-    file_name=f"yasser_web_backup_{date.today()}.db",
-    mime="application/octet-stream",
-    use_container_width=True
-)
+st.sidebar.subheader("🔐 حالة النسخة والترخيص")
+if not st.session_state.is_unlocked:
+    st.sidebar.warning("⚠️ النسخة التجريبية (بحد أقصى 5 مواد بالمخزن)")
+    act_code = st.sidebar.text_input("أدخل كود التفعيل للنسخة الكاملة:", type="password")
+    if st.sidebar.button("تفعيل النسخة"):
+        if act_code == "2009":
+            st.session_state.is_unlocked = True
+            st.sidebar.success("✅ تم تفعيل النسخة الكاملة بنجاح!")
+            st.rerun()
+        else:
+            st.sidebar.error("كود التفعيل غير صحيح!")
+else:
+    st.sidebar.success("✅ النسخة الكاملة مفعلة بلا حدود")
+    if st.sidebar.button("إلغاء التفعيل"):
+        st.session_state.is_unlocked = False
+        st.rerun()
 
 st.sidebar.divider()
-if st.sidebar.button("🔒 قفل الجلسة وتسجيل الخروج الآمن", use_container_width=True):
-    st.sidebar.success("تم إغلاق الجلسة بأمان. تأكد أنك حملت النسخة الاحتياطية أعلاه!")
+st.sidebar.error("⚠️ تنبيه: احرص دائماً على تنزيل النسخة الاحتياطية قبل مغادرة الموقع!")
+
+try:
+    with open("yasser_web.db", "rb") as f:
+        db_bytes = f.read()
+    st.sidebar.download_button(
+        label="💾 تحميل النسخة الاحتياطية (Backup)",
+        data=db_bytes,
+        file_name=f"yasser_web_backup_{date.today()}.db",
+        mime="application/octet-stream",
+        use_container_width=True
+    )
+except:
+    pass
+
+st.sidebar.divider()
+if st.sidebar.button("🔒 إغلاق الجلسة بشكل آمن", use_container_width=True):
+    st.sidebar.success("تم إغلاق الجلسة بأمان.")
 
 # --- واجهة التبويبات الرئيسية ---
-tabs = st.tabs(["🛒 البيع السريع", "📜 أرشيف الفواتير (PDF)", "📦 المخزن", "🔍 تحليل المواد والأرباح", "👥 العملاء"])
+tabs = st.tabs(["🛒 البيع السريع", "📜 أرشيف الفواتير (PDF)", "📦 المخزن", "➕ إضافة مواد", "🔍 تحليل المواد والأرباح", "👥 العملاء"])
 
 with tabs[0]: # البيع السريع
     st.subheader("🛒 نقطة البيع (إلزامية اختيار عميل)")
@@ -124,17 +171,28 @@ with tabs[0]: # البيع السريع
                 if not final_customer:
                     st.error("❌ لا يمكن إتمام البيع بدون اختيار عميل مسجل!")
                 else:
-                    df_cart = pd.DataFrame(st.session_state.cart)[['name', 'qty', 'price']]
-                    df_cart['total'] = df_cart['qty'] * df_cart['price']
-                    df_cart.columns = ['اسم المادة', 'الكمية', 'السعر المفرد', 'المجموع']
-                    csv_data = df_cart.to_csv(index=False)
-                    
-                    run_query("INSERT INTO invoices (customer_name, total_amount, invoice_date, details_json) VALUES (?, ?, ?, ?)",
-                              (final_customer, grand_total, str(date.today()), csv_data))
-                    
-                    st.success("تم حفظ الفاتورة وقص الكمية من المخزن بنجاح!")
-                    st.session_state.cart = []
-                    st.rerun()
+                    success_sale = True
+                    for c_item in st.session_state.cart:
+                        db_q = run_query("SELECT quantity FROM inventory WHERE id = ?", (c_item['id'],), fetch=True)
+                        if db_q and db_q[0][0] >= c_item['qty']:
+                            new_qty = db_q[0][0] - c_item['qty']
+                            run_query("UPDATE inventory SET quantity = ? WHERE id = ?", (new_qty, c_item['id']))
+                        else:
+                            success_sale = False
+                            st.error(f"عذراً، الكمية غير متوفرة للمادة: {c_item['name']}")
+                            
+                    if success_sale:
+                        df_cart = pd.DataFrame(st.session_state.cart)[['name', 'qty', 'price']]
+                        df_cart['total'] = df_cart['qty'] * df_cart['price']
+                        df_cart.columns = ['اسم المادة', 'الكمية', 'السعر المفرد', 'المجموع']
+                        csv_data = df_cart.to_csv(index=False)
+                        
+                        run_query("INSERT INTO invoices (customer_name, total_amount, invoice_date, details_json) VALUES (?, ?, ?, ?)",
+                                  (final_customer, grand_total, str(date.today()), csv_data))
+                        
+                        st.success("تم حفظ الفاتورة وقص الكمية من المخزن بنجاح!")
+                        st.session_state.cart = []
+                        st.rerun()
         else:
             st.info("السلة فارغة حالياً.")
     else:
@@ -163,7 +221,30 @@ with tabs[1]: # الأرشيف PDF
         st.info("لا توجد فواتير مسجلة في الأرشيف حتى الآن.")
 
 with tabs[2]: # المخزن
-    st.subheader("📦 إضافة مواد جديدة وتحديث المخزون")
+    st.subheader("📦 شبكة المخزن والمنتجات الحالية")
+    items = run_query("SELECT id, name, quantity, price, selling_price FROM inventory", fetch=True)
+    if items:
+        cols = st.columns(3)
+        for index, item in enumerate(items):
+            item_id, name, quantity, price, selling_price = item
+            with cols[index % 3]:
+                with st.container(border=True):
+                    st.markdown(f"### 🏷️ {name}")
+                    st.metric("الكمية المتوفرة", f"{quantity} قطعة")
+                    st.write(f"التكلفة: {price:,} د.ع | البيع: {selling_price:,} د.ع")
+                    if st.button("حذف المادة 🗑️", key=f"inv_del_{item_id}"):
+                        run_query("DELETE FROM inventory WHERE id = ?", (item_id,))
+                        st.rerun()
+    else:
+        st.info("المخزن فارغ.")
+
+with tabs[3]: # إضافة مواد
+    st.subheader("➕ إضافة مادة جديدة للمخزن")
+    current_items_count = run_query("SELECT COUNT(*) FROM inventory", fetch=True)[0][0]
+    
+    if not st.session_state.is_unlocked and current_items_count >= 5:
+        st.warning("⚠️ لقد وصلت للحد الأقصى في النسخة التجريبية (5 مواد). أدخل كود التفعيل **2009** في القائمة الجانبية لفتح عدد غير محدود!")
+    
     with st.form("add_item_form"):
         col1, col2 = st.columns(2)
         with col1:
@@ -174,14 +255,17 @@ with tabs[2]: # المخزن
             i_sell = st.number_input("سعر البيع", min_value=0, value=1500)
             
         if st.form_submit_button("حفظ المادة في قاعدة البيانات"):
-            if i_name:
+            if not st.session_state.is_unlocked and current_items_count >= 5:
+                st.error("❌ النسخة التجريبية محدودة بـ 5 مواد كحد أقصى. يرجى إدخال كود التفعيل في القائمة الجانبية!")
+            elif i_name:
                 run_query("INSERT OR REPLACE INTO inventory (name, quantity, price, selling_price) VALUES (?, ?, ?, ?)", 
                           (i_name, i_qty, i_cost, i_sell))
                 st.success(f"تم حفظ مادة '{i_name}' بنجاح وتثبيتها في قاعدة البيانات!")
+                st.rerun()
             else:
                 st.error("يرجى كتابة اسم المادة.")
 
-with tabs[3]: # تحليل المواد والأرباح
+with tabs[4]: # تحليل المواد والأرباح
     st.subheader("🔍 تحليل المواد، الكميات المباعة، وأرباح كل صنف")
     items_list = run_query("SELECT id, name, quantity, price, selling_price FROM inventory", fetch=True)
     if items_list:
@@ -196,17 +280,16 @@ with tabs[3]: # تحليل المواد والأرباح
             m2.metric("سعر التكلفة", f"{target_item[3]:,} د.ع")
             m3.metric("سعر البيع المعتمد", f"{target_item[4]:,} د.ع")
             
-            # حساب إجمالي المبيعات والأرباح من الفواتير السابقة
             all_invs = run_query("SELECT details_json FROM invoices", fetch=True)
             sold_count = 0
-            for inv_row in all_invs:
-                try:
-                    df_inv = pd.read_csv(StringIO(inv_row[0]))
+            try:
+                for inv_row_val in all_invs:
+                    df_inv = pd.read_csv(StringIO(inv_row_val[0]))
                     if selected_item in df_inv['اسم المادة'].values:
                         q_matched = df_inv.loc[df_inv['اسم المادة'] == selected_item, 'الكمية'].values[0]
-                        sold_count += q_matched
-                except:
-                    pass
+                        sold_count += int(q_matched)
+            except:
+                pass
             
             profit_per_unit = target_item[4] - target_item[3]
             total_profit_item = sold_count * profit_per_unit
@@ -215,10 +298,19 @@ with tabs[3]: # تحليل المواد والأرباح
             col_p1, col_p2 = st.columns(2)
             col_p1.metric("إجمالي القطع المباعة من هذا الصنف", f"{sold_count} قطعة")
             col_p2.metric("صافي الربح المحقق من هذا الصنف", f"{total_profit_item:,} د.ع")
+            
+            with st.expander("تعديل أسعار المادة الحالية"):
+                with st.form("edit_item_prices"):
+                    new_c = st.number_input("تعديل التكلفة", value=target_item[3])
+                    new_s = st.number_input("تعديل البيع", value=target_item[4])
+                    if st.form_submit_button("حفظ الأسعار الجديدة"):
+                        run_query("UPDATE inventory SET price = ?, selling_price = ? WHERE id = ?", (new_c, new_s, target_item[0]))
+                        st.success("تم تحديث أسعار المادة بنجاح!")
+                        st.rerun()
     else:
         st.info("لا توجد أصناف مخزنة للتحليل.")
 
-with tabs[4]: # العملاء
+with tabs[5]: # العملاء
     st.subheader("👥 إدارة الزبائن وأصحاب المحلات")
     with st.form("cust_form"):
         c1, c2 = st.columns(2)
@@ -232,6 +324,7 @@ with tabs[4]: # العملاء
             if cust_name:
                 run_query("INSERT INTO customers (name, phone, shop_location) VALUES (?, ?, ?)", (cust_name, cust_phone, cust_loc))
                 st.success("تم حفظ الزبون بنجاح!")
+                st.rerun()
             else:
                 st.error("يرجى إدخال اسم الزبون.")
                 
