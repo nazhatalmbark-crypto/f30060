@@ -62,7 +62,7 @@ def run_query(query, params=(), fetch=False):
     conn.close()
     return data
 
-# --- دالة توليد PDF للفاتورة ---
+# --- دالة توليد PDF للفاتورة (مع حماية ضد النصوص الفارغة) ---
 def generate_pdf(inv_id, c_name, total, details):
     pdf = FPDF()
     pdf.add_page()
@@ -72,14 +72,17 @@ def generate_pdf(inv_id, c_name, total, details):
     pdf.cell(200, 10, txt=f"Invoice #: {inv_id}", ln=True)
     pdf.cell(200, 10, txt=f"Customer: {c_name}", ln=True)
     pdf.cell(200, 10, txt=f"Total: {total:,} IQD", ln=True)
-    pdf.multi_cell(0, 10, txt=details)
+    
+    # حماية لمنع الخطأ إذا كانت التفاصيل فارغة
+    safe_details = str(details) if details else "لا توجد تفاصيل مسجلة"
+    pdf.multi_cell(0, 10, txt=safe_details)
     return pdf.output(dest='S').encode('latin-1')
 
 # --- إدارة حالة الترخيص (النسخة المجانية والمدفوعة) ---
 if 'is_unlocked' not in st.session_state:
     st.session_state.is_unlocked = False
 
-# --- الشريط الجانبي والترخيص والنسخ الاحتياطي ---
+# --- الشريط الجانبي والترخيص والنسخ الاحتياطي والاستعادة ---
 st.sidebar.title("🛡️ لوحة التحكم والأمان")
 
 st.sidebar.subheader("🔐 حالة النسخة والترخيص")
@@ -114,6 +117,15 @@ try:
     )
 except:
     pass
+
+st.sidebar.divider()
+st.sidebar.subheader("📂 استعادة نسخة احتياطية سابقة")
+uploaded_backup = st.sidebar.file_uploader("اختر ملف الـ db القديم لاسترجاعه:", type=["db"])
+if uploaded_backup is not None:
+    with open("yasser_web.db", "wb") as f:
+        f.write(uploaded_backup.getbuffer())
+    st.sidebar.success("✅ تم استعادة النسخة الاحتياطية بنجاح! جاري التحديث...")
+    st.rerun()
 
 st.sidebar.divider()
 if st.sidebar.button("🔒 إغلاق الجلسة بشكل آمن", use_container_width=True):
@@ -284,10 +296,11 @@ with tabs[4]: # تحليل المواد والأرباح
             sold_count = 0
             try:
                 for inv_row_val in all_invs:
-                    df_inv = pd.read_csv(StringIO(inv_row_val[0]))
-                    if selected_item in df_inv['اسم المادة'].values:
-                        q_matched = df_inv.loc[df_inv['اسم المادة'] == selected_item, 'الكمية'].values[0]
-                        sold_count += int(q_matched)
+                    if inv_row_val[0]:
+                        df_inv = pd.read_csv(StringIO(inv_row_val[0]))
+                        if selected_item in df_inv['اسم المادة'].values:
+                            q_matched = df_inv.loc[df_inv['اسم المادة'] == selected_item, 'الكمية'].values[0]
+                            sold_count += int(q_matched)
             except:
                 pass
             
