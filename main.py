@@ -3,10 +3,9 @@ import sqlite3
 import pandas as pd
 from datetime import date
 from io import StringIO
-from fpdf import FPDF
 
 # إعداد الصفحة
-st.set_page_config(page_title="ياسر ويب - النظام المحاسبي المتكامل", layout="wide", page_icon="📦")
+st.set_page_config(page_title="ياسر ويب - النظام المحاسبي", layout="wide", page_icon="📦")
 
 # --- إعداد قاعدة البيانات ---
 def init_db():
@@ -29,26 +28,6 @@ def run_query(query, params=(), fetch=False):
     conn.commit()
     conn.close()
     return data
-
-# --- دالة توليد PDF (محدثة لتعمل بشكل صحيح وبدون شاشة بيضاء) ---
-def generate_pdf(inv_id, c_name, total, received, remaining, details):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    def safe(text): return str(text).encode('latin-1', 'replace').decode('latin-1')
-    pdf.cell(200, 10, txt="Yasser Web - Invoice", ln=True, align='C')
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Invoice ID: #{inv_id}", ln=True)
-    pdf.cell(200, 10, txt=f"Customer: {safe(c_name)}", ln=True)
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, txt=f"Total: {int(total):,} | Paid: {int(received):,} | Debt: {int(remaining):,}", ln=True)
-    pdf.multi_cell(0, 10, txt=safe(details))
-    
-    # تحويل المخرجات إلى bytes لضمان عدم ظهور ملف أبيض
-    out = pdf.output(dest='S')
-    if isinstance(out, str):
-        return out.encode('latin-1')
-    return bytes(out)
 
 # --- إدارة الجلسة ---
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
@@ -95,7 +74,6 @@ else:
         
     st.sidebar.divider()
     
-    # حقل تفعيل النسخة المدفوعة (مخفي النص)
     if not st.session_state.is_unlocked:
         code_input = st.sidebar.text_input("رمز التفعيل:", type="password")
         if st.sidebar.button("تفعيل النسخة"):
@@ -181,19 +159,104 @@ else:
 
     with tabs[1]: # الأرشيف
         st.subheader("📜 أرشيف الفواتير")
-        invs = run_query("SELECT id, customer_name, total_amount, received_amount, remaining_amount, details_json FROM invoices ORDER BY id DESC", fetch=True)
+        invs = run_query("SELECT id, customer_name, total_amount, received_amount, remaining_amount, details_json, invoice_date FROM invoices ORDER BY id DESC", fetch=True)
         if invs:
             for i in invs:
                 with st.container(border=True):
                     col_a, col_b = st.columns([4, 1])
                     with col_a:
-                        st.write(f"فاتورة رقم {i[0]} | العميل: {i[1]} | الإجمالي: {int(i[2]):,} | المتبقي: {int(i[4]):,}")
+                        st.write(f"**فاتورة رقم #{i[0]}** | العميل: {i[1]} | الإجمالي: {int(i[2]):,} | المتبقي: {int(i[4]):,}")
                     with col_b:
                         if st.button("🗑️ حذف", key=f"del_inv_{i[0]}"):
                             run_query("DELETE FROM invoices WHERE id = ?", (i[0],))
                             st.rerun()
-                    pdf_data = generate_pdf(i[0], i[1], i[2], i[3], i[4], i[5])
-                    st.download_button(f"تحميل PDF", pdf_data, f"inv_{i[0]}.pdf", key=f"pdf_{i[0]}")
+                    
+                    # جلب معلومات العميل الإضافية (اسم المحل والموقع/المنطقة) من جدول العملاء
+                    cust_info = run_query("SELECT shop_name, shop_location, phone FROM customers WHERE name = ?", (i[1],), fetch=True)
+                    shop_name = cust_info[0][0] if cust_info and cust_info[0][0] else "غير مسجل"
+                    shop_loc = cust_info[0][1] if cust_info and cust_info[0][1] else "غير مسجل"
+                    phone_num = cust_info[0][2] if cust_info and cust_info[0][2] else "غير مسجل"
+
+                    # تجهيز جدول المواد بالفاتورة
+                    items_html = ""
+                    try:
+                        df_details = pd.read_csv(StringIO(i[5]))
+                        for _, row in df_details.iterrows():
+                            p_price = int(row.get('price', 0))
+                            p_qty = int(row.get('qty', 0))
+                            sub_total = p_price * p_qty
+                            items_html += f"<tr><td>{row.get('name', '')}</td><td>{p_price:,}</td><td>{p_qty}</td><td>{sub_total:,}</td></tr>"
+                    except: items_html = "<tr><td colspan='4'>خطأ في عرض المواد</td></tr>"
+
+                    # تصميم الفاتورة الاحترافي المتكامل
+                    pdf_html_content = f"""
+                    <html dir='rtl'>
+                    <head>
+                        <meta charset='UTF-8'>
+                        <title>فاتورة #{i[0]}</title>
+                        <style>
+                            body {{ font-family: Tahoma, sans-serif; padding: 20px; color: #000; background: #fff; }}
+                            .inv-card {{ border: 2px solid #008080; padding: 25px; max-width: 700px; margin: auto; background: #fff; border-radius: 8px; }}
+                            h2 {{ text-align: center; color: #008080; margin-bottom: 5px; }}
+                            .subtitle {{ text-align: center; color: #666; font-size: 14px; margin-top: 0; }}
+                            .info-box {{ background: #f8f9fa; border: 1px solid #ddd; padding: 12px; border-radius: 6px; margin: 15px 0; font-size: 14px; }}
+                            .info-box p {{ margin: 6px 0; }}
+                            table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
+                            th {{ background-color: #008080; color: white; border: 1px solid #999; padding: 10px; font-size: 14px; }}
+                            td {{ border: 1px solid #999; padding: 8px; text-align: center; font-size: 14px; }}
+                            .totals {{ margin-top: 15px; font-size: 15px; background: #fdfefe; border: 1px solid #ddd; padding: 10px; border-radius: 6px; }}
+                            .totals p {{ margin: 6px 0; }}
+                            .remaining {{ color: #c0392b; font-weight: bold; }}
+                        </style>
+                    </head>
+                    <body>
+                        <div class='inv-card'>
+                            <h2>📦 ياسر ويب - النظام المحاسبي المتكامل</h2>
+                            <p class='subtitle'>فاتورة مبيعات رسمية</p>
+                            <hr style='border: 0; border-top: 1px solid #ddd;'>
+                            
+                            <div class='info-box'>
+                                <p><b>رقم الفاتورة:</b> #{i[0]} &nbsp;&nbsp;|&nbsp;&nbsp; <b>التاريخ:</b> {i[6]}</p>
+                                <p><b>اسم العميل:</b> {i[1]}</p>
+                                <p><b>اسم المحل:</b> {shop_name}</p>
+                                <p><b>الموقع / المنطقة:</b> {shop_loc}</p>
+                                <p><b>رقم الهاتف:</b> {phone_num}</p>
+                            </div>
+
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>المادة</th>
+                                        <th>السعر (د.ع)</th>
+                                        <th>الكمية</th>
+                                        <th>الإجمالي الفرعي</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {items_html}
+                                </tbody>
+                            </table>
+
+                            <div class='totals'>
+                                <p><b>إجمالي الفاتورة الكلي:</b> {int(i[2]):,} دينار</p>
+                                <p><b>المبلغ المدفوع:</b> {int(i[3]):,} دينار</p>
+                                <p class='remaining'><b>المتبقي (الدين الذمي):</b> {int(i[4]):,} دينار</p>
+                            </div>
+                            
+                            <hr style='border: 0; border-top: 1px solid #ddd; margin-top: 20px;'>
+                            <p style='text-align: center; font-size: 13px; color: #555;'>شكراً لتعاملكم معنا - ياسر ويب</p>
+                        </div>
+                    </body>
+                    </html>
+                    """
+                    
+                    st.download_button(
+                        label="📥 تحميل الفاتورة (PDF / جدول مرتب كامل)",
+                        data=pdf_html_content,
+                        file_name=f"invoice_{i[0]}.html",
+                        mime="text/html",
+                        key=f"dl_pdf_{i[0]}"
+                    )
         else:
             st.info("لا توجد فواتير مسجلة حالياً")
 
