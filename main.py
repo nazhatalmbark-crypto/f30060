@@ -62,21 +62,31 @@ def run_query(query, params=(), fetch=False):
     conn.close()
     return data
 
-# --- دالة توليد PDF للفاتورة (مع حماية ضد النصوص الفارغة) ---
+# --- دالة توليد PDF للفاتورة (مع دعم كامل للحروف العربية) ---
 def generate_pdf(inv_id, c_name, total, details):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="Yasser Web - Invoice", ln=True, align='C')
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Invoice #: {inv_id}", ln=True)
-    pdf.cell(200, 10, txt=f"Customer: {c_name}", ln=True)
-    pdf.cell(200, 10, txt=f"Total: {total:,} IQD", ln=True)
     
-    # حماية لمنع الخطأ إذا كانت التفاصيل فارغة
+    # محاولة إضافة خط يدعم اللغة العربية من السيرفر
+    try:
+        pdf.add_font("ArabicFont", "", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+        pdf.set_font("ArabicFont", size=14)
+    except:
+        pdf.set_font("Arial", size=12) # خط احتياطي في حال عدم توفره
+        
+    pdf.cell(200, 10, txt="Yasser Web - Invoice", ln=True, align='C')
+    pdf.set_font("ArabicFont" if 'ArabicFont' in pdf.fonts else "Arial", size=12)
+    
+    safe_c_name = str(c_name) if c_name else "Unknown"
     safe_details = str(details) if details else "لا توجد تفاصيل مسجلة"
+    
+    pdf.cell(200, 10, txt=f"Invoice #: {inv_id}", ln=True)
+    pdf.cell(200, 10, txt=f"Customer: {safe_c_name}", ln=True)
+    pdf.cell(200, 10, txt=f"Total: {total:,} IQD", ln=True)
+    pdf.ln(5)
     pdf.multi_cell(0, 10, txt=safe_details)
-    return pdf.output(dest='S').encode('latin-1')
+    
+    return pdf.output(dest='S')
 
 # --- إدارة حالة الترخيص (النسخة المجانية والمدفوعة) ---
 if 'is_unlocked' not in st.session_state:
