@@ -13,14 +13,7 @@ def init_db():
     conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, quantity INTEGER DEFAULT 0, price INTEGER DEFAULT 0, selling_price INTEGER DEFAULT 0)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)''')
-    
-    for col, col_type in [('shop_name', 'TEXT'), ('phone', 'TEXT'), ('shop_location', 'TEXT')]:
-        try:
-            c.execute(f"ALTER TABLE customers ADD COLUMN {col} {col_type}")
-        except:
-            pass
-            
+    c.execute('''CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, shop_name TEXT, phone TEXT, shop_location TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, customer_name TEXT, total_amount INTEGER, received_amount INTEGER, remaining_amount INTEGER, invoice_date TEXT, details_json TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS system_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)''')
     conn.commit()
@@ -97,7 +90,7 @@ else:
         
     st.sidebar.divider()
     
-    # حقل تفعيل النسخة المدفوعة (مخفي النص بالكامل)
+    # حقل تفعيل النسخة المدفوعة (مخفي النص)
     if not st.session_state.is_unlocked:
         code_input = st.sidebar.text_input("رمز التفعيل:", type="password")
         if st.sidebar.button("تفعيل النسخة"):
@@ -114,8 +107,7 @@ else:
     try:
         with open("yasser_web.db", "rb") as f:
             st.sidebar.download_button("📥 تحميل نسخة احتياطية", f, "backup.db")
-    except:
-        pass
+    except: pass
 
     # --- التبويبات ---
     tabs = st.tabs(["🛒 البيع", "📜 الأرشيف", "📦 المخزن", "🔍 الأرباح", "👥 العملاء"])
@@ -198,34 +190,42 @@ else:
             with st.form("new_item"):
                 n = st.text_input("اسم المادة")
                 q = st.text_input("الكمية")
-                c = st.text_input("سعر التكلفة")
-                s = st.text_input("سعر البيع")
+                cost = st.text_input("سعر التكلفة")
+                sell = st.text_input("سعر البيع")
                 if st.form_submit_button("حفظ المادة"):
                     try:
-                        run_query("INSERT INTO inventory (name, quantity, price, selling_price) VALUES (?,?,?,?)", (n, int(q), int(c), int(s)))
-                        st.success("تمت الإضافة بنجاح")
+                        run_query("INSERT INTO inventory (name, quantity, price, selling_price) VALUES (?,?,?,?)", (n, int(q), int(cost), int(sell)))
+                        st.success("تمت الإضافة")
                         st.rerun()
                     except:
-                        st.error("تأكد من صحة البيانات أو أن المادة موجودة مسبقاً")
+                        st.error("خطأ: المادة موجودة أو البيانات ناقصة")
         
+        st.write("---")
         items = run_query("SELECT id, name, quantity, price, selling_price FROM inventory", fetch=True)
         if items:
             for itm in items:
-                cols = st.columns([3, 1, 1, 1])
-                cols[0].write(f"**{itm[1]}** (المتوفر: {itm[2]})")
-                cols[1].write(f"التكلفة: {int(itm[3]):,}")
-                cols[2].write(f"البيع: {int(itm[4]):,}")
-                if cols[3].button("🗑️ حذف", key=f"del_inv_item_{itm[0]}"):
-                    run_query("DELETE FROM inventory WHERE id = ?", (itm[0],))
-                    st.rerun()
+                with st.container(border=True):
+                    c1, c2, c3, c4, c5 = st.columns([2, 1, 1, 2, 1])
+                    c1.write(f"**{itm[1]}** (المتوفر: {itm[2]})")
+                    c2.write(f"تكلفة: {int(itm[3]):,}")
+                    c3.write(f"بيع: {int(itm[4]):,}")
+                    
+                    # حقل إضافة الكمية
+                    add_q = c4.number_input("إضافة:", min_value=0, step=1, key=f"inp_{itm[0]}")
+                    if c4.button("تحديث الكمية", key=f"btn_{itm[0]}"):
+                        run_query("UPDATE inventory SET quantity = quantity + ? WHERE id = ?", (add_q, itm[0]))
+                        st.rerun()
+                    
+                    if c5.button("🗑️", key=f"del_m_{itm[0]}"):
+                        run_query("DELETE FROM inventory WHERE id = ?", (itm[0],))
+                        st.rerun()
 
     with tabs[3]: # الأرباح
         st.subheader("🔍 تحليل الأرباح")
         if st.session_state.is_unlocked:
-            st.success("مرحببك في لوحة تحليل الأرباح الكاملة.")
-            # يمكنك إضافة تفاصيل الأرباح هنا
+            st.success("أهلاً بك في النسخة الكاملة - قريباً سيتم إضافة إحصائيات دقيقة")
         else:
-            st.warning("هذه الميزة تتطلب تفعيل النسخة المدفوعة عبر رمز التفعيل في الشريط الجانبي.")
+            st.warning("هذه الميزة تتطلب تفعيل النسخة المدفوعة.")
     
     with tabs[4]: # العملاء
         st.subheader("👥 إدارة العملاء")
@@ -237,18 +237,17 @@ else:
             if st.form_submit_button("حفظ الزبون"):
                 if c_name.strip():
                     run_query("INSERT INTO customers (name, shop_name, phone, shop_location) VALUES (?,?,?,?)", (c_name, c_shop, c_phone, c_loc))
-                    st.success("تم حفظ الزبون بنجاح")
+                    st.success("تم حفظ الزبون")
                     st.rerun()
                 else:
-                    st.error("يرجى إدخال اسم الزبون على الأقل")
+                    st.error("يرجى إدخال الاسم")
         
         custs = run_query("SELECT id, name, shop_name, phone, shop_location FROM customers", fetch=True)
         if custs:
             for c in custs:
-                cols = st.columns([4, 1])
-                cols[0].write(f"**الاسم:** {c[1]} | **المحل:** {c[2]} | **الهاتف:** {c[3]} | **العنوان:** {c[4]}")
-                if cols[1].button("🗑️ حذف", key=f"del_c_{c[0]}"):
-                    run_query("DELETE FROM customers WHERE id = ?", (c[0],))
-                    st.rerun()
-        else:
-            st.info("لا يوجد عملاء مسجلون حالياً")
+                with st.container(border=True):
+                    col1, col2 = st.columns([4, 1])
+                    col1.write(f"**الاسم:** {c[1]} | **المحل:** {c[2]} | **هاتف:** {c[3]} | **عنوان:** {c[4]}")
+                    if col2.button("🗑️ حذف", key=f"del_c_{c[0]}"):
+                        run_query("DELETE FROM customers WHERE id = ?", (c[0],))
+                        st.rerun()
