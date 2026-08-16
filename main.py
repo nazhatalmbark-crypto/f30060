@@ -160,8 +160,17 @@ else:
                 csv = pd.DataFrame(st.session_state.cart).to_csv(index=False)
                 run_query("INSERT INTO invoices (customer_name, total_amount, received_amount, remaining_amount, invoice_date, details_json) VALUES (?,?,?,?,?,?)",
                           (c_name, total, rec, total-rec, str(date.today()), csv))
-                for it in st.session_state.cart: 
-                    run_query("UPDATE inventory SET quantity = quantity - ? WHERE id = ?", (it['qty'], it['id']))
+                
+                # خصم الكميات من المخزن بدقة تامة
+                for it in st.session_state.cart:
+                    item_id = int(it['id'])
+                    sold_qty = int(it['qty'])
+                    res_q = run_query("SELECT quantity FROM inventory WHERE id = ?", (item_id,), fetch=True)
+                    if res_q:
+                        current_qty = int(res_q[0][0])
+                        new_qty = max(0, current_qty - sold_qty)
+                        run_query("UPDATE inventory SET quantity = ? WHERE id = ?", (new_qty, item_id))
+                        
                 st.session_state.cart = []
                 st.success("تم الحفظ بنجاح")
                 st.rerun()
@@ -210,10 +219,10 @@ else:
                     c2.write(f"تكلفة: {int(itm[3]):,}")
                     c3.write(f"بيع: {int(itm[4]):,}")
                     
-                    # حقل إضافة الكمية
                     add_q = c4.number_input("إضافة:", min_value=0, step=1, key=f"inp_{itm[0]}")
                     if c4.button("تحديث الكمية", key=f"btn_{itm[0]}"):
-                        run_query("UPDATE inventory SET quantity = quantity + ? WHERE id = ?", (add_q, itm[0]))
+                        current_q = int(itm[2])
+                        run_query("UPDATE inventory SET quantity = ? WHERE id = ?", (current_q + int(add_q), itm[0]))
                         st.rerun()
                     
                     if c5.button("🗑️", key=f"del_m_{itm[0]}"):
