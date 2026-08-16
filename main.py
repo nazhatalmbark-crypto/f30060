@@ -8,12 +8,20 @@ from fpdf import FPDF
 # إعداد الصفحة
 st.set_page_config(page_title="ياسر ويب - النظام المحاسبي المتكامل", layout="wide", page_icon="📦")
 
-# --- إعداد قاعدة البيانات ---
+# --- إعداد قاعدة البيانات (مع التحديث التلقائي للجداول القديمة) ---
 def init_db():
     conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, quantity INTEGER DEFAULT 0, price INTEGER DEFAULT 0, selling_price INTEGER DEFAULT 0)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, shop_name TEXT, phone TEXT, shop_location TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)''')
+    
+    # إضافة الأعمدة تلقائياً إذا لم تكن موجودة لمنع أي خطأ
+    for col, col_type in [('shop_name', 'TEXT'), ('phone', 'TEXT'), ('shop_location', 'TEXT')]:
+        try:
+            c.execute(f"ALTER TABLE customers ADD COLUMN {col} {col_type}")
+        except:
+            pass
+            
     c.execute('''CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, customer_name TEXT, total_amount INTEGER, received_amount INTEGER, remaining_amount INTEGER, invoice_date TEXT, details_json TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS system_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)''')
     conn.commit()
@@ -50,7 +58,7 @@ if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'username' not in st.session_state: st.session_state.username = ""
 if 'is_unlocked' not in st.session_state: st.session_state.is_unlocked = False
 
-# --- إذا لم يتم تسجيل الدخول، اعرض واجهة تسجيل الدخول وإنشاء حساب جديد ---
+# --- واجهة تسجيل الدخول وإنشاء حساب جديد ---
 if not st.session_state.logged_in:
     st.title("🔐 ياسر ويب - بوابة الدخول والتسجيل")
     st.write("يرجى تسجيل الدخول أو إنشاء حساب جديد للوصول إلى النظام المحاسبي.")
@@ -83,7 +91,7 @@ if not st.session_state.logged_in:
                 else:
                     try:
                         run_query("INSERT INTO system_users (username, password) VALUES (?, ?)", (new_u, new_p))
-                        st.success("تم إنشاء الحساب بنجاح! يمكنك الانتقال لتبويب 'تسجيل الدخول' والدخول بحسابك.")
+                        st.success("تم إنشاء الحساب بنجاح! انتقل لتبويب 'تسجيل الدخول' للدخول بحسابك.")
                     except:
                         st.error("اسم المستخدم مستخدم مسبقاً، اختر اسماً آخر.")
 else:
