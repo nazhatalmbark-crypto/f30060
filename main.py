@@ -30,7 +30,7 @@ def run_query(query, params=(), fetch=False):
     conn.close()
     return data
 
-# --- دالة توليد PDF ---
+# --- دالة توليد PDF (محدثة لتعمل بشكل صحيح وبدون شاشة بيضاء) ---
 def generate_pdf(inv_id, c_name, total, received, remaining, details):
     pdf = FPDF()
     pdf.add_page()
@@ -43,7 +43,12 @@ def generate_pdf(inv_id, c_name, total, received, remaining, details):
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(200, 10, txt=f"Total: {int(total):,} | Paid: {int(received):,} | Debt: {int(remaining):,}", ln=True)
     pdf.multi_cell(0, 10, txt=safe(details))
-    return pdf.output(dest='S')
+    
+    # تحويل المخرجات إلى bytes لضمان عدم ظهور ملف أبيض
+    out = pdf.output(dest='S')
+    if isinstance(out, str):
+        return out.encode('latin-1')
+    return bytes(out)
 
 # --- إدارة الجلسة ---
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
@@ -161,7 +166,6 @@ else:
                 run_query("INSERT INTO invoices (customer_name, total_amount, received_amount, remaining_amount, invoice_date, details_json) VALUES (?,?,?,?,?,?)",
                           (c_name, total, rec, total-rec, str(date.today()), csv))
                 
-                # خصم الكميات من المخزن بدقة تامة
                 for it in st.session_state.cart:
                     item_id = int(it['id'])
                     sold_qty = int(it['qty'])
