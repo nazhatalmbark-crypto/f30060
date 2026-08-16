@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 from datetime import date
 import pandas as pd
+from io import StringIO
 
 # إعداد الصفحة وتصميم الواجهة (طابع أخضر فخم)
 st.set_page_config(page_title="ياسر ويب - النظام المحاسبي الاحترافي", layout="wide", page_icon="📦")
@@ -16,21 +17,28 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 1. إعداد قاعدة البيانات الشاملة ---
+# --- 1. إعداد وتحديث قاعدة البيانات تلقائياً ---
 def init_db():
     conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, quantity INTEGER DEFAULT 0, price INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, shop_location TEXT, governorate TEXT, landmark TEXT)''')
+    
+    # إنشاء جدول الفواتير الأساسي إذا لم يكن موجوداً
     c.execute('''CREATE TABLE IF NOT EXISTS invoices (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, 
                     customer_name TEXT, 
                     payment_type TEXT, 
                     total_amount INTEGER, 
-                    invoice_date TEXT, 
-                    details_json TEXT
+                    invoice_date TEXT
                 )''')
+    
+    # إضافة عمود تفاصيل الفاتورة تلقائياً إذا كان الجدول قديماً
+    try:
+        c.execute("ALTER TABLE invoices ADD COLUMN details_json TEXT")
+    except sqlite3.OperationalError:
+        pass # العمود موجود مسبقاً
     
     try:
         c.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("admin", "1234"))
@@ -113,7 +121,7 @@ else:
         "🛒 المبيعات والسلة", "📜 أرشيف الفواتير", "📦 شبكة المخزن", "➕ إضافة مواد", "👥 العملاء", "💰 المالية والخزنة", "📊 التقارير"
     ])
 
-    # --- تبويب 1: المبيعات والسلة (مع إلزامية اختيار عميل) ---
+    # --- تبويب 1: المبيعات والسلة (إلزامية اختيار عميل) ---
     with tab1:
         st.subheader("🛒 نقطة البيع السريع (اختر المواد للسلة)")
         items = run_query("SELECT id, name, quantity, price FROM inventory", fetch=True)
@@ -174,7 +182,6 @@ else:
                 
                 pay_col1, pay_col2 = st.columns(2)
                 with pay_col1:
-                    # جلب العملاء المسجلين فقط (بدون عميل نقدي عام لضمان إجبار المندوب على اختيار عميل حقيقي)
                     cust_res = run_query("SELECT name, phone, shop_location FROM customers", fetch=True)
                     if cust_res:
                         cust_dict = {f"{c[0]} ({c[2] or 'بدون محل'})": c[0] for c in cust_res}
@@ -182,7 +189,7 @@ else:
                         selected_customer = cust_dict[selected_display]
                     else:
                         selected_customer = None
-                        st.warning("⚠️ لا يوجد عملاء مسجلين! يجيب إضافة عميل في تبويب 'العملاء' أولاً لإتمام البيع.")
+                        st.warning("⚠️ لا يوجد عملاء مسجلين! يجب إضافة عميل في تبويب 'العملاء' أولاً لإتمام البيع.")
                 with pay_col2:
                     payment_method = st.radio("طريقة الدفع:", ["نقدي (كاش)", "دين (آجل)"], horizontal=True)
                 
@@ -201,7 +208,6 @@ else:
                                 st.error(f"فشل بيع مادة '{c_item['name']}' لعدم كفاية المخزن!")
                         
                         if success_out:
-                            # حفظ تفاصيل المواد كجدول بيانات مدمج
                             df_cart = pd.DataFrame(st.session_state.cart)[['name', 'qty', 'price', 'total']]
                             df_cart.columns = ['اسم المادة', 'الكمية', 'السعر المفرد', 'المجموع']
                             details_csv = df_cart.to_csv(index=False)
@@ -217,7 +223,7 @@ else:
         else:
             st.info("لا توجد مواد في المخزن.")
 
-    # --- تبويب 2: أرشيف الفواتير والديون (مع جدول مرتب لتفاصيل الفاتورة) ---
+    # --- تبويب 2: أرشيف الفواتير والديون ---
     with tab2:
         st.subheader("📜 أرشيف الفواتير والديون السابقة")
         st.markdown("هنا تظهر لك الفواتير السابقة لكل محل وزبون، مع جدول مرتب بالتفاصيل لمعرفة الديون وسجل المبيعات.")
@@ -242,9 +248,7 @@ else:
                     col_inv3.metric("المبلغ الإجمالي", f"{t_amt:,} د.ع")
                     
                     with st.expander("📄 جدول تفاصيل المواد والفاتورة الكاملة (اضغط للعرض)"):
-                        # تحويل بيانات الـ CSV المخزنة إلى جدول نظيف ومتقن
                         try:
-                            from io import StringIO
                             df_view = pd.read_csv(StringIO(details_csv))
                             st.dataframe(df_view, use_container_width=True, hide_index=True)
                         except Exception:
@@ -288,11 +292,10 @@ else:
         else:
             st.info("المخزن فارغ.")
 
-    # --- تبويب 4: إضافة مواد (مع حد النسخة التجريبية المرن) ---
+    # --- تبويب 4: إضافة مواد ---
     with tab4:
         st.subheader("➕ إضافة مادة جديدة للمخزن")
         
-        # فحص حدود النسخة التجريبية المرنة
         current_items_count = run_query("SELECT COUNT(*) FROM inventory", fetch=True)[0][0]
         if not st.session_state.is_unlocked and current_items_count >= 5:
             st.warning("⚠️ لقد وصلت للحد الأقصى في النسخة التجريبية (5 مواد). أدخل كود التفعيل **2009** في القائمة الجانبية لفتح عدد غير محدود من المواد.")
@@ -362,7 +365,7 @@ else:
         col_m2.metric("حالة الخزنة", "نشطة 🟢")
         st.info("هذا القسم يوضح السيولة وحسابات رأس المال المرتبطة بالبضاعة المتوفرة في المخازن حالياً.")
 
-    # --- تبويب 7: التقارير (بدون أي رسومات زرقاء - جداول وأرقام نظيفة فقط) ---
+    # --- تبويب 7: التقارير ---
     with tab7:
         st.subheader("📊 التقارير النهائية والأرباح (جداول إحصائية دقيقة)")
         
