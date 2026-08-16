@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date
 
 # إعداد الصفحة وتصميم الواجهة (طابع أخضر فخم)
-st.set_page_config(page_title="ياسر ويب - النظام المحاسبي المتكامل", layout="wide", page_icon="📦")
+st.set_page_config(page_title="ياسر ويب - نظام المندوب والمحاسبة", layout="wide", page_icon="📦")
 
 st.markdown("""
     <style>
@@ -15,13 +15,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 1. إعداد قاعدة البيانات الشاملة ---
+# --- 1. إعداد قاعدة البيانات الشاملة مع جدول الأرشيف والفواتير ---
 def init_db():
     conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, quantity INTEGER DEFAULT 0, price INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, shop_location TEXT, governorate TEXT, landmark TEXT)''')
+    # جدول الأرشيف الخاص بالفواتير والديون
+    c.execute('''CREATE TABLE IF NOT EXISTS invoices (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                    customer_name TEXT, 
+                    payment_type TEXT, 
+                    total_amount INTEGER, 
+                    invoice_date TEXT, 
+                    details TEXT
+                )''')
     
     try:
         c.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("admin", "1234"))
@@ -48,8 +57,8 @@ if 'cart' not in st.session_state: st.session_state.cart = []
 
 # --- 3. شاشة تسجيل الدخول ---
 if not st.session_state.logged_in:
-    st.markdown("<h1 style='text-align: center; color: #0e4d3a;'>⚡ ياسر ويب - نظام إدارة المحلات الاحترافي</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: gray;'>النظام الشامل للمبيعات، المخازن، والعملاء</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #0e4d3a;'>⚡ ياسر ويب - نظام المندوب والمحلات</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray;'>النظام الشامل للمبيعات، الأرشيف، والديون</p>", unsafe_allow_html=True)
     
     col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
     with col_l2:
@@ -96,15 +105,15 @@ else:
 
     # --- العداد العلوي وعنوان اللوحة ---
     col_top1, col_top2 = st.columns([3, 1])
-    col_top1.markdown("<h2 style='color: #0e4d3a;'>📦 لوحة تحكم ياسر ويب المتكاملة</h2>", unsafe_allow_html=True)
+    col_top1.markdown("<h2 style='color: #0e4d3a;'>📦 لوحة تحكم ياسر ويب للمندوبين</h2>", unsafe_allow_html=True)
     col_top2.metric("عربة المشتريات 🛒", len(st.session_state.cart))
 
-    # --- التبويبات كاملة (كما طلبتها بكل الأقسام) ---
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "🛒 المبيعات والسلة", "📦 شبكة المخزن", "➕ إضافة مواد", "👥 العملاء", "💰 المالية والحسابات", "📊 التقارير النهائية"
+    # --- التبويبات كاملة متضمنة أرشيف الفواتير ---
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "🛒 المبيعات والسلة", "📜 أرشيف الفواتير والديون", "📦 شبكة المخزن", "➕ إضافة مواد", "👥 العملاء", "💰 المالية والخزنة", "📊 التقارير"
     ])
 
-    # --- تبويب 1: المبيعات والسلة (الكارتات وزر الإضافة والعداد والبيع السريع) ---
+    # --- تبويب 1: المبيعات والسلة ---
     with tab1:
         st.subheader("🛒 نقطة البيع السريع (اختر المواد للسلة)")
         items = run_query("SELECT id, name, quantity, price FROM inventory", fetch=True)
@@ -119,9 +128,7 @@ else:
                         st.metric("المتوفر", f"{quantity} قطعة")
                         st.write(f"**السعر**: {price:,} د.ع")
                         
-                        # زر الإضافة للسلة الذي يرفع العداد فوراً
                         if st.button("إضافة للسلة ➕", key=f"cart_add_{item_id}"):
-                            # التحقق إذا المادة موجودة بالسلة مسبقاً
                             found_in_cart = False
                             for cart_item in st.session_state.cart:
                                 if cart_item['id'] == item_id:
@@ -149,7 +156,7 @@ else:
                             st.rerun()
             
             st.divider()
-            st.subheader("🧾 عربة المشتريات الحالية وفاتورة البيع")
+            st.subheader("🧾 عربة المشتريات وحفظ الفاتورة بالأرشيف")
             if st.session_state.cart:
                 grand_total = 0
                 for i, c_item in enumerate(st.session_state.cart):
@@ -170,11 +177,11 @@ else:
                     cust_res = run_query("SELECT name FROM customers", fetch=True)
                     cust_list = [c[0] for c in cust_res] if cust_res else ["عميل نقدي عام"]
                     if "عميل نقدي عام" not in cust_list: cust_list.insert(0, "عميل نقدي عام")
-                    selected_customer = st.selectbox("اختر العميل", cust_list)
+                    selected_customer = st.selectbox("اختر اسم الزبون / المحل", cust_list)
                 with pay_col2:
                     payment_method = st.radio("طريقة الدفع:", ["نقدي (كاش)", "دين (آجل)"], horizontal=True)
                 
-                if st.button("✅ إتمام البيع وقص المواد من المخزن نهائياً", use_container_width=True):
+                if st.button("✅ إتمام البيع، قص المواد، وحفظها بالأرشيف", use_container_width=True):
                     success_out = True
                     for c_item in st.session_state.cart:
                         db_q = run_query("SELECT quantity FROM inventory WHERE id = ?", (c_item['id'],), fetch=True)
@@ -186,39 +193,74 @@ else:
                             st.error(f"فشل بيع مادة '{c_item['name']}' لعدم كفاية المخزن!")
                     
                     if success_out:
-                        invoice_content = f"""
-=====================================
-      ⚡ ياسر ويب - فاتورة مبيعات معتمدة
-=====================================
-التاريخ: {date.today()}
-العميل: {selected_customer}
-طريقة الدفع: {payment_method}
--------------------------------------
-"""
+                        invoice_details_text = ""
                         for c_item in st.session_state.cart:
-                            invoice_content += f"- {c_item['name']} | العدد: {c_item['qty']} | السعر: {c_item['price']:,} | المجموع: {c_item['total']:,}\n"
-                        invoice_content += f"""-------------------------------------
-الإجمالي الكلي: {grand_total:,} د.ع
-=====================================
-شكراً لتعاملكم مع ياسر ويب
-"""
-                        st.success("تم إتمام الفاتورة وقص المواد من المخزن بنجاح!")
-                        st.text(invoice_content)
-                        st.download_button(
-                            label="📥 تحميل الفاتورة النصية (TXT)",
-                            data=invoice_content,
-                            file_name=f"invoice_{date.today()}.txt",
-                            mime="text/plain",
-                            use_container_width=True
-                        )
+                            invoice_details_text += f"- {c_item['name']} | العدد: {c_item['qty']} | السعر: {c_item['price']:,} | المجموع: {c_item['total']:,}\n"
+                        
+                        # حفظ الفاتورة في جدول الأرشيف الدائم
+                        run_query("INSERT INTO invoices (customer_name, payment_type, total_amount, invoice_date, details) VALUES (?, ?, ?, ?, ?)",
+                                  (selected_customer, payment_method, grand_total, str(date.today()), invoice_details_text))
+                        
+                        st.success("تم إتمام الفاتورة وحفظها في أرشيف المندوب وقص المواد بنجاح!")
                         st.session_state.cart = []
+                        st.rerun()
             else:
-                st.info("السلة فارغة حالياً. اضغط على 'إضافة للسلة' في أي مادة بالاعلى.")
+                st.info("السلة فارغة حالياً.")
         else:
-            st.info("لا توجد مواد في المخزن حالياً.")
+            st.info("لا توجد مواد في المخزن.")
 
-    # --- تبويب 2: شبكة المخزن ---
+    # --- تبويب 2: أرشيف الفواتير والديون (الميزة الأساسية للمندوب) ---
     with tab2:
+        st.subheader("📜 أرشيف الفواتير والديون السابقة")
+        st.markdown("هنا تلقى كل الفواتير اللي بعتها للمحلات، حتى تراجع ديون الزبون أو ترجع تدزله الفاتورة إذا نساها.")
+        
+        all_invoices = run_query("SELECT id, customer_name, payment_type, total_amount, invoice_date, details FROM invoices ORDER BY id DESC", fetch=True)
+        
+        if all_invoices:
+            # خيار بحث سريع باسم الزبون
+            search_cust = st.text_input("🔍 ابحث عن اسم زبون أو محل لعرض فواتيره السابقة:").strip()
+            
+            for inv in all_invoices:
+                inv_id, c_name, p_type, t_amt, i_date, details = inv
+                
+                # إذا اكو بحث، نطابق الاسم
+                if search_cust and search_cust not in c_name:
+                    continue
+                
+                with st.container(border=True):
+                    col_inv1, col_inv2, col_inv3 = st.columns([2, 2, 1])
+                    col_inv1.markdown(f"### 🧾 فاتورة رقم #{inv_id}")
+                    col_inv1.write(f"👤 **الزبون:** {c_name}")
+                    col_inv2.write(f"📅 **التاريخ:** {i_date}")
+                    col_inv2.write(f"💳 **الطريقة:** {p_type}")
+                    col_inv3.metric("المبلغ الإجمالي", f"{t_amt:,} د.ع")
+                    
+                    with st.expander("📄 تفاصيل مواد الفاتورة (اضغط للعرض)"):
+                        st.text(details)
+                    
+                    # زر نسخ أو توليد نص لإرسال الفاتورة للزبون
+                    full_share_text = f"""⚡ ياسر ويب - فاتورة مبيعات
+رقم الفاتورة: #{inv_id}
+التاريخ: {i_date}
+الزبون: {c_name}
+طريقة الدفع: {p_type}
+-------------------------
+{details}-------------------------
+الإجمالي الكلي: {t_amt:,} د.ع
+شكراً لتعاملكم معنا!"""
+                    
+                    st.download_button(
+                        label=f"📥 تحميل أو إرسال فاتورة #{inv_id} (TXT)",
+                        data=full_share_text,
+                        file_name=f"invoice_{inv_id}_{c_name}.txt",
+                        mime="text/plain",
+                        key=f"dl_inv_{inv_id}"
+                    )
+        else:
+            st.info("لا توجد فواتير محفوظة في الأرشيف حتى الآن.")
+
+    # --- تبويب 3: شبكة المخزن ---
+    with tab3:
         st.subheader("📦 شبكة المخازن والمنتجات الحالية")
         items = run_query("SELECT id, name, quantity, price FROM inventory", fetch=True)
         if items:
@@ -236,11 +278,11 @@ else:
         else:
             st.info("المخزن فارغ.")
 
-    # --- تبويب 3: إضافة مواد ---
-    with tab3:
+    # --- تبويب 4: إضافة مواد ---
+    with tab4:
         st.subheader("➕ إضافة مادة جديدة للمخزن")
         if not st.session_state.is_unlocked:
-            st.info("ℹ️ ملاحظة: النسخة التجريبية تسمح بحد أقصى 100 قطعة في الإدخال الواحد. أدخل كود التفعيل للرفع.")
+            st.info("ℹ️ ملاحظة: النسخة التجريبية تسمح بحد أقصى 100 قطعة في الإدخال الواحد.")
         
         with st.form("add_item_form"):
             col_a1, col_a2 = st.columns(2)
@@ -266,8 +308,8 @@ else:
                 else:
                     st.error("الرجاء إدخال اسم المادة.")
 
-    # --- تبويب 4: العملاء ---
-    with tab4:
+    # --- تبويب 5: العملاء ---
+    with tab5:
         st.subheader("👥 إدارة العملاء والزبائن")
         with st.form("add_customer_form"):
             cc1, cc2 = st.columns(2)
@@ -296,8 +338,8 @@ else:
         else:
             st.info("لا يوجد عملاء مسجلين حالياً.")
 
-    # --- تبويب 5: المالية والحسابات ---
-    with tab5:
+    # --- تبويب 6: المالية ---
+    with tab6:
         st.subheader("💰 إدارة الأموال ورأس المال والخزنة")
         items = run_query("SELECT quantity, price FROM inventory", fetch=True)
         total_capital = sum([it[0] * it[1] for it in items]) if items else 0
@@ -307,8 +349,8 @@ else:
         col_m2.metric("حالة الخزنة", "نشطة 🟢")
         st.info("هذا القسم يوضح السيولة وحسابات رأس المال المرتبطة بالبضاعة المتوفرة في المخازن حالياً.")
 
-    # --- تبويب 6: التقارير النهائية ---
-    with tab6:
+    # --- تبويب 7: التقارير ---
+    with tab7:
         st.subheader("📊 التقارير النهائية والأرباح")
         if not st.session_state.is_unlocked:
             st.warning("🔒 **تقارير الأرباح المتقدمة والتحليلية مقفلة في النسخة التجريبية.** أدخل كود التفعيل لفتحها.")
@@ -332,4 +374,4 @@ else:
                 st.info("لا توجد بيانات كافية للتقارير.")
 
 st.divider()
-st.markdown("<p style='text-align: center; color: gray;'>ياسر ويب | نظام إدارة المحلات الاحترافي المتكامل</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>ياسر ويب | نظام إدارة المبيعات للمندوبين والأسواق</p>", unsafe_allow_html=True)
