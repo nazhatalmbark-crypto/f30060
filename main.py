@@ -59,10 +59,10 @@ if 'is_unlocked' not in st.session_state: st.session_state.is_unlocked = False
 
 # --- واجهة تسجيل الدخول وإنشاء حساب جديد ---
 if not st.session_state.logged_in:
-    st.title("ياسر ويب - بوابة الدخول والتسجيل")
+    st.title("🔐 ياسر ويب - بوابة الدخول والتسجيل")
     st.write("يرجى تسجيل الدخول أو إنشاء حساب جديد للوصول إلى النظام المحاسبي.")
     
-    auth_tab1, auth_tab2 = st.tabs(["تسجيل الدخول", "إنشاء حساب جديد"])
+    auth_tab1, auth_tab2 = st.tabs(["🔑 تسجيل الدخول", "📝 إنشاء حساب جديد"])
     
     with auth_tab1:
         with st.form("login_form"):
@@ -95,14 +95,14 @@ if not st.session_state.logged_in:
                         st.error("اسم المستخدم مستخدم مسبقاً، اختر اسماً آخر")
 else:
     # --- الشريط الجانبي ---
-    st.sidebar.title(f"مرحباً، {st.session_state.username}")
+    st.sidebar.title(f"👤 مرحباً، {st.session_state.username}")
     if st.sidebar.button("تسجيل الخروج"):
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.rerun()
         
     st.sidebar.divider()
-    st.sidebar.title("ترخيص النسخة الكاملة")
+    st.sidebar.title("🔐 ترخيص النسخة الكاملة")
     if not st.session_state.is_unlocked:
         st.sidebar.warning("النسخة المجانية (5 مواد فقط)")
         code = st.sidebar.text_input("رمز التفعيل (2009):", type="password")
@@ -119,15 +119,15 @@ else:
     st.sidebar.divider()
     try:
         with open("yasser_web.db", "rb") as f:
-            st.sidebar.download_button("تحميل نسخة احتياطية", f, "backup.db")
+            st.sidebar.download_button("📥 تحميل نسخة احتياطية", f, "backup.db")
     except:
         pass
 
-    # --- التبويبات الرئيسية للنظام ---
-    tabs = st.tabs(["البيع", "الأرشيف", "المخزن", "الأرباح", "العملاء"])
+    # --- التبويبات الرئيسية للنظام (مع إرجاع الرموز والصور فوق الخانات) ---
+    tabs = st.tabs(["🛒 البيع", "📜 الأرشيف", "📦 المخزن", "🔍 الأرباح", "👥 العملاء"])
 
     with tabs[0]: # نقطة البيع
-        st.subheader("نقطة البيع")
+        st.subheader("🛒 نقطة البيع")
         items = run_query("SELECT id, name, quantity, selling_price FROM inventory WHERE quantity > 0", fetch=True)
         if 'cart' not in st.session_state: st.session_state.cart = []
         
@@ -163,7 +163,13 @@ else:
             total = sum(int(i['price']) * int(i['qty']) for i in st.session_state.cart)
             st.write(f"### الإجمالي: {int(total):,} د.ع")
             
-            rec = st.number_input("المبلغ المستلم:", value=int(total), step=1000)
+            # حقل نصي خالص بدون أي علامات زاد أو ناقص
+            rec_input_str = st.text_input("المبلغ المستلم:", value=str(int(total)))
+            try:
+                rec = int(rec_input_str)
+            except:
+                rec = int(total)
+
             custs = run_query("SELECT name FROM customers", fetch=True)
             c_name = st.selectbox("اختر العميل:", [c[0] for c in custs] if custs else [])
             
@@ -184,7 +190,7 @@ else:
                     st.rerun()
 
     with tabs[1]: # الأرشيف
-        st.subheader("أرشيف الفواتير")
+        st.subheader("📜 أرشيف الفواتير")
         invs = run_query("SELECT id, customer_name, total_amount, received_amount, remaining_amount, details_json FROM invoices ORDER BY id DESC", fetch=True)
         if invs:
             for i in invs:
@@ -196,7 +202,7 @@ else:
             st.info("لا توجد فواتير محفوظة بعد")
 
     with tabs[2]: # المخزن
-        st.subheader("إدارة المخزن")
+        st.subheader("📦 إدارة المخزن")
         count = run_query("SELECT COUNT(*) FROM inventory", fetch=True)[0][0]
         
         with st.expander("إضافة مادة جديدة"):
@@ -205,10 +211,17 @@ else:
             else:
                 with st.form("new_item"):
                     n = st.text_input("اسم المادة")
-                    q = st.number_input("الكمية", min_value=0, step=1)
-                    c = st.number_input("سعر التكلفة", min_value=0, step=1000)
-                    s = st.number_input("سعر البيع", min_value=0, step=1000)
+                    q_str = st.text_input("الكمية", value="0")
+                    c_str = st.text_input("سعر التكلفة", value="0")
+                    s_str = st.text_input("سعر البيع", value="0")
                     if st.form_submit_button("حفظ المادة"):
+                        try:
+                            q = int(q_str)
+                            c = int(c_str)
+                            s = int(s_str)
+                        except:
+                            q, c, s = 0, 0, 0
+
                         if n.strip() == "": st.error("أدخل اسم المادة")
                         else:
                             try:
@@ -223,8 +236,12 @@ else:
             if existing:
                 item_names = [i[0] for i in existing]
                 sel_item = st.selectbox("اختر المادة:", item_names)
-                add_qty = st.number_input("الكمية المضافة:", min_value=1, step=1)
+                add_qty_str = st.text_input("الكمية المضافة:", value="1")
                 if st.button("تحديث المخزن"):
+                    try:
+                        add_qty = int(add_qty_str)
+                    except:
+                        add_qty = 1
                     run_query("UPDATE inventory SET quantity = quantity + ? WHERE name = ?", (add_qty, sel_item))
                     st.success(f"تمت إضافة الكمية للمادة: {sel_item}")
                     st.rerun()
@@ -248,7 +265,7 @@ else:
                             st.rerun()
 
     with tabs[3]: # الأرباح
-        st.subheader("تحليل الأرباح")
+        st.subheader("🔍 تحليل الأرباح")
         items = run_query("SELECT name, quantity, price, selling_price FROM inventory", fetch=True)
         all_invs = run_query("SELECT details_json FROM invoices", fetch=True)
         
@@ -279,7 +296,7 @@ else:
                 st.dataframe(pd.DataFrame(profit_data), use_container_width=True)
 
     with tabs[4]: # العملاء
-        st.subheader("إدارة العملاء")
+        st.subheader("👥 إدارة العملاء")
         with st.form("cust_form"):
             c_name = st.text_input("اسم الزبون")
             c_shop = st.text_input("اسم المحل")
