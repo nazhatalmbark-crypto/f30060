@@ -62,28 +62,24 @@ def run_query(query, params=(), fetch=False):
     conn.close()
     return data
 
-# --- دالة توليد PDF للفاتورة (مع دعم كامل للحروف العربية) ---
+# --- دالة توليد PDF للفاتورة (محدثة لتكون مستقرة 100% على السيرفر) ---
 def generate_pdf(inv_id, c_name, total, details):
     pdf = FPDF()
     pdf.add_page()
+    pdf.set_font("Arial", size=12)
     
-    # محاولة إضافة خط يدعم اللغة العربية من السيرفر
-    try:
-        pdf.add_font("ArabicFont", "", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-        pdf.set_font("ArabicFont", size=14)
-    except:
-        pdf.set_font("Arial", size=12) # خط احتياطي في حال عدم توفره
-        
-    pdf.cell(200, 10, txt="Yasser Web - Invoice", ln=True, align='C')
-    pdf.set_font("ArabicFont" if 'ArabicFont' in pdf.fonts else "Arial", size=12)
+    # معالجة آمنة للنصوص لتجنب انهيار السيرفر في حال وجود حروف عربية
+    safe_c_name = str(c_name).encode('latin-1', 'replace').decode('latin-1') if c_name else "Unknown"
+    safe_details = str(details).encode('latin-1', 'replace').decode('latin-1') if details else "No details"
     
-    safe_c_name = str(c_name) if c_name else "Unknown"
-    safe_details = str(details) if details else "لا توجد تفاصيل مسجلة"
-    
-    pdf.cell(200, 10, txt=f"Invoice #: {inv_id}", ln=True)
-    pdf.cell(200, 10, txt=f"Customer: {safe_c_name}", ln=True)
-    pdf.cell(200, 10, txt=f"Total: {total:,} IQD", ln=True)
+    pdf.cell(200, 10, txt="Yasser Web - Official Invoice", ln=True, align='C')
     pdf.ln(5)
+    pdf.cell(200, 10, txt=f"Invoice ID: #{inv_id}", ln=True)
+    pdf.cell(200, 10, txt=f"Customer Name: {safe_c_name}", ln=True)
+    pdf.cell(200, 10, txt=f"Total Amount: {total:,} IQD", ln=True)
+    pdf.cell(200, 10, txt=f"Date: {date.today()}", ln=True)
+    pdf.ln(5)
+    pdf.cell(200, 10, txt="Items Details:", ln=True)
     pdf.multi_cell(0, 10, txt=safe_details)
     
     return pdf.output(dest='S')
@@ -206,7 +202,7 @@ with tabs[0]: # البيع السريع
                     if success_sale:
                         df_cart = pd.DataFrame(st.session_state.cart)[['name', 'qty', 'price']]
                         df_cart['total'] = df_cart['qty'] * df_cart['price']
-                        df_cart.columns = ['اسم المادة', 'الكمية', 'السعر المفرد', 'المجموع']
+                        df_cart.columns = ['Item Name', 'Qty', 'Price', 'Total']
                         csv_data = df_cart.to_csv(index=False)
                         
                         run_query("INSERT INTO invoices (customer_name, total_amount, invoice_date, details_json) VALUES (?, ?, ?, ?)",
@@ -235,7 +231,7 @@ with tabs[1]: # الأرشيف PDF
                 col_b.download_button(
                     label="📥 تحميل PDF",
                     data=pdf_bytes_file,
-                    file_name=f"invoice_{inv_id}_{c_name}.pdf",
+                    file_name=f"invoice_{inv_id}.pdf",
                     mime="application/pdf",
                     key=f"dl_pdf_{inv_id}"
                 )
@@ -308,8 +304,8 @@ with tabs[4]: # تحليل المواد والأرباح
                 for inv_row_val in all_invs:
                     if inv_row_val[0]:
                         df_inv = pd.read_csv(StringIO(inv_row_val[0]))
-                        if selected_item in df_inv['اسم المادة'].values:
-                            q_matched = df_inv.loc[df_inv['اسم المادة'] == selected_item, 'الكمية'].values[0]
+                        if selected_item in df_inv['Item Name'].values:
+                            q_matched = df_inv.loc[df_inv['Item Name'] == selected_item, 'Qty'].values[0]
                             sold_count += int(q_matched)
             except:
                 pass
