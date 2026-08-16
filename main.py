@@ -1,139 +1,335 @@
 import streamlit as st
 import sqlite3
+from datetime import date
 
-# --- إعدادات الصفحة ---
-st.set_page_config(page_title="ياسر ويب - النظام التجريبي الذكي", layout="wide")
+# إعداد الصفحة وتصميم الواجهة (طابع أخضر فخم)
+st.set_page_config(page_title="ياسر ويب - النظام المحاسبي المتكامل", layout="wide", page_icon="📦")
 
-# --- تهيئة الحالة وقاعدة البيانات ---
-if 'is_unlocked' not in st.session_state: st.session_state.is_unlocked = False
-if 'cart' not in st.session_state: st.session_state.cart = []
+st.markdown("""
+    <style>
+    .main { background-color: #f4f6f9; }
+    div[data-testid="stMetricValue"] {
+        font-size: 22px;
+        color: #0e4d3a;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
+# --- 1. إعداد قاعدة البيانات الشاملة ---
 def init_db():
-    conn = sqlite3.connect('yasser_web.db')
+    conn = sqlite3.connect('yasser_web.db', timeout=10)
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, quantity INTEGER, price INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, quantity INTEGER DEFAULT 0, price INTEGER DEFAULT 0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, shop_location TEXT, governorate TEXT, landmark TEXT)''')
+    
+    try:
+        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("admin", "1234"))
+    except sqlite3.IntegrityError:
+        pass
     conn.commit()
     conn.close()
 
 init_db()
 
-# --- الشريط الجانبي (التفعيل) ---
-st.sidebar.title("🔐 لوحة التحكم والتفعيل")
-if not st.session_state.is_unlocked:
-    st.sidebar.info("💡 **نسخة تجريبية مفتوحة المميزات بحدود استهلاك.** جرب كل شيء بحرية!")
-    code = st.sidebar.text_input("أدخل كود التفعيل لرفع الحدود نهائياً:", type="password")
-    if st.sidebar.button("تفعيل النسخة الكاملة"):
-        if code == "2009": # كود التفعيل السري الخاص بك
-            st.session_state.is_unlocked = True
-            st.sidebar.success("تم تفعيل النسخة الكاملة بلا حدود!")
-            st.rerun()
-        else:
-            st.sidebar.error("كود غير صحيح!")
-else:
-    st.sidebar.success("✅ النسخة الكاملة مفعلة (بلا حدود)")
-    if st.sidebar.button("إلغاء التفعيل للرجوع للتجريبي"):
-        st.session_state.is_unlocked = False
-        st.rerun()
+def run_query(query, params=(), fetch=False):
+    conn = sqlite3.connect('yasser_web.db', timeout=10)
+    c = conn.cursor()
+    c.execute(query, params)
+    data = c.fetchall() if fetch else None
+    conn.commit()
+    conn.close()
+    return data
 
-# --- عنوان الشاشة والعداد الفوق ---
-col_h1, col_h2 = st.columns([3, 1])
-col_h1.title("📦 ياسر ويب - نظام إدارة المبيعات")
-col_h2.metric("عربات المشتريات 🛒", len(st.session_state.cart))
+# --- 2. إدارة الجلسة والسلة ---
+if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+if 'is_unlocked' not in st.session_state: st.session_state.is_unlocked = False
+if 'cart' not in st.session_state: st.session_state.cart = []
 
-# --- التبويبات الرئيسية ---
-tab1, tab2, tab3 = st.tabs(["🛒 شبكة المواد والبيع", "📊 التقارير والتجربة", "⚙️ إضافة مواد للمخزن"])
-
-# --- تبويب 1: شبكة المواد (الكارتات وسرعة البيع) ---
-with tab1:
-    st.subheader("اختر المواد للبيع السريع:")
-    items = sqlite3.connect('yasser_web.db').cursor().execute("SELECT id, name, quantity, price FROM inventory").fetchall()
+# --- 3. شاشة تسجيل الدخول ---
+if not st.session_state.logged_in:
+    st.markdown("<h1 style='text-align: center; color: #0e4d3a;'>⚡ ياسر ويب - نظام إدارة المحلات الاحترافي</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray;'>النظام الشامل للمبيعات، المخازن، والعملاء</p>", unsafe_allow_html=True)
     
-    if items:
-        cols = st.columns(3)
-        for i, item in enumerate(items):
-            with cols[i % 3]:
-                with st.container(border=True):
-                    st.markdown(f"### 🏷️ {item[1]}")
-                    st.write(f"السعر: {item[3]:,} د.ع")
-                    st.write(f"المتوفر بالمخزن: {item[2]}")
-                    
-                    # زر الإضافة السري
-                    if st.button(f"إضافة للسلة ➕", key=f"add_{item[0]}"):
-                        st.session_state.cart.append(item)
-                        st.toast(f"تمت إضافة {item[1]} للسلة بنجاح!", icon="✅")
+    col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
+    with col_l2:
+        with st.container(border=True):
+            with st.form("login_form"):
+                st.subheader("🔐 تسجيل الدخول للنظام")
+                username = st.text_input("اسم المستخدم", value="admin")
+                password = st.text_input("كلمة المرور", type="password", value="1234")
+                if st.form_submit_button("دخول", use_container_width=True):
+                    user = run_query("SELECT * FROM users WHERE username = ? AND password = ?", (username.strip(), password), fetch=True)
+                    if user:
+                        st.session_state.logged_in = True
+                        st.session_state.username = username.strip()
                         st.rerun()
-    else:
-        st.info("المخزن فارغ حالياً. أضف بعض المواد من تبويب 'إضافة مواد للمخزن'.")
-
-    st.divider()
-    st.subheader("🛒 سلة المشتريات الحالية والفاتورة")
-    if st.session_state.cart:
-        grand_total = 0
-        for idx, c_item in enumerate(st.session_state.cart):
-            st.write(f"{idx+1}. {c_item[1]} - السعر: {c_item[3]:,} د.ع")
-            grand_total += c_item[3]
-        
-        st.markdown(f"### الإجمالي الكلي: `{grand_total:,} د.ع`")
-        
-        if st.button("✅ إتمام عملية البيع وخصم الكمية"):
-            conn = sqlite3.connect('yasser_web.db')
-            c = conn.cursor()
-            for c_item in st.session_state.cart:
-                c.execute("UPDATE inventory SET quantity = quantity - 1 WHERE id = ?", (c_item[0],))
-            conn.commit()
-            conn.close()
-            st.session_state.cart = []
-            st.success("تم إتمام البيع بنجاح وقص المواد من المخزن!")
-            st.rerun()
-    else:
-        st.info("السلة فارغة.")
-
-# --- تبويب 2: التقارير (معاينة تجريبية) ---
-with tab2:
-    st.subheader("📊 لوحة التقارير والأرباح")
-    if not st.session_state.is_unlocked:
-        st.warning("⚠️ **أنت تستخدم المعاينة التجريبية للتقارير.** (النسخة الكاملة تتيح تصدير التقارير وتحليل حركة الأرباح بدقة مفصلة).")
+                    else:
+                        st.error("خطأ في اسم المستخدم أو كلمة المرور.")
+else:
+    # --- الشريط الجانبي للتفعيل والتحكم ---
+    st.sidebar.markdown(f"### 👤 المستخدم: **{st.session_state.username}**")
+    st.sidebar.divider()
     
-    items = sqlite3.connect('yasser_web.db').cursor().execute("SELECT name, quantity, price FROM inventory").fetchall()
-    if items:
-        total_val = sum([i[1] * i[2] for i in items])
-        col_r1, col_r2 = st.columns(2)
-        col_r1.metric("إجمالي قيمة المخزن التجريبي", f"{total_val:,} د.ع")
-        col_r2.metric("عدد الأصناف", len(items))
-        
-        chart_data = {i[0]: i[1] * i[2] for i in items}
-        st.bar_chart(chart_data)
-    else:
-        st.info("لا توجد بيانات كافية لعرض التقارير.")
-
-# --- تبويب 3: إضافة مواد (مع تطبيق قيد النسخة المجانية) ---
-with tab3:
-    st.subheader("⚙️ إدارة المخزن وإضافة المواد")
+    st.sidebar.subheader("🔐 حالة النسخة والترخيص")
     if not st.session_state.is_unlocked:
-        st.info("ℹ️ **ملاحظة للنسخة التجريبية:** يمكنك إضافة مواد بحرية، ولكن بحد أقصى **100 قطعة** في الإدخال الواحد. أدخل كود التفعيل لرفع هذا القيد تماماً.")
-    
-    with st.form("add_form"):
-        name = st.text_input("اسم المادة الجديدة").strip()
-        qty = st.number_input("الكمية", min_value=1, value=10)
-        price = st.number_input("السعر بالدينار", min_value=0, value=1000)
-        
-        if st.form_submit_button("حفظ المادة في المخزن"):
-            if not st.session_state.is_unlocked and qty > 100:
-                st.error("⚠️ عذراً! النسخة التجريبية تحصر الإدخال بـ 100 قطعة كحد أقصى لكل عملية. أدخل كود التفعيل لإلغاء هذا القيد.")
-            elif name:
-                conn = sqlite3.connect('yasser_web.db')
-                c = conn.cursor()
-                # التحقق إذا المادة موجودة مسبقاً
-                existing = c.execute("SELECT id, quantity FROM inventory WHERE name = ?", (name,)).fetchone()
-                if existing:
-                    new_q = existing[1] + qty
-                    c.execute("UPDATE inventory SET quantity = ?, price = ? WHERE id = ?", (new_q, price, existing[0]))
-                    st.success(f"تم تحديث مادة '{name}' بنجاح! الكمية الجديدة: {new_q}")
-                else:
-                    c.execute("INSERT INTO inventory (name, quantity, price) VALUES (?, ?, ?)", (name, qty, price))
-                    st.success(f"تم إضافة مادة '{name}' بنجاح للمخزن!")
-                conn.commit()
-                conn.close()
+        st.sidebar.warning("⚠️ النسخة التجريبية (بقيود على الإدخال والتقارير)")
+        act_code = st.sidebar.text_input("أدخل كود التفعيل:", type="password")
+        if st.sidebar.button("تفعيل النسخة الكاملة"):
+            if act_code == "2009":
+                st.session_state.is_unlocked = True
+                st.sidebar.success("✅ تم التفعيل بنجاح!")
                 st.rerun()
             else:
-                st.error("الرجاء إدخال اسم المادة على الأقل.")
+                st.sidebar.error("كود التفعيل غير صحيح!")
+    else:
+        st.sidebar.success("✅ النسخة الكاملة مفعلة بلا حدود")
+        if st.sidebar.button("إلغاء التفعيل"):
+            st.session_state.is_unlocked = False
+            st.rerun()
+
+    st.sidebar.divider()
+    if st.sidebar.button("تسجيل الخروج"):
+        st.session_state.logged_in = False
+        st.session_state.cart = []
+        st.rerun()
+
+    # --- العداد العلوي وعنوان اللوحة ---
+    col_top1, col_top2 = st.columns([3, 1])
+    col_top1.markdown("<h2 style='color: #0e4d3a;'>📦 لوحة تحكم ياسر ويب المتكاملة</h2>", unsafe_allow_html=True)
+    col_top2.metric("عربة المشتريات 🛒", len(st.session_state.cart))
+
+    # --- التبويبات كاملة (كما طلبتها بكل الأقسام) ---
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "🛒 المبيعات والسلة", "📦 شبكة المخزن", "➕ إضافة مواد", "👥 العملاء", "💰 المالية والحسابات", "📊 التقارير النهائية"
+    ])
+
+    # --- تبويب 1: المبيعات والسلة (الكارتات وزر الإضافة والعداد والبيع السريع) ---
+    with tab1:
+        st.subheader("🛒 نقطة البيع السريع (اختر المواد للسلة)")
+        items = run_query("SELECT id, name, quantity, price FROM inventory", fetch=True)
+        
+        if items:
+            cols = st.columns(3)
+            for index, item in enumerate(items):
+                item_id, name, quantity, price = item
+                with cols[index % 3]:
+                    with st.container(border=True):
+                        st.markdown(f"### 🏷️ {name}")
+                        st.metric("المتوفر", f"{quantity} قطعة")
+                        st.write(f"**السعر**: {price:,} د.ع")
+                        
+                        # زر الإضافة للسلة الذي يرفع العداد فوراً
+                        if st.button("إضافة للسلة ➕", key=f"cart_add_{item_id}"):
+                            # التحقق إذا المادة موجودة بالسلة مسبقاً
+                            found_in_cart = False
+                            for cart_item in st.session_state.cart:
+                                if cart_item['id'] == item_id:
+                                    if cart_item['qty'] < quantity:
+                                        cart_item['qty'] += 1
+                                        cart_item['total'] = cart_item['qty'] * price
+                                        st.toast(f"تم زيادة كمية '{name}' في السلة!", icon="✅")
+                                    else:
+                                        st.error("الكمية المطلوبة تتجاوز المخزون المتوفر!")
+                                    found_in_cart = True
+                                    break
+                            
+                            if not found_in_cart:
+                                if quantity > 0:
+                                    st.session_state.cart.append({
+                                        'id': item_id,
+                                        'name': name,
+                                        'qty': 1,
+                                        'price': price,
+                                        'total': price
+                                    })
+                                    st.toast(f"تمت إضافة '{name}' للسلة!", icon="✅")
+                                else:
+                                    st.error("المادة نفدت من المخزن!")
+                            st.rerun()
+            
+            st.divider()
+            st.subheader("🧾 عربة المشتريات الحالية وفاتورة البيع")
+            if st.session_state.cart:
+                grand_total = 0
+                for i, c_item in enumerate(st.session_state.cart):
+                    rc1, rc2, rc3, rc4 = st.columns([3, 2, 2, 1])
+                    rc1.write(f"**{c_item['name']}**")
+                    rc2.write(f"الكمية: {c_item['qty']}")
+                    rc3.write(f"المجموع: {c_item['total']:,} د.ع")
+                    grand_total += c_item['total']
+                    if rc4.button("حذف", key=f"del_c_{i}"):
+                        st.session_state.cart.pop(i)
+                        st.rerun()
+                
+                st.markdown(f"### 💰 الإجمالي الكلي للفاتورة: `{grand_total:,} د.ع`")
+                st.divider()
+                
+                pay_col1, pay_col2 = st.columns(2)
+                with pay_col1:
+                    cust_res = run_query("SELECT name FROM customers", fetch=True)
+                    cust_list = [c[0] for c in cust_res] if cust_res else ["عميل نقدي عام"]
+                    if "عميل نقدي عام" not in cust_list: cust_list.insert(0, "عميل نقدي عام")
+                    selected_customer = st.selectbox("اختر العميل", cust_list)
+                with pay_col2:
+                    payment_method = st.radio("طريقة الدفع:", ["نقدي (كاش)", "دين (آجل)"], horizontal=True)
+                
+                if st.button("✅ إتمام البيع وقص المواد من المخزن نهائياً", use_container_width=True):
+                    success_out = True
+                    for c_item in st.session_state.cart:
+                        db_q = run_query("SELECT quantity FROM inventory WHERE id = ?", (c_item['id'],), fetch=True)
+                        if db_q and db_q[0][0] >= c_item['qty']:
+                            new_stock = db_q[0][0] - c_item['qty']
+                            run_query("UPDATE inventory SET quantity = ? WHERE id = ?", (new_stock, c_item['id']))
+                        else:
+                            success_out = False
+                            st.error(f"فشل بيع مادة '{c_item['name']}' لعدم كفاية المخزن!")
+                    
+                    if success_out:
+                        invoice_content = f"""
+=====================================
+      ⚡ ياسر ويب - فاتورة مبيعات معتمدة
+=====================================
+التاريخ: {date.today()}
+العميل: {selected_customer}
+طريقة الدفع: {payment_method}
+-------------------------------------
+"""
+                        for c_item in st.session_state.cart:
+                            invoice_content += f"- {c_item['name']} | العدد: {c_item['qty']} | السعر: {c_item['price']:,} | المجموع: {c_item['total']:,}\n"
+                        invoice_content += f"""-------------------------------------
+الإجمالي الكلي: {grand_total:,} د.ع
+=====================================
+شكراً لتعاملكم مع ياسر ويب
+"""
+                        st.success("تم إتمام الفاتورة وقص المواد من المخزن بنجاح!")
+                        st.text(invoice_content)
+                        st.download_button(
+                            label="📥 تحميل الفاتورة النصية (TXT)",
+                            data=invoice_content,
+                            file_name=f"invoice_{date.today()}.txt",
+                            mime="text/plain",
+                            use_container_width=True
+                        )
+                        st.session_state.cart = []
+            else:
+                st.info("السلة فارغة حالياً. اضغط على 'إضافة للسلة' في أي مادة بالاعلى.")
+        else:
+            st.info("لا توجد مواد في المخزن حالياً.")
+
+    # --- تبويب 2: شبكة المخزن ---
+    with tab2:
+        st.subheader("📦 شبكة المخازن والمنتجات الحالية")
+        items = run_query("SELECT id, name, quantity, price FROM inventory", fetch=True)
+        if items:
+            cols = st.columns(3)
+            for index, item in enumerate(items):
+                item_id, name, quantity, price = item
+                with cols[index % 3]:
+                    with st.container(border=True):
+                        st.markdown(f"### 🏷️ {name}")
+                        st.metric("الكمية المتوفرة", f"{quantity} قطعة")
+                        st.metric("السعر المفرد", f"{price:,} د.ع")
+                        if st.button("حذف المادة من المخزن 🗑️", key=f"inv_del_{item_id}"):
+                            run_query("DELETE FROM inventory WHERE id = ?", (item_id,))
+                            st.rerun()
+        else:
+            st.info("المخزن فارغ.")
+
+    # --- تبويب 3: إضافة مواد ---
+    with tab3:
+        st.subheader("➕ إضافة مادة جديدة للمخزن")
+        if not st.session_state.is_unlocked:
+            st.info("ℹ️ ملاحظة: النسخة التجريبية تسمح بحد أقصى 100 قطعة في الإدخال الواحد. أدخل كود التفعيل للرفع.")
+        
+        with st.form("add_item_form"):
+            col_a1, col_a2 = st.columns(2)
+            with col_a1:
+                item_name = st.text_input("اسم المادة").strip()
+                item_qty = st.number_input("الكمية", min_value=1, value=10, step=1)
+            with col_a2:
+                item_price = st.number_input("السعر بالدينار", min_value=0, value=1000, step=250)
+            
+            if st.form_submit_button("حفظ المادة في النظام"):
+                if not st.session_state.is_unlocked and item_qty > 100:
+                    st.error("⚠️ النسخة التجريبية تحصر الإدخال بـ 100 قطعة كحد أقصى!")
+                elif item_name:
+                    existing_item = run_query("SELECT id, quantity FROM inventory WHERE name = ?", (item_name,), fetch=True)
+                    if existing_item:
+                        db_id, cur_q = existing_item[0]
+                        updated_q = cur_q + item_qty
+                        run_query("UPDATE inventory SET quantity = ?, price = ? WHERE id = ?", (updated_q, item_price, db_id))
+                        st.success(f"تم تحديث مادة '{item_name}' بنجاح! الكمية الجديدة: {updated_q}")
+                    else:
+                        run_query("INSERT INTO inventory (name, quantity, price) VALUES (?, ?, ?)", (item_name, item_qty, item_price))
+                        st.success(f"تم إضافة مادة '{item_name}' بنجاح!")
+                else:
+                    st.error("الرجاء إدخال اسم المادة.")
+
+    # --- تبويب 4: العملاء ---
+    with tab4:
+        st.subheader("👥 إدارة العملاء والزبائن")
+        with st.form("add_customer_form"):
+            cc1, cc2 = st.columns(2)
+            with cc1:
+                c_name = st.text_input("اسم العميل أو المحل")
+                c_phone = st.text_input("رقم الهاتف")
+                c_gov = st.text_input("المحافظة")
+            with cc2:
+                c_loc = st.text_input("مكان المحل بالتفصيل")
+                c_landmark = st.text_input("أقرب نقطة دالة")
+            
+            if st.form_submit_button("حفظ بيانات العميل"):
+                if c_name:
+                    run_query("INSERT INTO customers (name, phone, shop_location, governorate, landmark) VALUES (?, ?, ?, ?, ?)", 
+                              (c_name, c_phone, c_loc, c_gov, c_landmark))
+                    st.success("تم حفظ العميل بنجاح!")
+                else:
+                    st.error("يرجى إدخال اسم العميل على الأقل.")
+        
+        st.divider()
+        st.subheader("قائمة العملاء المسجلين:")
+        saved_customers = run_query("SELECT name, phone, shop_location, governorate, landmark FROM customers", fetch=True)
+        if saved_customers:
+            for sc in saved_customers:
+                st.markdown(f"- 👤 **{sc[0]}** | 📱 الهاتف: {sc[1] or 'غير متوفر'} | 📍 المحل: {sc[2] or 'غير متوفر'} | 🏛️ المحافظة: {sc[3] or 'غير متوفر'} | 🚩 نقطة دالة: {sc[4] or 'لا توجد'}")
+        else:
+            st.info("لا يوجد عملاء مسجلين حالياً.")
+
+    # --- تبويب 5: المالية والحسابات ---
+    with tab5:
+        st.subheader("💰 إدارة الأموال ورأس المال والخزنة")
+        items = run_query("SELECT quantity, price FROM inventory", fetch=True)
+        total_capital = sum([it[0] * it[1] for it in items]) if items else 0
+        
+        col_m1, col_m2 = st.columns(2)
+        col_m1.metric("إجمالي رأس مال المخزون الحالي", f"{total_capital:,} د.ع")
+        col_m2.metric("حالة الخزنة", "نشطة 🟢")
+        st.info("هذا القسم يوضح السيولة وحسابات رأس المال المرتبطة بالبضاعة المتوفرة في المخازن حالياً.")
+
+    # --- تبويب 6: التقارير النهائية ---
+    with tab6:
+        st.subheader("📊 التقارير النهائية والأرباح")
+        if not st.session_state.is_unlocked:
+            st.warning("🔒 **تقارير الأرباح المتقدمة والتحليلية مقفلة في النسخة التجريبية.** أدخل كود التفعيل لفتحها.")
+        else:
+            st.success("✅ النسخة الكاملة مفعلة بالكامل للتقارير!")
+            items = run_query("SELECT name, quantity, price FROM inventory", fetch=True)
+            if items:
+                tot_items = len(items)
+                tot_qty = sum([i[1] for i in items])
+                tot_val = sum([i[1] * i[2] for i in items])
+                
+                rc1, rc2, rc3 = st.columns(3)
+                rc1.metric("عدد الأصناف", tot_items)
+                rc2.metric("إجمالي القطع", tot_qty)
+                rc3.metric("إجمالي القيمة", f"{tot_val:,} د.ع")
+                
+                st.divider()
+                chart_data = {i[1]: i[1] * i[2] for i in items}
+                st.bar_chart(chart_data)
+            else:
+                st.info("لا توجد بيانات كافية للتقارير.")
+
+st.divider()
+st.markdown("<p style='text-align: center; color: gray;'>ياسر ويب | نظام إدارة المحلات الاحترافي المتكامل</p>", unsafe_allow_html=True)
