@@ -100,7 +100,7 @@ else:
 
     if st.sidebar.button("تسجيل الخروج"):
         if not st.session_state.backup_downloaded:
-            st.sidebar.error("❌ ممنوع الخروج! يجيب عليك تحميل النسخة الاحتياطية أولاً لحماية بياناتك من الضياع.")
+            st.sidebar.error("❌ ممنوع الخروج! يجب عليك تحميل النسخة الاحتياطية أولاً لحماية بياناتك من الضياع.")
         else:
             st.session_state.logged_in = False
             st.session_state.backup_downloaded = False
@@ -108,7 +108,7 @@ else:
         
     st.sidebar.divider()
     
-    if not st.session_state.is_unlocked:
+    if not st.sidebar.is_unlocked:
         st.sidebar.info("📌 النسخة المجانية نشطة.")
         code_input = st.sidebar.text_input("رمز التفعيل:", type="password")
         if st.sidebar.button("تفعيل النسخة المدفوعة"):
@@ -197,10 +197,9 @@ else:
                 st.success("تم حفظ الفاتورة وتحديث المخزن بنجاح! لا تنسَ أخذ نسخة احتياطية من القائمة الجانبية.")
                 st.rerun()
 
-    with tabs[1]: # الأرشيف مع تصفية التاريخ وواتساب
+    with tabs[1]: # الأرشيف والفاتورة المطابقة لطلبك
         st.subheader("📜 أرشيف الفواتير الرسمية")
         
-        # تصفية التاريخ
         f_col1, f_col2 = st.columns(2)
         filter_date = f_col1.date_input("تصفية الأرشيف حسب التاريخ (اختياري):", value=None)
         
@@ -211,55 +210,63 @@ else:
             
         if invs:
             for i in invs:
-                # جلب بيانات العميل وهاتفه لواتساب
                 cust_info = run_query("SELECT shop_name, shop_location, phone FROM customers WHERE name = ?", (i[1],), fetch=True)
-                shop_name = cust_info[0][0] if cust_info and cust_info[0][0] else "غير مسجل"
+                shop_name = cust_info[0][0] if cust_info and cust_info[0][0] else i[1]
                 shop_loc = cust_info[0][1] if cust_info and cust_info[0][1] else "غير مسجل"
                 phone_num = cust_info[0][2] if cust_info and cust_info[0][2] else ""
 
-                # تجهيز رابط واتساب
-                wa_msg = f"مرحباً {i[1]}، تفاصيل فاتورتك رقم #{i[0]} من ياسر ويب:\n📅 التاريخ: {i[6]}\n💰 الإجمالي: {int(i[2]):,} دينار\n💵 المدفوع: {int(i[3]):,} دينار\n⚠️ المتبقي (الدين): {int(i[4]):,} دينار\nشكراً لتعاملكم معنا!"
+                # تجهيز تفاصيل المواد وحساب عدد الأصناف ومجموع الكميات
+                items_html = ""
+                num_items = 0
+                total_qty = 0
+                try:
+                    df_details = pd.read_csv(StringIO(i[5]))
+                    num_items = len(df_details)
+                    for idx, row in df_details.iterrows():
+                        p_name = row.get('name', '')
+                        p_price = int(row.get('price', 0))
+                        p_qty = int(row.get('qty', 0))
+                        total_qty += p_qty
+                        sub_total = p_price * p_qty
+                        items_html += f"<tr><td>{idx+1}</td><td>• {p_name}</td><td>{p_price:,} د.ع</td><td>{p_qty}</td><td>{sub_total:,} د.ع</td></tr>"
+                except: 
+                    items_html = "<tr><td colspan='5'>خطأ في عرض المواد</td></tr>"
+
+                invoice_code = f"INV-{i[0]:04d}"
+                wa_msg = f"المحل: {shop_name}\nرقم الفاتورة: {invoice_code}\n📅 التاريخ: {i[6]}\n-------------------\nإجمالي القائمة: {int(i[2]):,} د.ع\nالمبلغ المدفوع: {int(i[3]):,} د.ع\nالمتبقي دين: {int(i[4]):,} د.ع\nعدد الأصناف: {num_items} | مجموع الكراتين: {total_qty}\nشكراً لتعاملكم معنا!"
                 encoded_wa = urllib.parse.quote(wa_msg)
                 wa_link = f"https://api.whatsapp.com/send?phone={phone_num}&text={encoded_wa}" if phone_num else "#"
 
                 with st.container(border=True):
                     col_a, col_b, col_c = st.columns([3, 1, 1])
                     with col_a:
-                        st.write(f"**فاتورة رقم #{i[0]}** | العميل: {i[1]} | التاريخ: {i[6]} | الإجمالي: {int(i[2]):,} د.ع")
+                        st.write(f"**فاتورة رقم #{invoice_code}** | المحل: {shop_name} | الإجمالي: {int(i[2]):,} د.ع")
                     with col_b:
                         if phone_num:
-                            st.markdown(f"<a href='{wa_link}' target='_blank' style='text-decoration:none;'><button style='background-color:#25D366; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;'>إرسال واتساب 💬</button></a>", unsafe_allow_html=True)
+                            st.markdown(f"<a href='{wa_link}' target='_blank' style='text-decoration:none;'><button style='background-color:#25D366; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;'>واتساب 💬</button></a>", unsafe_allow_html=True)
                         else:
-                            st.write("رقم الهاتف غير متاح")
+                            st.write("بدون هاتف")
                     with col_c:
                         if st.button("🗑️ حذف", key=f"del_inv_{i[0]}"):
                             run_query("DELETE FROM invoices WHERE id = ?", (i[0],))
                             st.rerun()
 
-                    items_html = ""
-                    try:
-                        df_details = pd.read_csv(StringIO(i[5]))
-                        for _, row in df_details.iterrows():
-                            p_price = int(row.get('price', 0))
-                            p_qty = int(row.get('qty', 0))
-                            sub_total = p_price * p_qty
-                            items_html += f"<tr><td>{row.get('name', '')}</td><td>{p_price:,}</td><td>{p_qty}</td><td>{sub_total:,}</td></tr>"
-                    except: items_html = "<tr><td colspan='4'>خطأ في عرض المواد</td></tr>"
-
+                    # قالب الفاتورة المطابق لطلبك تماماً
                     pdf_html_content = f"""
                     <html dir='rtl'>
-                    <head><meta charset='UTF-8'><title>فاتورة #{i[0]}</title>
+                    <head><meta charset='UTF-8'><title>فاتورة {invoice_code}</title>
                     <style>
-                        body {{ font-family: Tahoma, sans-serif; padding: 20px; color: #000; background: #fff; }}
-                        .inv-card {{ border: 2px solid #008080; padding: 25px; max-width: 700px; margin: auto; background: #fff; border-radius: 8px; }}
+                        body {{ font-family: Tahoma, sans-serif; padding: 25px; color: #000; background: #fff; }}
+                        .inv-card {{ border: 2px solid #008080; padding: 25px; max-width: 750px; margin: auto; background: #fff; border-radius: 8px; }}
                         h2 {{ text-align: center; color: #008080; margin-bottom: 5px; }}
                         .subtitle {{ text-align: center; color: #666; font-size: 14px; margin-top: 0; }}
-                        .info-box {{ background: #f8f9fa; border: 1px solid #ddd; padding: 12px; border-radius: 6px; margin: 15px 0; font-size: 14px; }}
+                        .info-box {{ background: #f8f9fa; border: 1px solid #ddd; padding: 12px; border-radius: 6px; margin: 15px 0; font-size: 15px; }}
                         .info-box p {{ margin: 6px 0; }}
                         table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
-                        th {{ background-color: #008080; color: white; border: 1px solid #999; padding: 10px; font-size: 14px; }}
-                        td {{ border: 1px solid #999; padding: 8px; text-align: center; font-size: 14px; }}
-                        .totals {{ margin-top: 15px; font-size: 15px; background: #fdfefe; border: 1px solid #ddd; padding: 10px; border-radius: 6px; }}
+                        th {{ background-color: #008080; color: white; border: 1px solid #999; padding: 10px; font-size: 14px; text-align: center; }}
+                        td {{ border: 1px solid #999; padding: 9px; text-align: center; font-size: 14px; }}
+                        td:nth-child(2) {{ text-align: right; padding-right: 12px; }}
+                        .totals {{ margin-top: 15px; font-size: 15px; background: #fdfefe; border: 1px solid #ddd; padding: 12px; border-radius: 6px; }}
                         .totals p {{ margin: 6px 0; }}
                         .remaining {{ color: #c0392b; font-weight: bold; }}
                     </style></head>
@@ -268,22 +275,36 @@ else:
                             <h2>📦 ياسر ويب - النظام المحاسبي المتكامل</h2>
                             <p class='subtitle'>فاتورة مبيعات رسمية</p>
                             <hr style='border: 0; border-top: 1px solid #ddd;'>
+                            
                             <div class='info-box'>
-                                <p><b>رقم الفاتورة:</b> #{i[0]} &nbsp;&nbsp;|&nbsp;&nbsp; <b>التاريخ:</b> {i[6]}</p>
-                                <p><b>اسم العميل:</b> {i[1]}</p>
-                                <p><b>اسم المحل:</b> {shop_name}</p>
-                                <p><b>الموقع / المنطقة:</b> {shop_loc}</p>
-                                <p><b>رقم الهاتف:</b> {phone_num}</p>
+                                <p><b>المحل:</b> {shop_name}</p>
+                                <p><b>رقم الفاتورة:</b> {invoice_code} &nbsp;&nbsp;|&nbsp;&nbsp; <b>التاريخ:</b> {i[6]}</p>
+                                <p><b>عنوان المحل:</b> {shop_loc} &nbsp;&nbsp;|&nbsp;&nbsp; <b>رقم الهاتف:</b> {phone_num}</p>
                             </div>
+
                             <table>
-                                <thead><tr><th>المادة</th><th>السعر (د.ع)</th><th>الكمية</th><th>الإجمالي الفرعي</th></tr></thead>
-                                <tbody>{items_html}</tbody>
+                                <thead>
+                                    <tr>
+                                        <th>ت</th>
+                                        <th>المادة</th>
+                                        <th>السعر</th>
+                                        <th>الكمية</th>
+                                        <th>الإجمالي الفرعي</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {items_html}
+                                </tbody>
                             </table>
+
                             <div class='totals'>
-                                <p><b>إجمالي الفاتورة الكلي:</b> {int(i[2]):,} دينار</p>
-                                <p><b>المبلغ المدفوع:</b> {int(i[3]):,} دينار</p>
-                                <p class='remaining'><b>المتبقي (الدين الذمي):</b> {int(i[4]):,} دينار</p>
+                                <p><b>إجمالي القائمة:</b> {int(i[2]):,} د.ع</p>
+                                <p><b>المبلغ المدفوع:</b> {int(i[3]):,} د.ع</p>
+                                <p class='remaining'><b>المتبقي دين:</b> {int(i[4]):,} د.ع</p>
+                                <hr style='border: 0; border-top: 1px dashed #ccc; margin: 10px 0;'>
+                                <p><b>عدد الأصناف:</b> {num_items} &nbsp;&nbsp;|&nbsp;&nbsp; <b>مجموع الكراتين/الكميات:</b> {total_qty}</p>
                             </div>
+                            
                             <hr style='border: 0; border-top: 1px solid #ddd; margin-top: 20px;'>
                             <p style='text-align: center; font-size: 13px; color: #555;'>شكراً لتعاملكم معنا - ياسر ويب</p>
                         </div>
@@ -291,9 +312,9 @@ else:
                     """
                     
                     st.download_button(
-                        label="📥 تحميل الفاتورة (HTML / جدول مرتب)",
+                        label="📥 تحميل الفاتورة (HTML مرتبة ومنسقة)",
                         data=pdf_html_content,
-                        file_name=f"invoice_{i[0]}.html",
+                        file_name=f"invoice_{invoice_code}.html",
                         mime="text/html",
                         key=f"dl_pdf_{i[0]}"
                     )
@@ -413,7 +434,6 @@ else:
         custs = run_query("SELECT id, name, shop_name, phone, shop_location FROM customers", fetch=True)
         if custs:
             for c in custs:
-                # حساب الدين الصافي (إجمالي المتبقي - مجموع التسديدات)
                 debt_res = run_query("SELECT SUM(remaining_amount) FROM invoices WHERE customer_name = ?", (c[1],), fetch=True)
                 total_invoice_debt = debt_res[0][0] if debt_res and debt_res[0][0] else 0
                 
@@ -436,7 +456,6 @@ else:
                             run_query("DELETE FROM customers WHERE id = ?", (c[0],))
                             st.rerun()
 
-                    # نظام تسديد الديون (للنسخة المدفوعة)
                     if st.session_state.is_unlocked and net_debt > 0:
                         with st.expander(f"💵 تسجيل تسديد دفعة دين للزبون: {c[1]}"):
                             with st.form(f"pay_form_{c[0]}"):
