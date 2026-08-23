@@ -44,7 +44,6 @@ def run_query(query, params=(), fetch=False):
 # --- إدارة الجلسة ---
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'username' not in st.session_state: st.session_state.username = ""
-if 'is_unlocked' not in st.session_state: st.session_state.is_unlocked = False
 if 'backup_downloaded' not in st.session_state: st.session_state.backup_downloaded = False
 
 # --- واجهة تسجيل الدخول (معدلة لتظهر بوضوح تام على الموبايل والحاسبة) ---
@@ -112,19 +111,6 @@ else:
             st.rerun()
         
     st.sidebar.divider()
-    
-    if not st.session_state.is_unlocked:
-        st.sidebar.info("📌 النسخة المجانية نشطة.")
-        code_input = st.sidebar.text_input("رمز التفعيل:", type="password")
-        if st.sidebar.button("تفعيل النسخة المدفوعة"):
-            if code_input == "2009":
-                st.session_state.is_unlocked = True
-                st.success("تم تفعيل النسخة الكاملة بنجاح!")
-                st.rerun()
-            else:
-                st.sidebar.error("رمز التفعيل غير صحيح")
-    else:
-        st.sidebar.success("⭐ النسخة المدفوعة مفعلة بالكامل")
 
     # --- التبويبات الرئيسية ---
     tabs = st.tabs(["🛒 البيع", "📜 الأرشيف", "📦 المخزن", "💰 الأرباح والمصاريف", "👥 العملاء والديون"])
@@ -366,58 +352,55 @@ else:
 
     with tabs[3]: # الأرباح والمصاريف
         st.subheader("💰 الأرباح، المبيعات، ومصاريف المحل")
-        if st.session_state.is_unlocked:
-            invs_all = run_query("SELECT total_amount, received_amount, remaining_amount FROM invoices", fetch=True)
-            total_sales = sum(i[0] for i in invs_all) if invs_all else 0
-            total_received = sum(i[1] for i in invs_all) if invs_all else 0
-            total_debts = sum(i[2] for i in invs_all) if invs_all else 0
+        invs_all = run_query("SELECT total_amount, received_amount, remaining_amount FROM invoices", fetch=True)
+        total_sales = sum(i[0] for i in invs_all) if invs_all else 0
+        total_received = sum(i[1] for i in invs_all) if invs_all else 0
+        total_debts = sum(i[2] for i in invs_all) if invs_all else 0
 
-            exps_all = run_query("SELECT amount FROM expenses", fetch=True)
-            total_expenses = sum(e[0] for e in exps_all) if exps_all else 0
-            
-            net_profit = total_received - total_expenses
+        exps_all = run_query("SELECT amount FROM expenses", fetch=True)
+        total_expenses = sum(e[0] for e in exps_all) if exps_all else 0
+        
+        net_profit = total_received - total_expenses
 
-            col_p1, col_p2, col_p3, col_p4 = st.columns(4)
-            col_p1.metric("إجمالي المبيعات", f"{int(total_sales):,} د.ع")
-            col_p2.metric("الديون المعلقة", f"{int(total_debts):,} د.ع")
-            col_p3.metric("إجمالي المصاريف", f"{int(total_expenses):,} د.ع")
-            col_p4.metric("صافي الدخل النقدي", f"{int(net_profit):,} د.ع")
+        col_p1, col_p2, col_p3, col_p4 = st.columns(4)
+        col_p1.metric("إجمالي المبيعات", f"{int(total_sales):,} د.ع")
+        col_p2.metric("الديون المعلقة", f"{int(total_debts):,} د.ع")
+        col_p3.metric("إجمالي المصاريف", f"{int(total_expenses):,} د.ع")
+        col_p4.metric("صافي الدخل النقدي", f"{int(net_profit):,} د.ع")
 
-            st.divider()
-            with st.expander("➕ تسجيل مصروف جديد للمحل"):
-                with st.form("exp_form"):
-                    e_title = st.text_input("بيان المصروف (مثلاً: إيجار، كهرباء)")
-                    e_amount = st.text_input("المبلغ (د.ع)")
-                    if st.form_submit_button("حفظ المصروف"):
-                        if e_title.strip() and e_amount.isdigit():
-                            run_query("INSERT INTO expenses (title, amount, exp_date) VALUES (?, ?, ?)", (e_title, int(e_amount), str(date.today())))
-                            st.success("تم تسجيل المصروف بنجاح")
-                            st.rerun()
-                        else:
-                            st.error("يرجى إدخال البيانات بشكل صحيح")
-
-            st.write("### 📋 سجل المصاريف المسجلة")
-            exps_list = run_query("SELECT id, title, amount, exp_date FROM expenses ORDER BY id DESC", fetch=True)
-            if exps_list:
-                for exp in exps_list:
-                    c_ex1, c_ex2 = st.columns([4, 1])
-                    c_ex1.write(f"🔹 **{exp[1]}** | المبلغ: **{int(exp[2]):,} د.ع** | التاريخ: {exp[3]}")
-                    if c_ex2.button("حذف", key=f"del_exp_{exp[0]}"):
-                        run_query("DELETE FROM expenses WHERE id = ?", (exp[0],))
+        st.divider()
+        with st.expander("➕ تسجيل مصروف جديد للمحل"):
+            with st.form("exp_form"):
+                e_title = st.text_input("بيان المصروف (مثلاً: إيجار، كهرباء)")
+                e_amount = st.text_input("المبلغ (د.ع)")
+                if st.form_submit_button("حفظ المصروف"):
+                    if e_title.strip() and e_amount.isdigit():
+                        run_query("INSERT INTO expenses (title, amount, exp_date) VALUES (?, ?, ?)", (e_title, int(e_amount), str(date.today())))
+                        st.success("تم تسجيل المصروف بنجاح")
                         st.rerun()
-            else:
-                st.info("لا توجد مصاريف مسجلة حتى الآن.")
+                    else:
+                        st.error("يرجى إدخال البيانات بشكل صحيح")
 
-            st.divider()
-            st.write("### ⚠️ تنبيهات المخزن الذكية")
-            low_stock = run_query("SELECT name, quantity FROM inventory WHERE quantity <= 3", fetch=True)
-            if low_stock:
-                for ls in low_stock:
-                    st.warning(f"المادة **{ls[0]}** وشكت على النفاذ! الكمية المتبقية: {ls[1]} فقط.")
-            else:
-                st.success("جميع المواد في المخزن بحالة ممتازة.")
+        st.write("### 📋 سجل المصاريف المسجلة")
+        exps_list = run_query("SELECT id, title, amount, exp_date FROM expenses ORDER BY id DESC", fetch=True)
+        if exps_list:
+            for exp in exps_list:
+                c_ex1, c_ex2 = st.columns([4, 1])
+                c_ex1.write(f"🔹 **{exp[1]}** | المبلغ: **{int(exp[2]):,} د.ع** | التاريخ: {exp[3]}")
+                if c_ex2.button("حذف", key=f"del_exp_{exp[0]}"):
+                    run_query("DELETE FROM expenses WHERE id = ?", (exp[0],))
+                    st.rerun()
         else:
-            st.warning("🔒 هذه الميزة متوفرة حصرياً في النسخة المدفوعة (أدخل رمز التفعيل `2009`).")
+            st.info("لا توجد مصاريف مسجلة حتى الآن.")
+
+        st.divider()
+        st.write("### ⚠️ تنبيهات المخزن الذكية")
+        low_stock = run_query("SELECT name, quantity FROM inventory WHERE quantity <= 3", fetch=True)
+        if low_stock:
+            for ls in low_stock:
+                st.warning(f"المادة **{ls[0]}** وشكت على النفاذ! الكمية المتبقية: {ls[1]} فقط.")
+        else:
+            st.success("جميع المواد في المخزن بحالة ممتازة.")
     
     with tabs[4]: # العملاء وتسديد الديون
         st.subheader("👥 إدارة العملاء ونظام تسديد الديون")
@@ -462,7 +445,7 @@ else:
                             run_query("DELETE FROM customers WHERE id = ?", (c[0],))
                             st.rerun()
 
-                    if st.session_state.is_unlocked and net_debt > 0:
+                    if net_debt > 0:
                         with st.expander(f"💵 تسجيل تسديد دفعة دين للزبون: {c[1]}"):
                             with st.form(f"pay_form_{c[0]}"):
                                 p_amt = st.text_input("مبلغ التسديد النقدي (د.ع):", key=f"p_amt_{c[0]}")
