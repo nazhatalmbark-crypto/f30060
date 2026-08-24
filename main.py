@@ -1,77 +1,77 @@
 import streamlit as st
 
-st.set_page_config(page_title="Eng. Yasser Pro System", page_icon="🛍️", layout="wide")
+# إعدادات الصفحة
+st.set_page_config(
+    page_title="Eng. Yasser Pro System",
+    page_icon="🔓",
+    layout="wide"
+)
 
-# تهيئة الجلسة
-if "logged_user" not in st.session_state:
-    st.session_state.logged_user = None
+# شريط جانبى أو حالة المستخدم
+st.sidebar.title("إدارة المستخدم")
+user_name = st.sidebar.text_input("اسم المستخدم الحالي", "ياسر")
+st.sidebar.success(f"مرحباً بك، {user_name}")
 
-if "users_db" not in st.session_state:
-    st.session_state.users_db = {"admin": "مدير المحل"}
+# العنوان الرئيسي
+st.title("🔐 Eng. Yasser Pro System")
 
-if "cart" not in st.session_state:
-    st.session_state.cart = []
+# رسالة الترحيب والحالة
+st.markdown(
+    f"""
+    <div style="padding: 10px; background-color: #d4edda; color: #155724; border-radius: 5px; margin-bottom: 20px;">
+    أهلاً وسهلاً بك يا ({user_name}) في النظام الكامل!<br>
+    <b>النظام شغال بكامل تفاصيله وجاهز للاستخدام الفوري!</b>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-# إذا المستخدم ما مسجل دخول، اظهر الواجهة حصراً
-if not st.session_state.logged_user:
-    st.title("🛍️ Eng. Yasser Pro System - نظام إدارة المبيعات")
-    st.subheader("أهلاً بك! يرجى اختيار الطريقة للبدء:")
-    
-    # التبويبات الواضحة جداً
-    tab_login, tab_signup = st.tabs(["🔑 تسجيل الدخول", "✨ إنشاء حساب جديد"])
-    
-    with tab_login:
-        st.write("تسجيل الدخول للمستخدمين الحاليين:")
-        with st.form("login_form_fixed"):
-            l_user = st.text_input("اسم المستخدم:")
-            l_submit = st.form_submit_button("دخول للنظام", type="primary")
-            if l_submit:
-                if l_user.strip():
-                    st.session_state.logged_user = l_user.strip()
-                    st.success("تم تسجيل الدخول بنجاح!")
-                    st.rerun()
-                else:
-                    st.warning("يرجى كتابة اسم المستخدم.")
-                    
-    with tab_signup:
-        st.write("إنشاء حساب جديد للمستخدمين الجدد:")
-        with st.form("signup_form_fixed"):
-            s_user = st.text_input("اختر اسم المستخدم الجديد للمحل:")
-            s_submit = st.form_submit_button("إنشاء الحساب والبدء", type="primary")
-            if s_submit:
-                if s_user.strip():
-                    st.session_state.logged_user = s_user.strip()
-                    st.success("🎉 تم إنشاء الحساب والدخول بنجاح!")
-                    st.rerun()
-                else:
-                    st.warning("يرجى كتابة اسم المستخدم الجديد.")
-    st.stop()
+# تبويبات النظام الرئيسية
+tab_reports, tab_sales, tab_inventory, tab_pro = st.tabs([
+    "📊 التقارير", 
+    "🛒 سلة المبيعات", 
+    "📦 المخزن والبضائع", 
+    "🔑 تفعيل النسخة المدفوعة"
+])
 
-# ---------------------------------------------
-# الشاشة الرئيسية بعد الدخول (الوجهة الكاملة)
-# ---------------------------------------------
-username = st.session_state.logged_user
+with tab_reports:
+    st.subheader("تقارير المبيعات والأرباح")
+    st.info("هنا تظهر تقارير الحركة المالية والتحليلات الخاصة بالمخزن.")
+    # مثال لعنصر تفاعلي
+    st.metric(label="إجمالي المبيعات", value="0 د.ع", delta="0%")
 
-st.sidebar.title("⚙️ إعدادات الحساب")
-st.sidebar.write(f"👤 المستخدم الحالي: **{username}**")
-if st.sidebar.button("تسجيل الخروج"):
-    st.session_state.logged_user = None
-    st.rerun()
+with tab_sales:
+    st.subheader("إدارة سلة المبيعات والفواتير")
+    st.write("قم بإتمام عمليات البيع وإصدار الفواتير للزبائن بسهولة.")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input("اسم الزبون")
+    with col2:
+        st.number_input("البلغ الإجمالي", min_value=0, step=1000)
+    st.button("إصدار وطباعة الفاتورة", type="primary")
 
-st.title(f" أهلاً وسهلاً بك يا ({username}) في النظام الكامل")
-st.success("النظام شغال بكامل تفاصيله وجاهز للاستخدام الفوري!")
-
-# تبويبات النظام الكبرى
-t1, t2, t3 = st.tabs(["📦 المخزن والبضائع", "🛒 سلة المبيعات", "📊 التقارير"])
-
-with t1:
+with tab_inventory:
     st.subheader("إدارة المخزن")
     st.info("هنا تظهر بضائع المستخدم حصراً.")
+    # جدول تجريبي لإدارة المخزن
+    st.text_input("بحث عن مادة في المخزن...")
+    st.write("قائمة البضائع الحالية فارغة حالياً، أضف بضائع جديدة.")
 
-with t2:
-    st.subheader("سلة المبيعات والفواتير")
-    st.info("إصدار الفواتير وتسجيل المبيعات.")
+with tab_pro:
+    st.subheader("إدخال كود النسخة المدفوعة / الاحترافية")
+    st.write("أدخل الكود الخاص لفتح كافة ميزات النظام المتقدمة:")
+    
+    activation_code = st.text_input("حقل إدخال الكود السري:", type="password")
+    
+    if st.button("تحقق وتفعيل النسخة"):
+        if activation_code == "YASSER2026":
+            st.success("🎉 مبروك! تم تفعيل النسخة المدفوعة بنجاح كامل.")
+            st.balloons()
+        elif activation_code == "":
+            st.warning("الرجاء إدخال الكود أولاً.")
+        else:
+            st.error("❌ الكود غير صحيح، تأكد من الرقم وادخله مجدداً.")
 
-with t3:
-    st.subheader("تقارير الأرباح")
-    st.info("حساب الأرباح ورأس المال.")
+# فاصل سفلي
+st.divider()
+st.caption("Eng. Yasser Pro System - النسخة الاحترافية المحلية 2026")
