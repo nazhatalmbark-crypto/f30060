@@ -100,18 +100,21 @@ def generate_pdf_invoice(inv):
     buffer.seek(0)
     return buffer
 
-st.title("🛍️ نظام Yasser Web المتكامل لإدارة المبيعات والمخزون")
-
-# شاشة الدخول وتسجيل حساب جديد (واضحة وصريحة)
+# ----------------------------------------------------
+# الواجهة الأساسية الأولى: تسجيل الدخول أو حساب جديد
+# ----------------------------------------------------
 if not st.session_state.logged_in_user:
-    st.subheader("🔐 بوابة الدخول وإنشاء حساب جديد للمحل")
+    st.title("🛍️ Eng. Yasser Pro System - إدارة المبيعات والمخزون")
+    st.subheader("أهلاً بك! يرجى اختيار إحدى الطريقتين للبدء:")
     
-    auth_tab1, auth_tab2 = st.tabs(["🔑 تسجيل الدخول", "✨ إنشاء حساب جديد"])
+    tab_login, tab_signup = st.tabs(["🔑 تسجيل الدخول", "✨ إنشاء حساب جديد"])
     
-    with auth_tab1:
-        with st.form("login_form"):
-            login_user = st.text_input("اسم المستخدم أو اسم المحل:")
-            login_submitted = st.form_submit_button("تسجيل الدخول", type="primary")
+    with tab_login:
+        st.write("إذا كان لديك حساب مسبق، أدخل اسم المستخدم الخاص بك:")
+        with st.form("login_form_direct"):
+            login_user = st.text_input("اسم المستخدم:")
+            login_submitted = st.form_submit_button("دخول للنظام", type="primary")
+            
             if login_submitted:
                 if login_user.strip():
                     try:
@@ -123,22 +126,24 @@ if not st.session_state.logged_in_user:
                             st.success("تم تسجيل الدخول بنجاح!")
                             st.rerun()
                         else:
-                            st.error("❌ اسم المستخدم غير موجود، يرجى إنشاء حساب جديد.")
+                            st.error("❌ اسم المستخدم غير موجود، يرجى إنشاء حساب جديد من التبويب المجاور.")
                     except Exception as e:
-                        st.error(f"خطأ: {e}")
+                        st.error(f"خطأ في الاتصال: {e}")
                 else:
                     st.warning("يرجى إدخال اسم المستخدم.")
                     
-    with auth_tab2:
-        with st.form("signup_form"):
-            new_user = st.text_input("اختر اسم المستخدم أو اسم المحل الجديد:")
-            signup_submitted = st.form_submit_button("إنشاء الحساب الجديد الآن", type="primary")
+    with tab_signup:
+        st.write("إذا كنت تستخدم النظام لأول مرة، أنشئ حساباً جديداً باسمك أو اسم محلك:")
+        with st.form("signup_form_direct"):
+            new_user = st.text_input("اختر اسم المستخدم الجديد:")
+            signup_submitted = st.form_submit_button("إنشاء الحساب والبدء", type="primary")
+            
             if signup_submitted:
                 if new_user.strip():
                     try:
                         check_res = supabase.table("users").select("*").eq("username", new_user.strip()).execute()
                         if check_res.data:
-                            st.error("❌ اسم المستخدم هذا مستخدم مسبقاً، اختر غيره.")
+                            st.error("❌ اسم المستخدم هذا مستخدم مسبقاً، اختر اسماً آخر.")
                         else:
                             supabase.table("users").insert({
                                 "username": new_user.strip(),
@@ -149,12 +154,15 @@ if not st.session_state.logged_in_user:
                             st.success("🎉 تم إنشاء الحساب والدخول بنجاح!")
                             st.rerun()
                     except Exception as e:
-                        st.error(f"خطأ: {e}")
+                        st.error(f"خطأ في التسجيل: {e}")
                 else:
                     st.warning("يرجى كتابة اسم المستخدم الجديد.")
+                    
     st.stop()
 
-# واجهة التطبيق الكاملة بعد الدخول
+# ----------------------------------------------------
+# النظام الرئيسي الكامل بعد تسجيل الدخول
+# ----------------------------------------------------
 username = st.session_state.logged_in_user
 
 st.sidebar.title("⚙️ إعدادات الحساب")
@@ -186,9 +194,9 @@ if st.sidebar.button("تسجيل الخروج"):
     st.session_state.cart = []
     st.rerun()
 
+st.title(f"🛍️ أهلاً بك يا {username} في نظام إدارة المبيعات والمخزون")
 st.divider()
 
-# التبويبات الستة الأساسية
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "➕ إضافة مادة جديدة", 
     "📦 عرض المخزن والسلة", 
@@ -207,7 +215,7 @@ with tab1:
         current_count = 0
     
     if not st.session_state.is_vip and current_count >= 5:
-        st.warning("⚠️ وصل للحد الأقصى (5 منتجات) للنسخة المجانية. فعّل النسخة المدفوعة بكود (`YASSER2026`) من القائمة الجانبية.")
+        st.warning("⚠️ وصلت للحد الأقصى (5 منتجات) للنسخة المجانية. فعّل النسخة المدفوعة بكود (`YASSER2026`) من القائمة الجانبية.")
     else:
         with st.form("add_p_form", clear_on_submit=True):
             p_name = st.text_input("اسم المنتج:")
