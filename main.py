@@ -37,52 +37,49 @@ if not st.session_state.logged_in_user:
     with auth_tab1:
         with st.form("login_form"):
             login_user = st.text_input("اسم المستخدم أو اسم المحل:")
-            login_pass = st.text_input("كلمة المرور:", type="password")
             login_submitted = st.form_submit_button("تسجيل الدخول", type="primary")
             
             if login_submitted:
-                if login_user.strip() and login_pass.strip():
-                    res = supabase.table("users").select("*").eq("username", login_user.strip()).execute()
-                    if res.data:
-                        user_info = res.data[0]
-                        # التحقق من كلمة المرور (إذا مكوّنة مسبقاً أو قديمة بدون حقل باسوورد)
-                        stored_pass = user_info.get("password", "")
-                        if stored_pass == "" or stored_pass == login_pass.strip():
+                if login_user.strip():
+                    try:
+                        res = supabase.table("users").select("*").eq("username", login_user.strip()).execute()
+                        if res.data:
+                            user_info = res.data[0]
                             st.session_state.logged_in_user = user_info["username"]
                             st.session_state.is_vip = bool(user_info.get("is_paid", False))
                             st.success("تم تسجيل الدخول بنجاح!")
                             st.rerun()
                         else:
-                            st.error("❌ كلمة المرور غير صحيحة!")
-                    else:
-                        st.error("❌ اسم المستخدم غير موجود، يرجى إنشاء حساب جديد.")
+                            st.error("❌ اسم المستخدم غير موجود، يرجى إنشاء حساب جديد.")
+                    except Exception as e:
+                        st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
                 else:
-                    st.warning("يرجى إدخال اسم المستخدم وكلمة المرور.")
+                    st.warning("يرجى إدخال اسم المستخدم.")
                     
     with auth_tab2:
         with st.form("signup_form"):
             new_user = st.text_input("اختر اسم المستخدم أو اسم المحل الجديد:")
-            new_pass = st.text_input("اختر كلمة المرور:", type="password")
             signup_submitted = st.form_submit_button("إنشاء الحساب الآن", type="primary")
             
             if signup_submitted:
-                if new_user.strip() and new_pass.strip():
-                    # التأكد إذا المستخدم موجود مسبقاً
-                    check_res = supabase.table("users").select("*").eq("username", new_user.strip()).execute()
-                    if check_res.data:
-                        st.error("❌ اسم المستخدم هذا مستخدم مسبقاً، اختر اسم آخر.")
-                    else:
-                        supabase.table("users").insert({
-                            "username": new_user.strip(),
-                            "password": new_pass.strip(),
-                            "is_paid": False
-                        }).execute()
-                        st.session_state.logged_in_user = new_user.strip()
-                        st.session_state.is_vip = False
-                        st.success("🎉 تم إنشاء الحساب وتسجيل الدخول بنجاح!")
-                        st.rerun()
+                if new_user.strip():
+                    try:
+                        check_res = supabase.table("users").select("*").eq("username", new_user.strip()).execute()
+                        if check_res.data:
+                            st.error("❌ اسم المستخدم هذا مستخدم مسبقاً، اختر اسم آخر.")
+                        else:
+                            supabase.table("users").insert({
+                                "username": new_user.strip(),
+                                "is_paid": False
+                            }).execute()
+                            st.session_state.logged_in_user = new_user.strip()
+                            st.session_state.is_vip = False
+                            st.success("🎉 تم إنشاء الحساب وتسجيل الدخول بنجاح!")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"خطأ في إنشاء الحساب بقاعدة البيانات: {e}")
                 else:
-                    st.warning("يرجى ملء كافة الحقول لإنشاء الحساب.")
+                    st.warning("يرجى كتابة اسم المستخدم الجديد.")
     st.stop()
 
 username = st.session_state.logged_in_user
@@ -125,8 +122,11 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 
 with tab1:
     st.subheader("➕ واجهة إضافة مادة جديدة للمخزن")
-    res_prod_count = supabase.table("products").select("id").eq("username", username).execute()
-    current_count = len(res_prod_count.data) if res_prod_count.data else 0
+    try:
+        res_prod_count = supabase.table("products").select("id").eq("username", username).execute()
+        current_count = len(res_prod_count.data) if res_prod_count.data else 0
+    except Exception:
+        current_count = 0
     
     if not st.session_state.is_vip and current_count >= 5:
         st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة باستخدام كود (`YASSER2026`) من القائمة الجانبية لإضافة منتجات بلا حدود!")
@@ -164,14 +164,19 @@ with tab1:
                         st.rerun()
                     except ValueError:
                         st.error("❌ خطأ: يرجى إدخال أرقام صحيحة حصراً.")
+                    except Exception as e:
+                        st.error(f"❌ خطأ في حفظ المنتج بقاعدة البيانات: {e}")
                 else:
                     st.warning("يرجى كتابة اسم المنتج أولاً.")
 
 with tab2:
     st.subheader("🧱 عرض البضائع والمخزن الحالي (على شكل شبكة بطاقات)")
-    res_prod = supabase.table("products").select("*").eq("username", username).execute()
+    try:
+        res_prod = supabase.table("products").select("*").eq("username", username).execute()
+    except Exception:
+        res_prod = None
     
-    if res_prod.data:
+    if res_prod and res_prod.data:
         cols = st.columns(3)
         for idx, item in enumerate(res_prod.data):
             with cols[idx % 3]:
@@ -228,9 +233,12 @@ with tab3:
 
 with tab4:
     st.subheader("🛒 تسجيل عملية بيع وتحرير فاتورة جديدة (إلزامي اختيار الزبون)")
-    res_sell = supabase.table("products").select("*").eq("username", username).gt("quantity", 0).execute()
+    try:
+        res_sell = supabase.table("products").select("*").eq("username", username).gt("quantity", 0).execute()
+    except Exception:
+        res_sell = None
     
-    if res_sell.data:
+    if res_sell and res_sell.data:
         if not st.session_state.customer_list:
             st.warning("⚠️ تنبيه مهم: يجب إضافة وتسجيل العميل أولاً من تبويب (إدارة العملاء) لكي تتمكن من إصدار الفاتورة وحفظها في الذمم!")
         
@@ -282,26 +290,29 @@ with tab4:
             if not st.session_state.customer_list or cust_name == "لا توجد عملاء مسجلين":
                 st.error("❌ خطأ: لا يمكن حفظ الفاتورة بدون اختيار عميل مسجل بالنظام!")
             else:
-                new_q = max_q - sell_q
-                supabase.table("products").update({"quantity": new_q}).eq("id", item["id"]).execute()
-                
-                inv_id = len(st.session_state.invoices_list) + 1
-                inv_code = f"INV-{inv_id:03d}"
-                
-                st.session_state.invoices_list.append({
-                    "رقم الفاتورة": inv_code,
-                    "الزبون": cust_name,
-                    "المنتج": selected_prod,
-                    "الكمية": sell_q,
-                    "المبلغ الكلي": total_price,
-                    "الواصل": paid_amount,
-                    "المتبقي (الدين)": remaining_amount,
-                    "نوع الدفع": pay_type,
-                    "التاريخ": datetime.now().strftime('%Y-%m-%d %H:%M')
-                })
-                
-                st.success("✅ تم حفظ الفاتورة ونقصان الكمية وتسجيلها بذمم العملاء بنجاح!")
-                st.rerun()
+                try:
+                    new_q = max_q - sell_q
+                    supabase.table("products").update({"quantity": new_q}).eq("id", item["id"]).execute()
+                    
+                    inv_id = len(st.session_state.invoices_list) + 1
+                    inv_code = f"INV-{inv_id:03d}"
+                    
+                    st.session_state.invoices_list.append({
+                        "رقم الفاتورة": inv_code,
+                        "الزبون": cust_name,
+                        "المنتج": selected_prod,
+                        "الكمية": sell_q,
+                        "المبلغ الكلي": total_price,
+                        "الواصل": paid_amount,
+                        "المتبقي (الدين)": remaining_amount,
+                        "نوع الدفع": pay_type,
+                        "التاريخ": datetime.now().strftime('%Y-%m-%d %H:%M')
+                    })
+                    
+                    st.success("✅ تم حفظ الفاتورة ونقصان الكمية وتسجيلها بذمم العملاء بنجاح!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ خطأ أثناء تحديث المخزن: {e}")
     else:
         st.warning("لا توجد بضائع متاحة للبيع بالمخزن حالياً.")
 
@@ -348,9 +359,12 @@ with tab6:
         st.warning("🔒 **ملاحظة ترويجية:** لعرض موادك الحقيقية التي أضفتها وجرد أرباحها الفعلية، يرجى تفعيل النسخة المدفوعة (VIP) باستخدام كود التفعيل (`YASSER2026`) من القائمة الجانبية!")
     
     else:
-        res_stats = supabase.table("products").select("*").eq("username", username).execute()
+        try:
+            res_stats = supabase.table("products").select("*").eq("username", username).execute()
+        except Exception:
+            res_stats = None
         
-        if res_stats.data:
+        if res_stats and res_stats.data:
             total_count = sum(p["quantity"] for p in res_stats.data)
             total_capital = sum(p["buy_price"] * p["quantity"] for p in res_stats.data)
             total_sales_val = sum(p["sell_price"] * p["quantity"] for p in res_stats.data)
