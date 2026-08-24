@@ -14,7 +14,6 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - إدارة المبيعات والمخزون", page_icon="📦", layout="wide")
 
-# تهيئة الـ Session State
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 
@@ -29,7 +28,6 @@ if "is_vip" not in st.session_state:
 
 st.title("🛍️ نظام Yasser Web المتكامل لإدارة المبيعات والمخزون")
 
-# شاشة تسجيل الدخول
 if not st.session_state.logged_in_user:
     st.subheader("🔑 تسجيل الدخول للنظام")
     user_input = st.text_input("ادخل اسم المستخدم أو اسم المحل:")
@@ -55,7 +53,6 @@ if not st.session_state.logged_in_user:
 
 username = st.session_state.logged_in_user
 
-# الشريط الجانبي للتفعيل (النسخة المجانية والمدفوعة)
 st.sidebar.title("⚙️ إعدادات الحساب")
 st.sidebar.write(f"👤 المستخدم: **{username}**")
 
@@ -72,9 +69,9 @@ if not st.session_state.is_vip:
             st.sidebar.success("تم تفعيل النسخة المدفوعة (VIP) بنجاح! 🎉")
             st.rerun()
         else:
-            st.sidebar.error("كود التفعيل غير صحيح!")
+            st.sidebar.error("كود التفعيل غير صحيح! الكود الصحيح هو: YASSER2026")
 else:
-    st.sidebar.success("🌟 النسخة المدفوعة (VIP) مفعلة")
+    st.sidebar.success("🌟 النسخة المدفوعة (VIP) مفعلة بالكامل")
 
 if st.sidebar.button("تسجيل الخروج"):
     st.session_state.logged_in_user = None
@@ -83,7 +80,6 @@ if st.sidebar.button("تسجيل الخروج"):
 
 st.divider()
 
-# التبويبات الرئيسية للنظام
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "➕ إضافة مادة جديدة", 
     "📦 عرض المخزن", 
@@ -99,7 +95,7 @@ with tab1:
     current_count = len(res_prod_count.data) if res_prod_count.data else 0
     
     if not st.session_state.is_vip and current_count >= 5:
-        st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة من القائمة الجانبية لإضافة منتجات بلا حدود!")
+        st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة باستخدام كود (`YASSER2026`) من القائمة الجانبية لإضافة منتجات بلا حدود!")
     else:
         with st.form("add_product_clean_form", clear_on_submit=True):
             p_name = st.text_input("اسم القطعة / المنتج:")
@@ -112,25 +108,28 @@ with tab1:
             with c3:
                 p_qty_str = st.text_input("الكمية بالمخزن:", "1")
             
-            submitted = st.form_submit_button("حفظ المادة في المخزن", type="primary")
+            submitted = st.form_submit_buffer = st.form_submit_button("حفظ المادة في المخزن", type="primary")
             if submitted:
                 if p_name.strip():
                     try:
-                        p_buy = int(p_buy_str.strip())
-                        p_sell = int(p_sell_str.strip())
+                        p_buy = float(p_buy_str.strip())
+                        p_sell = float(p_sell_str.strip())
                         p_qty = int(p_qty_str.strip())
+                        
+                        if p_sell < p_buy:
+                            st.warning("⚠️ تنبيه: سعر البيع أقل من سعر الشراء (خسارة).")
                         
                         supabase.table("products").insert({
                             "username": username,
                             "product_name": p_name.strip(),
-                            "buy_price": float(p_buy),
-                            "sell_price": float(p_sell),
+                            "buy_price": p_buy,
+                            "sell_price": p_sell,
                             "quantity": p_qty
                         }).execute()
                         st.success(f"تمت إضافة المادة ({p_name}) بنجاح!")
                         st.rerun()
                     except ValueError:
-                        st.error("❌ خطأ: يرجى إدخال أرقام صحيحة حصراً في الأسعار والكمية.")
+                        st.error("❌ خطأ: يرجى إدخال أرقام صحيحة حصراً.")
                 else:
                     st.warning("يرجى كتابة اسم المنتج أولاً.")
 
@@ -148,9 +147,12 @@ with tab2:
                     st.markdown(f"🏷️ **سعر الشراء:** `{int(item['buy_price']):,}` د.ع")
                     st.markdown(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة")
                     profit_per_unit = int(item['sell_price'] - item['buy_price'])
-                    st.caption(f"📈 ربح القطعة: {profit_per_unit:,} د.ع")
+                    if profit_per_unit < 0:
+                        st.error(f"📉 ربح القطعة: {profit_per_unit:,} د.ع (خسارة)")
+                    else:
+                        st.success(f"📈 ربح القطعة: {profit_per_unit:,} د.ع")
     else:
-        st.info("المخزن فارغ حالياً. قم بإضافة مواد من تبويب (إضافة مادة جديدة).")
+        st.info("المخزن فارغ حالياً.")
 
 with tab3:
     st.subheader("👥 إضافة وتسجيل العملاء")
@@ -241,7 +243,7 @@ with tab4:
             
         remaining_amount = total_price - paid_amount
 
-        if st.button("تأكيد وحفظ الفاتورة", type="primary"):
+        if st.button("تأكيد وحفظ الفاتورة وتحديث المخزن", type="primary"):
             new_q = max_q - sell_q
             supabase.table("products").update({"quantity": new_q}).eq("id", item["id"]).execute()
             
@@ -260,33 +262,8 @@ with tab4:
                 "التاريخ": datetime.now().strftime('%Y-%m-%d %H:%M')
             })
             
-            st.success("✅ تم حفظ الفاتورة وتحديث المخزون بنجاح!")
-            
-            invoice_txt = f"""=======================================
-           Yasser Web - فاتورة مبيعات
-=======================================
-رقم الفاتورة: {inv_code}
-اسم المحل: {username}
-الزبون: {cust_name}
-التاريخ: {datetime.now().strftime('%Y-%m-%d %H:%M')}
----------------------------------------
-المنتج: {selected_prod}
-الكمية: {sell_q}
-سعر القطعة: {unit_price:,} د.ع
----------------------------------------
-المبلغ الكلي: {total_price:,} د.ع
-المبلغ الواصل: {paid_amount:,} د.ع
-المتبقي بذمة العميل: {remaining_amount:,} د.ع
-نوع الدفع: {pay_type}
-=======================================
-شكراً لتسوقكم معنا في Yasser Web!
-"""
-            st.download_button(
-                label="📄 تحميل الفاتورة رسمياً (TXT)",
-                data=invoice_txt,
-                file_name=f"{inv_code}.txt",
-                mime="text/plain"
-            )
+            st.success("✅ تم حفظ الفاتورة ونقصان الكمية من المخزن بنجاح!")
+            st.rerun()
     else:
         st.warning("لا توجد بضائع متاحة للبيع بالمخزن حالياً.")
 
@@ -310,17 +287,56 @@ with tab5:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 with tab6:
-    st.subheader("📊 تقارير الأرباح ورأس المال")
-    res_stats = supabase.table("products").select("*").eq("username", username).execute()
-    if res_stats.data:
-        total_count = sum(p["quantity"] for p in res_stats.data)
-        total_capital = sum(p["buy_price"] * p["quantity"] for p in res_stats.data)
-        total_sales_val = sum(p["sell_price"] * p["quantity"] for p in res_stats.data)
-        expected_profit = int(total_sales_val - total_capital)
+    st.subheader("📊 تقارير الأرباح ورأس المال وجرد المخزن")
+    
+    # إذا الحساب مو VIP (مجاني)، نعرض له مادة وهمية توضيحية حتى يشوف شكل الميزة شلون تشتغل
+    if not st.session_state.is_vip:
+        st.info("💡 ملاحظة: أنت تستخدم النسخة المجانية. إليك نموذج توضيحي (مادة وهمية) لترى كيف تظهر تقارير الأرباح والجرد:")
         
         m1, m2, m3 = st.columns(3)
-        m1.metric("إجمالي القطع", f"{int(total_count)} قطعة")
-        m2.metric("رأس المال (شراء)", f"{int(total_capital):,} د.ع")
-        m3.metric("الربح المتوقع", f"{expected_profit:,} د.ع")
+        m1.metric("إجمالي القطع بالمخزن", "50 قطعة (نموذج)")
+        m2.metric("إجمالي رأس المال", "500,000 د.ع")
+        m3.metric("إجمالي الأرباح المتوقعة", "250,000 د.ع")
+        
+        st.divider()
+        st.markdown("### 🔍 جرد تفصيلي (مثال تجريبي):")
+        st.selectbox("اختر المادة لمعرفة تفاصيل أرباحها:", ["مثال: جهاز هاتف توضيحي (تجريبي)"])
+        
+        col_d1, col_d2, col_d3, col_d4 = st.columns(4)
+        col_d1.metric("الكمية المتبقية", "50 قطعة")
+        col_d2.metric("سعر الشراء", "10,000 د.ع")
+        col_d3.metric("سعر البيع", "15,000 د.ع")
+        col_d4.metric("إجمالي ربح هذه المادة", "250,000 د.ع")
+        
+        st.warning("🔒 **ملاحظة ترويجية:** لعرض موادك الحقيقية التي أضفتها وجرد أرباحها الفعلية، يرجى تفعيل النسخة المدفوعة (VIP) باستخدام كود التفعيل من القائمة الجانبية!")
+    
     else:
-        st.info("أضف بضائع لعرض التقارير.")
+        # إذا الحساب مفعل VIP، نعرض له أرباح مواده الحقيقية كاملة
+        res_stats = supabase.table("products").select("*").eq("username", username).execute()
+        
+        if res_stats.data:
+            total_count = sum(p["quantity"] for p in res_stats.data)
+            total_capital = sum(p["buy_price"] * p["quantity"] for p in res_stats.data)
+            total_sales_val = sum(p["sell_price"] * p["quantity"] for p in res_stats.data)
+            expected_profit = int(total_sales_val - total_capital)
+            
+            m1, m2, m3 = st.columns(3)
+            m1.metric("إجمالي القطع بالمخزن", f"{int(total_count)} قطعة")
+            m2.metric("إجمالي رأس المال", f"{int(total_capital):,} د.ع")
+            m3.metric("إجمالي الأرباح المتوقعة", f"{expected_profit:,} د.ع")
+            
+            st.divider()
+            st.markdown("### 🔍 جرد تفصيلي لمادة معينة:")
+            prod_names_list = [p["product_name"] for p in res_stats.data]
+            chosen_p_name = st.selectbox("اختر المادة لمعرفة تفاصيل أرباحها والمتبقي منها:", prod_names_list)
+            
+            selected_item_data = next((p for p in res_stats.data if p["product_name"] == chosen_p_name), None)
+            if selected_item_data:
+                col_d1, col_d2, col_d3, col_d4 = st.columns(4)
+                col_d1.metric("الكمية المتبقية", f"{int(selected_item_data['quantity'])} قطعة")
+                col_d2.metric("سعر الشراء", f"{int(selected_item_data['buy_price']):,} د.ع")
+                col_d3.metric("سعر البيع", f"{int(selected_item_data['sell_price']):,} د.ع")
+                item_total_profit = int((selected_item_data['sell_price'] - selected_item_data['buy_price']) * selected_item_data['quantity'])
+                col_d4.metric("إجمالي ربح هذه المادة", f"{item_total_profit:,} د.ع")
+        else:
+            st.info("مخزنك فارغ حالياً. أضف بضائع لعرض التقارير والجرد الحقيقي.")
