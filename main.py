@@ -32,30 +32,42 @@ if "cart" not in st.session_state:
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
-# دالة لتوليد ملف الـ PDF للفاتورة
+# دالة لتوليد ملف الـ PDF بالفاتورة (باللغة الإنجليزية لتجنب مربعات الحروف العربية)
 def generate_pdf_invoice(inv):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    p.setFont("Helvetica-Bold", 18)
-    p.drawString(200, height - 50, "Yasser Web - Invoice")
+    # رأس الفاتورة
+    p.setFont("Helvetica-Bold", 20)
+    p.drawString(200, height - 50, "YASSER WEB - INVOICE")
     
-    p.setFont("Helvetica", 12)
+    p.setFont("Helvetica-Bold", 12)
     p.drawString(50, height - 90, f"Invoice No: {inv['رقم الفاتورة']}")
-    p.drawString(50, height - 115, f"Customer: {inv['الزبون']}")
+    p.drawString(50, height - 115, f"Customer Name: {inv['الزبون']}")
     p.drawString(50, height - 140, f"Date: {inv['التاريخ']}")
     p.drawString(50, height - 165, f"Payment Type: {inv['نوع الدفع']}")
     
     p.line(50, height - 180, width - 50, height - 180)
     
-    p.drawString(50, height - 210, f"Items: {inv['المنتجات']}")
-    p.drawString(50, height - 240, f"Total Amount: {inv['المبلغ الكلي']:,} IQD")
-    p.drawString(50, height - 265, f"Paid: {inv['الواصل']:,} IQD")
-    p.drawString(50, height - 290, f"Remaining (Debt): {inv['المتبقي (الدين)']:,} IQD")
+    # تفاصيل المواد
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, height - 210, "Purchased Items:")
     
-    p.line(50, height - 315, width - 50, height - 315)
-    p.drawString(200, height - 350, "Thank you for your business!")
+    p.setFont("Helvetica", 11)
+    p.drawString(70, height - 235, f"{inv['المنتجات']}")
+    
+    p.line(50, height - 265, width - 50, height - 265)
+    
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, height - 295, f"Total Amount: {inv['المبلغ الكلي']:,} IQD")
+    p.drawString(50, height - 320, f"Paid Amount: {inv['الواصل']:,} IQD")
+    p.drawString(50, height - 345, f"Remaining Debt: {inv['المتبقي (الدين)']:,} IQD")
+    
+    p.line(50, height - 370, width - 50, height - 370)
+    
+    p.setFont("Helvetica-Oblique", 10)
+    p.drawString(220, height - 400, "Thank you for your business!")
     
     p.showPage()
     p.save()
@@ -122,7 +134,6 @@ username = st.session_state.logged_in_user
 st.sidebar.title("⚙️ إعدادات الحساب")
 st.sidebar.write(f"👤 المستخدم: **{username}**")
 
-# تنبيه مباشر بعدد المواد الموجودة بالسلة حالياً في القائمة الجانبية لتكون واضحة دائماً
 cart_count_badge = sum(item['qty'] for item in st.session_state.cart)
 st.sidebar.info(f"🛒 المواد الحالية بالسلة: **{cart_count_badge}** قطعة")
 
@@ -172,7 +183,7 @@ with tab1:
         st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة باستخدام كود (`YASSER2026`) من القائمة الجانبية لإضافة منتجات بلا حدود!")
     else:
         with st.form("add_product_clean_form", clear_on_submit=True):
-            p_name = st.text_input("اسم القطعة / المنتج (مثال: حمرة مات، كريم أساس...):")
+            p_name = st.text_input("اسم القطعة / المنتج:")
             
             c1, c2, c3 = st.columns(3)
             with c1:
@@ -212,7 +223,6 @@ with tab1:
 with tab2:
     st.subheader("🧱 عرض بضائع المحل (اختر عدة مواد لتكوين طلبة الزبون)")
     
-    # عرض ملخص السلة الحالي أعلى المخزن ليكون الزبون أو البائع على بينة
     if st.session_state.cart:
         total_items_in_cart = sum(i['qty'] for i in st.session_state.cart)
         total_price_preview = sum(i['sell_price'] * i['qty'] for i in st.session_state.cart)
@@ -240,7 +250,6 @@ with tab2:
                         st.success(f"📈 ربح القطعة: {profit_per_unit:,} د.ع")
                     
                     if item['quantity'] > 0:
-                        # زر الإضافة للسلة مع إظهار تنبيه وااااضح يخلي البائع يعرف أن المادة انضافت
                         if st.button(f"🛒 إضافة إلى السلة", key=f"add_cart_{item['id']}"):
                             found_in_cart = False
                             for cart_item in st.session_state.cart:
@@ -362,7 +371,7 @@ with tab4:
                 try:
                     prod_names_str = []
                     for c_item in st.session_state.cart:
-                        prod_names_str.append(f"{c_item['product_name']} (عدد: {c_item['qty']})")
+                        prod_names_str.append(f"{c_item['product_name']} (Qty: {c_item['qty']})")
                         res_p = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
                         if res_p.data:
                             current_db_qty = res_p.data[0]["quantity"]
@@ -375,7 +384,7 @@ with tab4:
                     st.session_state.invoices_list.append({
                         "رقم الفاتورة": inv_code,
                         "الزبون": cust_name,
-                        "المنتجات": " ، ".join(prod_names_str),
+                        "المنتجات": " , ".join(prod_names_str),
                         "المبلغ الكلي": int(total_cart_price),
                         "الواصل": int(paid_amount),
                         "المتبقي (الدين)": int(remaining_amount),
