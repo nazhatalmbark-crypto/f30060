@@ -38,19 +38,17 @@ def generate_pdf_invoice(inv):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # رأس الفاتورة
     p.setFont("Helvetica-Bold", 18)
     p.drawString(200, height - 50, "Yasser Web - Invoice")
     
     p.setFont("Helvetica", 12)
     p.drawString(50, height - 90, f"Invoice No: {inv['رقم الفاتورة']}")
-    p.drawString(50, height - 115, f"Customer: {inv['رقم الفاتورة']}") # تم تعديله تلافياً للخطأ
+    p.drawString(50, height - 115, f"Customer: {inv['الزبون']}")
     p.drawString(50, height - 140, f"Date: {inv['التاريخ']}")
     p.drawString(50, height - 165, f"Payment Type: {inv['نوع الدفع']}")
     
     p.line(50, height - 180, width - 50, height - 180)
     
-    # تفاصيل المواد
     p.drawString(50, height - 210, f"Items: {inv['المنتجات']}")
     p.drawString(50, height - 240, f"Total Amount: {inv['المبلغ الكلي']:,} IQD")
     p.drawString(50, height - 265, f"Paid: {inv['الواصل']:,} IQD")
@@ -124,6 +122,10 @@ username = st.session_state.logged_in_user
 st.sidebar.title("⚙️ إعدادات الحساب")
 st.sidebar.write(f"👤 المستخدم: **{username}**")
 
+# تنبيه مباشر بعدد المواد الموجودة بالسلة حالياً في القائمة الجانبية لتكون واضحة دائماً
+cart_count_badge = sum(item['qty'] for item in st.session_state.cart)
+st.sidebar.info(f"🛒 المواد الحالية بالسلة: **{cart_count_badge}** قطعة")
+
 if not st.session_state.is_vip:
     st.sidebar.warning("🔒 حالة النسخة: **مجانية (محدودة)**")
     vip_code = st.sidebar.text_input("أدخل كود النسخة المدفوعة (VIP):", type="password")
@@ -151,7 +153,7 @@ st.divider()
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "➕ إضافة مادة جديدة", 
-    "📦 عرض المخزن والسلة", 
+    "📦 عرض المخزن وسلة المبيعات", 
     "👥 إدارة العملاء", 
     "🛒 إتمام البيع والفواتير", 
     "📄 سجل الفواتير", 
@@ -170,7 +172,7 @@ with tab1:
         st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة باستخدام كود (`YASSER2026`) من القائمة الجانبية لإضافة منتجات بلا حدود!")
     else:
         with st.form("add_product_clean_form", clear_on_submit=True):
-            p_name = st.text_input("اسم القطعة / المنتج:")
+            p_name = st.text_input("اسم القطعة / المنتج (مثال: حمرة مات، كريم أساس...):")
             
             c1, c2, c3 = st.columns(3)
             with c1:
@@ -208,7 +210,14 @@ with tab1:
                     st.warning("يرجى كتابة اسم المنتج أولاً.")
 
 with tab2:
-    st.subheader("🧱 عرض البضائع (على شكل شبكة بطاقات مع خاصية الإضافة للسلة)")
+    st.subheader("🧱 عرض بضائع المحل (اختر عدة مواد لتكوين طلبة الزبون)")
+    
+    # عرض ملخص السلة الحالي أعلى المخزن ليكون الزبون أو البائع على بينة
+    if st.session_state.cart:
+        total_items_in_cart = sum(i['qty'] for i in st.session_state.cart)
+        total_price_preview = sum(i['sell_price'] * i['qty'] for i in st.session_state.cart)
+        st.success(f"🛒 **السلة حالياً تحتوي على:** {total_items_in_cart} قطعة | المجموع المؤقت: **{int(total_price_preview):,} د.ع** — *(اذهب لتبويب 'إتمام البيع والفواتير' لإنهاء الحساب)*")
+    
     try:
         res_prod = supabase.table("products").select("*").eq("username", username).execute()
     except Exception:
@@ -231,6 +240,7 @@ with tab2:
                         st.success(f"📈 ربح القطعة: {profit_per_unit:,} د.ع")
                     
                     if item['quantity'] > 0:
+                        # زر الإضافة للسلة مع إظهار تنبيه وااااضح يخلي البائع يعرف أن المادة انضافت
                         if st.button(f"🛒 إضافة إلى السلة", key=f"add_cart_{item['id']}"):
                             found_in_cart = False
                             for cart_item in st.session_state.cart:
@@ -248,12 +258,12 @@ with tab2:
                                     "max_qty": item["quantity"],
                                     "qty": 1
                                 })
-                            st.success(f"تمت إضافة ({item['product_name']}) إلى السلة بنجاح!")
+                            st.toast(f"✅ تمت إضافة ({item['product_name']}) إلى السلة بنجاح!", icon="🛍️")
                             st.rerun()
                     else:
                         st.warning("⚠️ نفذت الكمية")
     else:
-        st.info("المخزن فارغ حالياً.")
+        st.info("المخزن فارغ حالياً. أضف مواد من تبويب (إضافة مادة جديدة).")
 
 with tab3:
     st.subheader("👥 إضافة وتسجيل العملاء")
@@ -294,10 +304,10 @@ with tab3:
         st.info("لا يوجد عملاء مسجلون حالياً.")
 
 with tab4:
-    st.subheader("🛒 سلة المبيعات وإتمام الفاتورة وإلزامية اختيار الزبون")
+    st.subheader("🛒 سلة المبيعات (تجميع مواد الزبون وإتمام الفاتورة)")
     
     if st.session_state.cart:
-        st.write("### 🛍️ المواد المضافة حالياً للسلة:")
+        st.write("### 🛍️ المواد التي اختارها الزبون للفاتورة الحالية:")
         total_cart_price = 0
         
         for idx, c_item in enumerate(st.session_state.cart):
@@ -317,7 +327,7 @@ with tab4:
                     st.rerun()
                     
         st.divider()
-        st.markdown(f"### 💵 المجموع الكلي لكل السلة: **{int(total_cart_price):,} د.ع**")
+        st.markdown(f"### 💵 المجموع الكلي لكل مواد الزبون: **{int(total_cart_price):,} د.ع**")
         
         if not st.session_state.customer_list:
             st.warning("⚠️ تنبيه مهم جداً: يجب إضافة وتسجيل العميل أولاً من تبويب (إدارة العملاء) لكي تتمكن من حفظ الفاتورة!")
@@ -379,7 +389,7 @@ with tab4:
                 except Exception as e:
                     st.error(f"❌ خطأ أثناء إتمام البيع: {e}")
     else:
-        st.info("🛒 السلة فارغة حالياً. اذهب إلى تبويب (عرض المخزن والسلة) واضغط على زر (إضافة إلى السلة) لأي منتج تريد بيعه!")
+        st.info("🛒 السلة فارغة حالياً. اذهب إلى تبويب (عرض المخزن وسلة المبيعات) واضغط على زر (إضافة إلى السلة) لأي مواد تريد بيعها للزبون!")
 
 with tab5:
     st.subheader("📄 سجل الفواتير ومتابعة ديون العملاء (الذمم)")
@@ -398,7 +408,6 @@ with tab5:
                     st.write(f"✅ **الواصل:** {inv['الواصل']:,} د.ع")
                     st.write(f"❌ **المتبقي:** {inv['المتبقي (الدين)']:,} د.ع")
                     
-                    # زر تحميل الفاتورة بصيغة PDF
                     pdf_buffer = generate_pdf_invoice(inv)
                     st.download_button(
                         label="📥 تحميل الفاتورة PDF",
@@ -423,7 +432,7 @@ with tab6:
         
         st.divider()
         st.markdown("### 🔍 جرد تفصيلي (مثال تجريبي):")
-        st.selectbox("اختر المادة لمعرفة تفاصيل أرباحها:", ["مثال: جهاز هاتف توضيحي (تجريبي)"])
+        st.selectbox("اختر المادة لمعرفة تفاصيل أرباحها:", ["مثال: كريم أساس توضيحي (تجريبي)"])
         
         col_d1, col_d2, col_d3, col_d4 = st.columns(4)
         col_d1.metric("الكمية المتبقية", "50 قطعة")
