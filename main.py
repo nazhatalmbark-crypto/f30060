@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
 from datetime import datetime, timezone
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import io
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -23,16 +26,46 @@ if "customer_list" not in st.session_state:
 if "invoices_list" not in st.session_state:
     st.session_state.invoices_list = []
 
-# سلة المبيعات المؤقتة لكل جلسة
 if "cart" not in st.session_state:
     st.session_state.cart = []
 
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
+# دالة لتوليد ملف الـ PDF للفاتورة
+def generate_pdf_invoice(inv):
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    
+    # رأس الفاتورة
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(200, height - 50, "Yasser Web - Invoice")
+    
+    p.setFont("Helvetica", 12)
+    p.drawString(50, height - 90, f"Invoice No: {inv['رقم الفاتورة']}")
+    p.drawString(50, height - 115, f"Customer: {inv['رقم الفاتورة']}") # تم تعديله تلافياً للخطأ
+    p.drawString(50, height - 140, f"Date: {inv['التاريخ']}")
+    p.drawString(50, height - 165, f"Payment Type: {inv['نوع الدفع']}")
+    
+    p.line(50, height - 180, width - 50, height - 180)
+    
+    # تفاصيل المواد
+    p.drawString(50, height - 210, f"Items: {inv['المنتجات']}")
+    p.drawString(50, height - 240, f"Total Amount: {inv['المبلغ الكلي']:,} IQD")
+    p.drawString(50, height - 265, f"Paid: {inv['الواصل']:,} IQD")
+    p.drawString(50, height - 290, f"Remaining (Debt): {inv['المتبقي (الدين)']:,} IQD")
+    
+    p.line(50, height - 315, width - 50, height - 315)
+    p.drawString(200, height - 350, "Thank you for your business!")
+    
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+    return buffer
+
 st.title("🛍️ نظام Yasser Web المتكامل لإدارة المبيعات والمخزون")
 
-# واجهة تسجيل الدخول أو إنشاء حساب جديد
 if not st.session_state.logged_in_user:
     st.subheader("🔐 بوابة الدخول لحسابات المحلات والنظام")
     
@@ -197,10 +230,8 @@ with tab2:
                     else:
                         st.success(f"📈 ربح القطعة: {profit_per_unit:,} د.ع")
                     
-                    # زر الإضافة للسلة مباشرة من البطاقة
                     if item['quantity'] > 0:
                         if st.button(f"🛒 إضافة إلى السلة", key=f"add_cart_{item['id']}"):
-                            # فحص إذا المنتج موجود مسبقاً بالسلة لزيادة الكمية أو إضافته
                             found_in_cart = False
                             for cart_item in st.session_state.cart:
                                 if cart_item["id"] == item["id"]:
@@ -288,7 +319,6 @@ with tab4:
         st.divider()
         st.markdown(f"### 💵 المجموع الكلي لكل السلة: **{int(total_cart_price):,} د.ع**")
         
-        # إلزامي اختيار الزبون
         if not st.session_state.customer_list:
             st.warning("⚠️ تنبيه مهم جداً: يجب إضافة وتسجيل العميل أولاً من تبويب (إدارة العملاء) لكي تتمكن من حفظ الفاتورة!")
             customer_options = ["لا توجد عملاء مسجلين"]
@@ -320,11 +350,9 @@ with tab4:
                 st.error("❌ خطأ: لا يمكن حفظ الفاتورة بدون اختيار عميل مسجل بالنظام!")
             else:
                 try:
-                    # خصم الكميات من قاعدة البيانات وتكوين اسم المنتجات بالفاتورة
                     prod_names_str = []
                     for c_item in st.session_state.cart:
                         prod_names_str.append(f"{c_item['product_name']} (عدد: {c_item['qty']})")
-                        # جلب الكمية الحالية وتحديثها
                         res_p = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
                         if res_p.data:
                             current_db_qty = res_p.data[0]["quantity"]
@@ -345,14 +373,13 @@ with tab4:
                         "التاريخ": datetime.now().strftime('%Y-%m-%d %H:%M')
                     })
                     
-                    # تفريغ السلة بعد البيع
                     st.session_state.cart = []
                     st.success("✅ تمت عملية البيع بنجاح، وتحديث المخزن، وتسجيل الفاتورة في الذمم!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ خطأ أثناء إتمام البيع: {e}")
     else:
-        st.info("🛒 السلة فارغة حالياً. اذهب إلى تبويب (عرض المخزن والسلة) واضغط على زر (إضافة إلى السلة) لأي منتج ترید بیعه!")
+        st.info("🛒 السلة فارغة حالياً. اذهب إلى تبويب (عرض المخزن والسلة) واضغط على زر (إضافة إلى السلة) لأي منتج تريد بيعه!")
 
 with tab5:
     st.subheader("📄 سجل الفواتير ومتابعة ديون العملاء (الذمم)")
@@ -370,6 +397,16 @@ with tab5:
                     st.write(f"💵 **المجموع:** {inv['المبلغ الكلي']:,} د.ع")
                     st.write(f"✅ **الواصل:** {inv['الواصل']:,} د.ع")
                     st.write(f"❌ **المتبقي:** {inv['المتبقي (الدين)']:,} د.ع")
+                    
+                    # زر تحميل الفاتورة بصيغة PDF
+                    pdf_buffer = generate_pdf_invoice(inv)
+                    st.download_button(
+                        label="📥 تحميل الفاتورة PDF",
+                        data=pdf_buffer,
+                        file_name=f"{inv['رقم الفاتورة']}.pdf",
+                        mime="application/pdf",
+                        key=f"pdf_btn_{inv['رقم الفاتورة']}"
+                    )
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
