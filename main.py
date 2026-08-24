@@ -108,7 +108,7 @@ with tab1:
             with c3:
                 p_qty_str = st.text_input("الكمية بالمخزن:", "1")
             
-            submitted = st.form_submit_buffer = st.form_submit_button("حفظ المادة في المخزن", type="primary")
+            submitted = st.form_submit_button("حفظ المادة في المخزن", type="primary")
             if submitted:
                 if p_name.strip():
                     try:
@@ -134,7 +134,7 @@ with tab1:
                     st.warning("يرجى كتابة اسم المنتج أولاً.")
 
 with tab2:
-    st.subheader("🧱 عرض البضائع والمخزن الحالي")
+    st.subheader("🧱 عرض البضائع والمخزن الحالي (على شكل شبكة بطاقات)")
     res_prod = supabase.table("products").select("*").eq("username", username).execute()
     
     if res_prod.data:
@@ -193,10 +193,14 @@ with tab3:
         st.info("لا يوجد عملاء مسجلون حالياً.")
 
 with tab4:
-    st.subheader("🛒 تسجيل عملية بيع وتحرير فاتورة جديدة")
+    st.subheader("🛒 تسجيل عملية بيع وتحرير فاتورة جديدة (إلزامي اختيار الزبون)")
     res_sell = supabase.table("products").select("*").eq("username", username).gt("quantity", 0).execute()
     
     if res_sell.data:
+        # إلزامي اختيار الزبون أولاً وبدون خيار محلي مبهم لتجنب الأخطاء
+        if not st.session_state.customer_list:
+            st.warning("⚠️ تنبيه مهم: يجب إضافة وتسجيل العميل أولاً من تبويب (إدارة العملاء) لكي تتمكن من إصدار الفاتورة وحفظها في الذمم!")
+        
         prod_dict = {p["product_name"]: p for p in res_sell.data}
         selected_prod = st.selectbox("اختر البضاعة المراد بيعها:", list(prod_dict.keys()))
         
@@ -204,15 +208,13 @@ with tab4:
         max_q = int(item["quantity"])
         unit_price = int(item["sell_price"])
         
-        customer_options = ["زبون محلي / كاش"]
-        if st.session_state.customer_list:
-            customer_options += [c["اسم العميل"] for c in st.session_state.customer_list]
+        customer_options = [c["اسم العميل"] for c in st.session_state.customer_list] if st.session_state.customer_list else []
             
         col_q, col_c = st.columns(2)
         with col_q:
             sell_q_str = st.text_input(f"الكمية المراد بيعها (المتوفّر: {max_q}):", "1")
         with col_c:
-            cust_name = st.selectbox("اختر الزبون:", customer_options)
+            cust_name = st.selectbox("اختر الزبون (إلزامي):", customer_options if customer_options else ["لا توجد عملاء مسجلين"])
             
         try:
             sell_q = int(sell_q_str.strip())
@@ -244,26 +246,29 @@ with tab4:
         remaining_amount = total_price - paid_amount
 
         if st.button("تأكيد وحفظ الفاتورة وتحديث المخزن", type="primary"):
-            new_q = max_q - sell_q
-            supabase.table("products").update({"quantity": new_q}).eq("id", item["id"]).execute()
-            
-            inv_id = len(st.session_state.invoices_list) + 1
-            inv_code = f"INV-{inv_id:03d}"
-            
-            st.session_state.invoices_list.append({
-                "رقم الفاتورة": inv_code,
-                "الزبون": cust_name,
-                "المنتج": selected_prod,
-                "الكمية": sell_q,
-                "المبلغ الكلي": total_price,
-                "الواصل": paid_amount,
-                "المتبقي (الدين)": remaining_amount,
-                "نوع الدفع": pay_type,
-                "التاريخ": datetime.now().strftime('%Y-%m-%d %H:%M')
-            })
-            
-            st.success("✅ تم حفظ الفاتورة ونقصان الكمية من المخزن بنجاح!")
-            st.rerun()
+            if not st.session_state.customer_list or cust_name == "لا توجد عملاء مسجلين":
+                st.error("❌ خطأ: لا يمكن حفظ الفاتورة بدون اختيار عميل مسجل بالنظام!")
+            else:
+                new_q = max_q - sell_q
+                supabase.table("products").update({"quantity": new_q}).eq("id", item["id"]).execute()
+                
+                inv_id = len(st.session_state.invoices_list) + 1
+                inv_code = f"INV-{inv_id:03d}"
+                
+                st.session_state.invoices_list.append({
+                    "رقم الفاتورة": inv_code,
+                    "الزبون": cust_name,
+                    "المنتج": selected_prod,
+                    "الكمية": sell_q,
+                    "المبلغ الكلي": total_price,
+                    "الواصل": paid_amount,
+                    "المتبقي (الدين)": remaining_amount,
+                    "نوع الدفع": pay_type,
+                    "التاريخ": datetime.now().strftime('%Y-%m-%d %H:%M')
+                })
+                
+                st.success("✅ تم حفظ الفاتورة ونقصان الكمية وتسجيلها بذمم العملاء بنجاح!")
+                st.rerun()
     else:
         st.warning("لا توجد بضائع متاحة للبيع بالمخزن حالياً.")
 
@@ -289,7 +294,6 @@ with tab5:
 with tab6:
     st.subheader("📊 تقارير الأرباح ورأس المال وجرد المخزن")
     
-    # إذا الحساب مو VIP (مجاني)، نعرض له مادة وهمية توضيحية حتى يشوف شكل الميزة شلون تشتغل
     if not st.session_state.is_vip:
         st.info("💡 ملاحظة: أنت تستخدم النسخة المجانية. إليك نموذج توضيحي (مادة وهمية) لترى كيف تظهر تقارير الأرباح والجرد:")
         
@@ -308,10 +312,9 @@ with tab6:
         col_d3.metric("سعر البيع", "15,000 د.ع")
         col_d4.metric("إجمالي ربح هذه المادة", "250,000 د.ع")
         
-        st.warning("🔒 **ملاحظة ترويجية:** لعرض موادك الحقيقية التي أضفتها وجرد أرباحها الفعلية، يرجى تفعيل النسخة المدفوعة (VIP) باستخدام كود التفعيل من القائمة الجانبية!")
+        st.warning("🔒 **ملاحظة ترويجية:** لعرض موادك الحقيقية التي أضفتها وجرد أرباحها الفعلية، يرجى تفعيل النسخة المدفوعة (VIP) باستخدام كود التفعيل (`YASSER2026`) من القائمة الجانبية!")
     
     else:
-        # إذا الحساب مفعل VIP، نعرض له أرباح مواده الحقيقية كاملة
         res_stats = supabase.table("products").select("*").eq("username", username).execute()
         
         if res_stats.data:
