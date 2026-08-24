@@ -4,7 +4,10 @@ from supabase import create_client, Client
 from datetime import datetime, timezone
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 import io
+import urllib.request
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -32,42 +35,71 @@ if "cart" not in st.session_state:
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
-# دالة لتوليد ملف الـ PDF بالفاتورة (باللغة الإنجليزية لتجنب مربعات الحروف العربية)
+# تسجيل وتنزيل خط عربي يدعم الـ PDF لكي تظهر النصوص العربية بوضوح وبدون مربعات
+@st.cache_resource
+def register_arabic_font():
+    try:
+        # تحميل خط عربي حر (Amiri) من الإنترنت بشكل مؤقت لبرنامج الـ PDF
+        font_url = "https://github.com/google/fonts/raw/main/ofl/amiri/Amiri-Regular.ttf"
+        font_path = "Amiri-Regular.ttf"
+        urllib.request.urlretrieve(font_url, font_path)
+        pdfmetrics.registerFont(TTFont('ArabicFont', font_path))
+        return True
+    except Exception:
+        return False
+
+font_registered = register_arabic_font()
+
+# دالة لتوليد ملف الـ PDF بالفاتورة باللغة العربية الصحيحة
 def generate_pdf_invoice(inv):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # رأس الفاتورة
-    p.setFont("Helvetica-Bold", 20)
-    p.drawString(200, height - 50, "YASSER WEB - INVOICE")
+    # استخدام الخط العربي إذا تم تحميله بنجاح، وإلا فالخط الافتراضي
+    f_name = 'ArabicFont' if font_registered else 'Helvetica'
     
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, height - 90, f"Invoice No: {inv['رقم الفاتورة']}")
-    p.drawString(50, height - 115, f"Customer Name: {inv['الزبون']}")
-    p.drawString(50, height - 140, f"Date: {inv['التاريخ']}")
-    p.drawString(50, height - 165, f"Payment Type: {inv['نوع الدفع']}")
+    # رأس الفاتورة
+    p.setFont(f_name, 18)
+    p.drawCentredString(width / 2.0, height - 50, "نظام ياسر وب - فاتورة مبيعات")
+    
+    p.setFont(f_name, 12)
+    p.drawString(50, height - 90, f"رقم الفاتورة: {inv['رقم الفاتورة']}")
+    p.drawString(50, height - 115, f"اسم الزبون: {inv['الزبون']}")
+    p.drawString(50, height - 140, f"التاريخ: {inv['التاريخ']}")
+    p.drawString(50, height - 165, f"نوع الدفع: {inv['نوع الدفع']}")
     
     p.line(50, height - 180, width - 50, height - 180)
     
     # تفاصيل المواد
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(50, height - 210, "Purchased Items:")
+    p.setFont(f_name, 13)
+    p.drawString(50, height - 210, "المنتجات والمواد المباعة:")
     
-    p.setFont("Helvetica", 11)
-    p.drawString(70, height - 235, f"{inv['المنتجات']}")
+    p.setFont(f_name, 11)
+    text_y = height - 235
+    items_list_str = inv['المنتجات'].split(" , ")
+    for prod_line in items_list_str:
+        p.drawString(70, text_y, f"- {prod_line}")
+        text_y -= 25
     
-    p.line(50, height - 265, width - 50, height - 265)
+    text_y -= 15
+    p.line(50, text_y, width - 50, text_y)
     
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, height - 295, f"Total Amount: {inv['المبلغ الكلي']:,} IQD")
-    p.drawString(50, height - 320, f"Paid Amount: {inv['الواصل']:,} IQD")
-    p.drawString(50, height - 345, f"Remaining Debt: {inv['المتبقي (الدين)']:,} IQD")
+    text_y -= 30
+    p.setFont(f_name, 12)
+    p.drawString(50, text_y, f"المبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع")
     
-    p.line(50, height - 370, width - 50, height - 370)
+    text_y -= 25
+    p.drawString(50, text_y, f"المبلغ الواصل (المدفوع): {inv['الواصل']:,} د.ع")
     
-    p.setFont("Helvetica-Oblique", 10)
-    p.drawString(220, height - 400, "Thank you for your business!")
+    text_y -= 25
+    p.drawString(50, text_y, f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} د.ع")
+    
+    text_y -= 35
+    p.line(50, text_y, width - 50, text_y)
+    
+    p.setFont(f_name, 10)
+    p.drawCentredString(width / 2.0, text_y - 30, "شكراً لتعاملكم مع نظام Yasser Web - أهلاً وسهلاً بكم!")
     
     p.showPage()
     p.save()
@@ -371,7 +403,7 @@ with tab4:
                 try:
                     prod_names_str = []
                     for c_item in st.session_state.cart:
-                        prod_names_str.append(f"{c_item['product_name']} (Qty: {c_item['qty']})")
+                        prod_names_str.append(f"{c_item['product_name']} (عدد: {c_item['qty']})")
                         res_p = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
                         if res_p.data:
                             current_db_qty = res_p.data[0]["quantity"]
@@ -402,7 +434,13 @@ with tab4:
 
 with tab5:
     st.subheader("📄 سجل الفواتير ومتابعة ديون العملاء (الذمم)")
+    
     if st.session_state.invoices_list:
+        if st.button("🗑️ مسح السجل القديم (لتحديث الفواتير وتنزيل الخط العربي الجديد)"):
+            st.session_state.invoices_list = []
+            st.success("تم مسح السجل القديم. أي فاتورة جديدة راح تنزل بالعربي تماماً وبدون أي أخطاء!")
+            st.rerun()
+            
         for inv in reversed(st.session_state.invoices_list):
             with st.container(border=True):
                 col_inv1, col_inv2, col_inv3 = st.columns([2, 2, 2])
@@ -419,14 +457,14 @@ with tab5:
                     
                     pdf_buffer = generate_pdf_invoice(inv)
                     st.download_button(
-                        label="📥 تحميل الفاتورة PDF",
+                        label="📥 تحميل الفاتورة PDF بالعربي",
                         data=pdf_buffer,
                         file_name=f"{inv['رقم الفاتورة']}.pdf",
                         mime="application/pdf",
                         key=f"pdf_btn_{inv['رقم الفاتورة']}"
                     )
     else:
-        st.info("لا توجد فواتير مسجلة حتى الآن.")
+        st.info("لا توجد فواتير مسجلة حتى الآن. قم ببيع مواد جديدة لتنشأ فاتورة عربية رسمية.")
 
 with tab6:
     st.subheader("📊 تقارير الأرباح ورأس المال وجرد المخزن")
