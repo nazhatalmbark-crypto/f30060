@@ -28,27 +28,61 @@ if "is_vip" not in st.session_state:
 
 st.title("🛍️ نظام Yasser Web المتكامل لإدارة المبيعات والمخزون")
 
+# واجهة تسجيل الدخول أو إنشاء حساب جديد
 if not st.session_state.logged_in_user:
-    st.subheader("🔑 تسجيل الدخول للنظام")
-    user_input = st.text_input("ادخل اسم المستخدم أو اسم المحل:")
+    st.subheader("🔐 بوابة الدخول لحسابات المحلات والنظام")
     
-    if st.button("دخول للنظام", type="primary"):
-        if user_input.strip():
-            username = user_input.strip()
-            res = supabase.table("users").select("*").eq("username", username).execute()
+    auth_tab1, auth_tab2 = st.tabs(["🔑 تسجيل الدخول", "✨ إنشاء حساب جديد"])
+    
+    with auth_tab1:
+        with st.form("login_form"):
+            login_user = st.text_input("اسم المستخدم أو اسم المحل:")
+            login_pass = st.text_input("كلمة المرور:", type="password")
+            login_submitted = st.form_submit_button("تسجيل الدخول", type="primary")
             
-            if not res.data:
-                supabase.table("users").insert({"username": username, "is_paid": False}).execute()
-                st.session_state.logged_in_user = username
-                st.rerun()
-            else:
-                user_info = res.data[0]
-                if user_info.get("is_paid"):
-                    st.session_state.is_vip = True
-                st.session_state.logged_in_user = username
-                st.rerun()
-        else:
-            st.warning("يرجى كتابة الاسم أولاً.")
+            if login_submitted:
+                if login_user.strip() and login_pass.strip():
+                    res = supabase.table("users").select("*").eq("username", login_user.strip()).execute()
+                    if res.data:
+                        user_info = res.data[0]
+                        # التحقق من كلمة المرور (إذا مكوّنة مسبقاً أو قديمة بدون حقل باسوورد)
+                        stored_pass = user_info.get("password", "")
+                        if stored_pass == "" or stored_pass == login_pass.strip():
+                            st.session_state.logged_in_user = user_info["username"]
+                            st.session_state.is_vip = bool(user_info.get("is_paid", False))
+                            st.success("تم تسجيل الدخول بنجاح!")
+                            st.rerun()
+                        else:
+                            st.error("❌ كلمة المرور غير صحيحة!")
+                    else:
+                        st.error("❌ اسم المستخدم غير موجود، يرجى إنشاء حساب جديد.")
+                else:
+                    st.warning("يرجى إدخال اسم المستخدم وكلمة المرور.")
+                    
+    with auth_tab2:
+        with st.form("signup_form"):
+            new_user = st.text_input("اختر اسم المستخدم أو اسم المحل الجديد:")
+            new_pass = st.text_input("اختر كلمة المرور:", type="password")
+            signup_submitted = st.form_submit_button("إنشاء الحساب الآن", type="primary")
+            
+            if signup_submitted:
+                if new_user.strip() and new_pass.strip():
+                    # التأكد إذا المستخدم موجود مسبقاً
+                    check_res = supabase.table("users").select("*").eq("username", new_user.strip()).execute()
+                    if check_res.data:
+                        st.error("❌ اسم المستخدم هذا مستخدم مسبقاً، اختر اسم آخر.")
+                    else:
+                        supabase.table("users").insert({
+                            "username": new_user.strip(),
+                            "password": new_pass.strip(),
+                            "is_paid": False
+                        }).execute()
+                        st.session_state.logged_in_user = new_user.strip()
+                        st.session_state.is_vip = False
+                        st.success("🎉 تم إنشاء الحساب وتسجيل الدخول بنجاح!")
+                        st.rerun()
+                else:
+                    st.warning("يرجى ملء كافة الحقول لإنشاء الحساب.")
     st.stop()
 
 username = st.session_state.logged_in_user
@@ -197,7 +231,6 @@ with tab4:
     res_sell = supabase.table("products").select("*").eq("username", username).gt("quantity", 0).execute()
     
     if res_sell.data:
-        # إلزامي اختيار الزبون أولاً وبدون خيار محلي مبهم لتجنب الأخطاء
         if not st.session_state.customer_list:
             st.warning("⚠️ تنبيه مهم: يجب إضافة وتسجيل العميل أولاً من تبويب (إدارة العملاء) لكي تتمكن من إصدار الفاتورة وحفظها في الذمم!")
         
