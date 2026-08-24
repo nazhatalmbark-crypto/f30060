@@ -23,6 +23,10 @@ if "customer_list" not in st.session_state:
 if "invoices_list" not in st.session_state:
     st.session_state.invoices_list = []
 
+# سلة المبيعات المؤقتة لكل جلسة
+if "cart" not in st.session_state:
+    st.session_state.cart = []
+
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
@@ -107,15 +111,16 @@ else:
 if st.sidebar.button("تسجيل الخروج"):
     st.session_state.logged_in_user = None
     st.session_state.is_vip = False
+    st.session_state.cart = []
     st.rerun()
 
 st.divider()
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "➕ إضافة مادة جديدة", 
-    "📦 عرض المخزن", 
+    "📦 عرض المخزن والسلة", 
     "👥 إدارة العملاء", 
-    "🛒 إجراء بيع جديد", 
+    "🛒 إتمام البيع والفواتير", 
     "📄 سجل الفواتير", 
     "📊 تقارير الأرباح"
 ])
@@ -170,7 +175,7 @@ with tab1:
                     st.warning("يرجى كتابة اسم المنتج أولاً.")
 
 with tab2:
-    st.subheader("🧱 عرض البضائع والمخزن الحالي (على شكل شبكة بطاقات)")
+    st.subheader("🧱 عرض البضائع (على شكل شبكة بطاقات مع خاصية الإضافة للسلة)")
     try:
         res_prod = supabase.table("products").select("*").eq("username", username).execute()
     except Exception:
@@ -185,11 +190,37 @@ with tab2:
                     st.markdown(f"💰 **سعر البيع:** `{int(item['sell_price']):,}` د.ع")
                     st.markdown(f"🏷️ **سعر الشراء:** `{int(item['buy_price']):,}` د.ع")
                     st.markdown(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة")
+                    
                     profit_per_unit = int(item['sell_price'] - item['buy_price'])
                     if profit_per_unit < 0:
                         st.error(f"📉 ربح القطعة: {profit_per_unit:,} د.ع (خسارة)")
                     else:
                         st.success(f"📈 ربح القطعة: {profit_per_unit:,} د.ع")
+                    
+                    # زر الإضافة للسلة مباشرة من البطاقة
+                    if item['quantity'] > 0:
+                        if st.button(f"🛒 إضافة إلى السلة", key=f"add_cart_{item['id']}"):
+                            # فحص إذا المنتج موجود مسبقاً بالسلة لزيادة الكمية أو إضافته
+                            found_in_cart = False
+                            for cart_item in st.session_state.cart:
+                                if cart_item["id"] == item["id"]:
+                                    if cart_item["qty"] < item["quantity"]:
+                                        cart_item["qty"] += 1
+                                    found_in_cart = True
+                                    break
+                            if not found_in_cart:
+                                st.session_state.cart.append({
+                                    "id": item["id"],
+                                    "product_name": item["product_name"],
+                                    "sell_price": item["sell_price"],
+                                    "buy_price": item["buy_price"],
+                                    "max_qty": item["quantity"],
+                                    "qty": 1
+                                })
+                            st.success(f"تمت إضافة ({item['product_name']}) إلى السلة بنجاح!")
+                            st.rerun()
+                    else:
+                        st.warning("⚠️ نفذت الكمية")
     else:
         st.info("المخزن فارغ حالياً.")
 
@@ -232,67 +263,73 @@ with tab3:
         st.info("لا يوجد عملاء مسجلون حالياً.")
 
 with tab4:
-    st.subheader("🛒 تسجيل عملية بيع وتحرير فاتورة جديدة (إلزامي اختيار الزبون)")
-    try:
-        res_sell = supabase.table("products").select("*").eq("username", username).gt("quantity", 0).execute()
-    except Exception:
-        res_sell = None
+    st.subheader("🛒 سلة المبيعات وإتمام الفاتورة وإلزامية اختيار الزبون")
     
-    if res_sell and res_sell.data:
+    if st.session_state.cart:
+        st.write("### 🛍️ المواد المضافة حالياً للسلة:")
+        total_cart_price = 0
+        
+        for idx, c_item in enumerate(st.session_state.cart):
+            cols_cart = st.columns([3, 2, 2, 1])
+            with cols_cart[0]:
+                st.write(f"**{c_item['product_name']}** (السعر: {int(c_item['sell_price']):,} د.ع)")
+            with cols_cart[1]:
+                new_q = st.number_input(f"الكمية", min_value=1, max_value=int(c_item['max_qty']), value=int(c_item['qty']), key=f"cart_q_{c_item['id']}")
+                c_item['qty'] = new_q
+            with cols_cart[2]:
+                item_total = c_item['sell_price'] * c_item['qty']
+                total_cart_price += item_total
+                st.write(f"المجموع: **{int(item_total):,}** د.ع")
+            with cols_cart[3]:
+                if st.button("❌ حذف", key=f"del_cart_{c_item['id']}"):
+                    st.session_state.cart.pop(idx)
+                    st.rerun()
+                    
+        st.divider()
+        st.markdown(f"### 💵 المجموع الكلي لكل السلة: **{int(total_cart_price):,} د.ع**")
+        
+        # إلزامي اختيار الزبون
         if not st.session_state.customer_list:
-            st.warning("⚠️ تنبيه مهم: يجب إضافة وتسجيل العميل أولاً من تبويب (إدارة العملاء) لكي تتمكن من إصدار الفاتورة وحفظها في الذمم!")
-        
-        prod_dict = {p["product_name"]: p for p in res_sell.data}
-        selected_prod = st.selectbox("اختر البضاعة المراد بيعها:", list(prod_dict.keys()))
-        
-        item = prod_dict[selected_prod]
-        max_q = int(item["quantity"])
-        unit_price = int(item["sell_price"])
-        
-        customer_options = [c["اسم العميل"] for c in st.session_state.customer_list] if st.session_state.customer_list else []
+            st.warning("⚠️ تنبيه مهم جداً: يجب إضافة وتسجيل العميل أولاً من تبويب (إدارة العملاء) لكي تتمكن من حفظ الفاتورة!")
+            customer_options = ["لا توجد عملاء مسجلين"]
+        else:
+            customer_options = [c["اسم العميل"] for c in st.session_state.customer_list]
             
-        col_q, col_c = st.columns(2)
-        with col_q:
-            sell_q_str = st.text_input(f"الكمية المراد بيعها (المتوفّر: {max_q}):", "1")
-        with col_c:
-            cust_name = st.selectbox("اختر الزبون (إلزامي):", customer_options if customer_options else ["لا توجد عملاء مسجلين"])
-            
-        try:
-            sell_q = int(sell_q_str.strip())
-            if sell_q < 1: sell_q = 1
-            if sell_q > max_q: sell_q = max_q
-        except ValueError:
-            sell_q = 1
-            
-        total_price = sell_q * unit_price
-        st.markdown(f"### 💵 المجموع الكلي للفاتورة: **{total_price:,} د.ع**")
+        cust_name = st.selectbox("اختر اسم الزبون للفاتورة (إلزامي):", customer_options)
         
-        st.write("---")
         pay_type = st.radio("طريقة الدفع ونوع الفاتورة:", ["🟡 نقد بالكامل (كاش)", "🔴 آجل بالكامل (دين)", "🔵 دفعة جزئية"], horizontal=True)
         
         paid_amount = 0
         if pay_type == "🟡 نقد بالكامل (كاش)":
-            paid_amount = total_price
+            paid_amount = total_cart_price
         elif pay_type == "🔴 آجل بالكامل (دين)":
             paid_amount = 0
         else:
             paid_amount_str = st.text_input("المبلغ الواصل (المدفوع حالياً):", "0")
             try:
-                paid_amount = int(paid_amount_str.strip())
+                paid_amount = float(paid_amount_str.strip())
                 if paid_amount < 0: paid_amount = 0
-                if paid_amount > total_price: paid_amount = total_price
+                if paid_amount > total_cart_price: paid_amount = total_cart_price
             except ValueError:
                 paid_amount = 0
             
-        remaining_amount = total_price - paid_amount
+        remaining_amount = total_cart_price - paid_amount
 
-        if st.button("تأكيد وحفظ الفاتورة وتحديث المخزن", type="primary"):
+        if st.button("💾 إتمام البيع، خصم المخزن، وحفظ الفاتورة", type="primary"):
             if not st.session_state.customer_list or cust_name == "لا توجد عملاء مسجلين":
                 st.error("❌ خطأ: لا يمكن حفظ الفاتورة بدون اختيار عميل مسجل بالنظام!")
             else:
                 try:
-                    new_q = max_q - sell_q
-                    supabase.table("products").update({"quantity": new_q}).eq("id", item["id"]).execute()
+                    # خصم الكميات من قاعدة البيانات وتكوين اسم المنتجات بالفاتورة
+                    prod_names_str = []
+                    for c_item in st.session_state.cart:
+                        prod_names_str.append(f"{c_item['product_name']} (عدد: {c_item['qty']})")
+                        # جلب الكمية الحالية وتحديثها
+                        res_p = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
+                        if res_p.data:
+                            current_db_qty = res_p.data[0]["quantity"]
+                            new_db_qty = max(0, current_db_qty - c_item['qty'])
+                            supabase.table("products").update({"quantity": new_db_qty}).eq("id", c_item["id"]).execute()
                     
                     inv_id = len(st.session_state.invoices_list) + 1
                     inv_code = f"INV-{inv_id:03d}"
@@ -300,21 +337,22 @@ with tab4:
                     st.session_state.invoices_list.append({
                         "رقم الفاتورة": inv_code,
                         "الزبون": cust_name,
-                        "المنتج": selected_prod,
-                        "الكمية": sell_q,
-                        "المبلغ الكلي": total_price,
-                        "الواصل": paid_amount,
-                        "المتبقي (الدين)": remaining_amount,
+                        "المنتجات": " ، ".join(prod_names_str),
+                        "المبلغ الكلي": int(total_cart_price),
+                        "الواصل": int(paid_amount),
+                        "المتبقي (الدين)": int(remaining_amount),
                         "نوع الدفع": pay_type,
                         "التاريخ": datetime.now().strftime('%Y-%m-%d %H:%M')
                     })
                     
-                    st.success("✅ تم حفظ الفاتورة ونقصان الكمية وتسجيلها بذمم العملاء بنجاح!")
+                    # تفريغ السلة بعد البيع
+                    st.session_state.cart = []
+                    st.success("✅ تمت عملية البيع بنجاح، وتحديث المخزن، وتسجيل الفاتورة في الذمم!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"❌ خطأ أثناء تحديث المخزن: {e}")
+                    st.error(f"❌ خطأ أثناء إتمام البيع: {e}")
     else:
-        st.warning("لا توجد بضائع متاحة للبيع بالمخزن حالياً.")
+        st.info("🛒 السلة فارغة حالياً. اذهب إلى تبويب (عرض المخزن والسلة) واضغط على زر (إضافة إلى السلة) لأي منتج ترید بیعه!")
 
 with tab5:
     st.subheader("📄 سجل الفواتير ومتابعة ديون العملاء (الذمم)")
@@ -327,9 +365,9 @@ with tab5:
                     st.write(f"👤 **الزبون:** {inv['الزبون']}")
                     st.write(f"📅 **التاريخ:** {inv['التاريخ']}")
                 with col_inv2:
-                    st.write(f"📦 **المنتج:** {inv['المنتج']} (عدد: {inv['الكمية']})")
-                    st.write(f"💵 **المبلغ الكلي:** {inv['المبلغ الكلي']:,} د.ع")
+                    st.write(f"📦 **المواد:** {inv['المنتجات']}")
                 with col_inv3:
+                    st.write(f"💵 **المجموع:** {inv['المبلغ الكلي']:,} د.ع")
                     st.write(f"✅ **الواصل:** {inv['الواصل']:,} د.ع")
                     st.write(f"❌ **المتبقي:** {inv['المتبقي (الدين)']:,} د.ع")
     else:
