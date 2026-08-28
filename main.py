@@ -9,10 +9,6 @@ from reportlab.pdfbase.ttfonts import TTFont
 import io
 import urllib.request
 
-# مكتبات تعديل وعكس الحروف العربية لتظهر مضبوطة في الـ PDF
-import arabic_reshaper
-from bidi.algorithm import get_display
-
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
 
@@ -39,10 +35,11 @@ if "cart" not in st.session_state:
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
-# دالة لتسجيل الخط العربي وتنزيله مؤقتاً
+# تسجيل وتنزيل خط عربي يدعم الـ PDF لكي تظهر النصوص العربية بوضوح وبدون مربعات
 @st.cache_resource
 def register_arabic_font():
     try:
+        # تحميل خط عربي حر (Amiri) من الإنترنت بشكل مؤقت لبرنامج الـ PDF
         font_url = "https://github.com/google/fonts/raw/main/ofl/amiri/Amiri-Regular.ttf"
         font_path = "Amiri-Regular.ttf"
         urllib.request.urlretrieve(font_url, font_path)
@@ -53,48 +50,36 @@ def register_arabic_font():
 
 font_registered = register_arabic_font()
 
-# دالة سحرية لعدل النص العربي (ربط الحروف واتجاهها من اليمين لليسار)
-def fix_arabic(text):
-    if not text:
-        return ""
-    # إذا النص يحتوي على إنجليزي أو أرقام مختلطة، نعالج العربي بداخلة
-    try:
-        reshaped_text = arabic_reshaper.reshape(str(text))
-        bidi_text = get_display(reshaped_text)
-        return bidi_text
-    except Exception:
-        return text
-
-# دالة لتوليد ملف الـ PDF بالفاتورة باللغة العربية الصحيحة 100% وبدون قلب بالحروف
+# دالة لتوليد ملف الـ PDF بالفاتورة باللغة العربية الصحيحة
 def generate_pdf_invoice(inv):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
+    # استخدام الخط العربي إذا تم تحميله بنجاح، وإلا فالخط الافتراضي
     f_name = 'ArabicFont' if font_registered else 'Helvetica'
     
     # رأس الفاتورة
     p.setFont(f_name, 18)
-    p.drawCentredString(width / 2.0, height - 50, fix_arabic("نظام ياسر وب - فاتورة مبيعات"))
+    p.drawCentredString(width / 2.0, height - 50, "نظام ياسر وب - فاتورة مبيعات")
     
     p.setFont(f_name, 12)
-    # نطبع الكلمة بالعربي مع تعديل الاتجاه
-    p.drawString(width - 200, height - 90, fix_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
-    p.drawString(width - 200, height - 115, fix_arabic(f"اسم الزبون: {inv['الزبون']}"))
-    p.drawString(width - 200, height - 140, fix_arabic(f"التاريخ: {inv['التاريخ']}"))
-    p.drawString(width - 200, height - 165, fix_arabic(f"نوع الدفع: {inv['نوع الدفع']}"))
+    p.drawString(50, height - 90, f"رقم الفاتورة: {inv['رقم الفاتورة']}")
+    p.drawString(50, height - 115, f"اسم الزبون: {inv['الزبون']}")
+    p.drawString(50, height - 140, f"التاريخ: {inv['التاريخ']}")
+    p.drawString(50, height - 165, f"نوع الدفع: {inv['نوع الدفع']}")
     
     p.line(50, height - 180, width - 50, height - 180)
     
     # تفاصيل المواد
     p.setFont(f_name, 13)
-    p.drawString(width - 220, height - 210, fix_arabic("المنتجات والمواد المباعة:"))
+    p.drawString(50, height - 210, "المنتجات والمواد المباعة:")
     
     p.setFont(f_name, 11)
     text_y = height - 235
     items_list_str = inv['المنتجات'].split(" , ")
     for prod_line in items_list_str:
-        p.drawString(width - 240, text_y, fix_arabic(f"- {prod_line}"))
+        p.drawString(70, text_y, f"- {prod_line}")
         text_y -= 25
     
     text_y -= 15
@@ -102,19 +87,19 @@ def generate_pdf_invoice(inv):
     
     text_y -= 30
     p.setFont(f_name, 12)
-    p.drawString(width - 250, text_y, fix_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع"))
+    p.drawString(50, text_y, f"المبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع")
     
     text_y -= 25
-    p.drawString(width - 250, text_y, fix_arabic(f"المبلغ الواصل (المدفوع): {inv['الواصل']:,} د.ع"))
+    p.drawString(50, text_y, f"المبلغ الواصل (المدفوع): {inv['الواصل']:,} د.ع")
     
     text_y -= 25
-    p.drawString(width - 250, text_y, fix_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} د.ع"))
+    p.drawString(50, text_y, f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} د.ع")
     
     text_y -= 35
     p.line(50, text_y, width - 50, text_y)
     
     p.setFont(f_name, 10)
-    p.drawCentredString(width / 2.0, text_y - 30, fix_arabic("شكراً لتعاملكم مع نظام Yasser Web - أهلاً وسهلاً بكم!"))
+    p.drawCentredString(width / 2.0, text_y - 30, "شكراً لتعاملكم مع نظام Yasser Web - أهلاً وسهلاً بكم!")
     
     p.showPage()
     p.save()
@@ -451,9 +436,9 @@ with tab5:
     st.subheader("📄 سجل الفواتير ومتابعة ديون العملاء (الذمم)")
     
     if st.session_state.invoices_list:
-        if st.button("🗑️ مسح السجل القديم (لتحديث الفواتير وتطبيق الخط العربي الصحيح)"):
+        if st.button("🗑️ مسح السجل القديم (لتحديث الفواتير وتنزيل الخط العربي الجديد)"):
             st.session_state.invoices_list = []
-            st.success("تم مسح السجل القديم. أي فاتورة جديدة راح تنزل مرتبة ومظبوطة بالعربي 100%!")
+            st.success("تم مسح السجل القديم. أي فاتورة جديدة راح تنزل بالعربي تماماً وبدون أي أخطاء!")
             st.rerun()
             
         for inv in reversed(st.session_state.invoices_list):
@@ -472,7 +457,7 @@ with tab5:
                     
                     pdf_buffer = generate_pdf_invoice(inv)
                     st.download_button(
-                        label="📥 تحميل الفاتورة PDF بالعربي المرتب",
+                        label="📥 تحميل الفاتورة PDF بالعربي",
                         data=pdf_buffer,
                         file_name=f"{inv['رقم الفاتورة']}.pdf",
                         mime="application/pdf",
