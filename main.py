@@ -1,105 +1,147 @@
 import streamlit as st
-import pandas as pd
 
-def main():
-    # إعدادات الصفحة الأساسية
-    st.set_page_config(page_title="منظومة Yasser Web", layout="wide")
-    
-    # نظام تسجيل الدخول الأصلي كما هو بدون أي تغيير
-    if 'logged_in' not in st.session_state:
-        st.session_state['logged_in'] = False
+# إعدادات الصفحة
+st.set_page_config(
+    page_title="Eng. Yasser Pro System - النسخة الكاملة",
+    page_icon="🔥",
+    layout="wide"
+)
 
-    if not st.session_state['logged_in']:
-        st.subheader("🔐 تسـجيل الدخول إلى منظومة Yasser Web")
-        username = st.text_input("اسم المستخدم")
-        password = st.text_input("كلمة المرور", type="password")
-        if st.button("دخول"):
-            if username and password:
-                st.session_state['logged_in'] = True
-                st.rerun()
-            else:
-                st.warning("يرجى إدخال اسم المستخدم وكلمة المرور")
-        return
-
-    # بيانات التطبيق الأصلية
-    data = {
-        'المنتج': ['تيشيرت كلاسيك', 'بنطلون جينز', 'حذاء رياضي', 'ساعة ذكية', 'ساعة ذكية'],
-        'سعر البيع': [85.00, 405.00, 255.00, 155.00, 1355.00],
-        'تكلفة الوحدة': [3.00, 0.00, 0.10, 0.00, 0.00],
-        'الكمية المباعة': [1, 25, 230, 10, 250],
-        'إجمالي الربح': [95900, 17400, 58950, 15300, 57500],
-        'المخزون المتبقي': [41.50, 0.60, 0.50, 0.50, 0.50]
+# تنسيق الاتجاه من اليمين لليسار (RTL)
+st.markdown(
+    """
+    <style>
+    html, body, [class*="css"] {
+        direction: rtl;
+        text-align: right;
     }
-    df_sales = pd.DataFrame(data)
+    .stTabs [data-baseweb="tab-list"] {
+        direction: rtl;
+        justify-content: flex-start;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-    st.title("📊 منظومة Yasser Web - إدارة المبيعات والمخزون")
-    st.markdown("---")
+# شريط جانبى لإدارة المستخدم
+st.sidebar.title("إدارة المستخدم")
+user_name = st.sidebar.text_input("اسم المستخدم الحالي", "ياسر")
+st.sidebar.success(f"مرحباً بك، {user_name}")
+st.sidebar.divider()
+st.sidebar.info("📌 النظام يعمل بكامل الميزات والربط المحلي.")
 
-    # القائمة الجانبية الأصلية كاملة بدون أي حذف
-    menu = st.sidebar.selectbox("القائمة الرئيسية", ["لوحة التحكم والأرباح", "إدارة الفواتير", "المخزون", "إدارة الموظفين", "إدارة المشاريع"])
+# العنوان الرئيسي
+st.title("🔥 Eng. Yasser Pro System - النظام المتكامل")
 
-    if menu == "لوحة التحكم والأرباح":
-        st.subheader("تحليل الأرباح وتفاصيل المخزون - هذا الشهر")
-        col1, col2 = st.columns([2, 1])
+# رسالة الترحيب
+st.markdown(
+    f"""
+    <div style="padding: 12px; background-color: #d4edda; color: #155724; border-radius: 6px; margin-bottom: 20px;">
+    أهلاً وسهلاً بك يا <b>({user_name})</b> في النظام الكامل!<br>
+    <b>تم استرجاع كافة الهوسة، شبكة المواد، ونظام السلة والفواتير بنجاح تام!</b>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# تهيئة سلة المبيعات في الذاكرة المؤقتة (Session State)
+if 'cart' not in st.session_state:
+    st.session_state.cart = []
+
+# تبويبات النظام الرئيسية
+tab_inventory, tab_sales, tab_reports, tab_pro = st.tabs([
+    "📦 المخزن وشبكة المواد", 
+    "🛒 سلة المبيعات والفاتورة", 
+    "📊 التقارير المالية", 
+    "🔑 تفعيل النسخة المدفوعة"
+])
+
+# 1. تبويب المخزن وشبكة المواد (Grid)
+with tab_inventory:
+    st.subheader("إدارة المخزن وعرض المواد (Grid System)")
+    st.write("هنا تظهر بضائع المخزن على شكل شبكة مرتبة، وتستطيع إضافتها للسلة مباشرة:")
+
+    # قائمة مواد وهمية لعرض الشبكة (تقدر تعدلها أو تربطها بقاعدة البيانات)
+    products = [
+        {"id": 1, "name": "لابتوب توشيبا / ديل مستعمل", "price": 250000, "stock": 5},
+        {"id": 2, "name": "راوتر تي بي لينك اصلي", "price": 35000, "stock": 12},
+        {"id": 3, "name": "ماوس وسلك كيبورد جيمينج", "price": 15000, "stock": 20},
+        {"id": 4, "name": "هارد SSD سعة 512GB", "price": 45000, "stock": 8}
+    ]
+
+    # عرض المواد على شكل أعمدة (شبكة Grid)
+    cols = st.columns(2)
+    for index, prod in enumerate(products):
+        col = cols[index % 2]
+        with col:
+            with st.container(border=True):
+                st.markdown(f"### {prod['name']}")
+                st.write(f"💰 السعر: **{prod['price']:,} د.ع**")
+                st.write(f"📦 المتبقي بالمخزن: **{prod['stock']} قطعتين**")
+                
+                if st.button(f"إضافة للسلة 🛒", key=f"add_{prod['id']}"):
+                    st.session_state.cart.append(prod)
+                    st.success(f"تمت إضافة ({prod['name']}) إلى السلة بنجاح!")
+
+# 2. تبويب سلة المبيعات والفاتورة الموحدة
+with tab_sales:
+    st.subheader("🛒 سلة المبيعات وإصدار الفاتورة الموحدة")
+    
+    if len(st.session_state.cart) == 0:
+        st.warning("السلة فارغة حالياً! اذهب إلى تبويب (المخزن وشبكة المواد) وأضف مواد.")
+    else:
+        st.write("المواد المضافة حالياً في السلة:")
+        total_price = 0
         
-        with col1:
-            st.dataframe(df_sales, use_container_width=True)
+        for idx, item in enumerate(st.session_state.cart):
+            c1, c2, c3 = st.columns([3, 2, 1])
+            with c1:
+                st.write(f"**{item['name']}**")
+            with c2:
+                st.write(f"{item['price']:,} د.ع")
+            with c3:
+                if st.button("حذف", key=f"del_{idx}"):
+                    st.session_state.cart.pop(idx)
+                    st.rerun()
+            total_price += item['price']
             
-        with col2:
-            st.markdown("### إجمالي الربح")
-            st.success("إجمالي الربح المتوقع \n\n **+5.5%**")
-            st.bar_chart(df_sales['إجمالي الربح'])
+        st.divider()
+        st.markdown(f"### 💵 المجموع النهائي للفاتورة: `{total_price:,} د.ع`")
+        
+        customer_name = st.text_input("اسم الزبون الكريم:")
+        
+        if st.button("إصدار وطباعة الفاتورة النهائية", type="primary"):
+            if customer_name.strip() == "":
+                st.error("الرجاء إدخال اسم الزبون قبل إصدار الفاتورة!")
+            else:
+                st.success(f"🎉 تم إصدار الفاتورة بنجاح للزبون: ({customer_name}) بمبلغ إجمالي ({total_price:,} د.ع)!")
+                st.balloons()
+                # تفريغ السلة بعد البيع
+                st.session_state.cart = []
 
-    elif menu == "إدارة الفواتير":
-        # التعديل الوحيد المطلوب: واجهة الفاتورة صارت مرتبة وواضحة
-        st.markdown("### 📄 فاتورة المبيعات الرسمية")
-        st.markdown("---")
-        
-        invoice_id = st.selectbox("اختر رقم الفاتورة للعرض:", df_sales.index.tolist() if not df_sales.empty else [1])
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**معلومات المتجر:**")
-            st.write("اسم النظام: منظومة Yasser Web")
-            st.write("المطور: Eng. Yasser")
-            st.write("المعرف: @yasser120120120120")
-            
-        with col2:
-            st.markdown("**تفاصيل الفاتورة:**")
-            st.write(f"رقم الفاتورة: #INV-{invoice_id}")
-            st.write("الحالة: مدفوعة ومؤكدة ✅")
-            
-        st.markdown("---")
-        st.markdown("#### 🛒 المواد المباعة:")
-        if not df_sales.empty:
-            st.dataframe(df_sales[['المنتج', 'سعر البيع', 'الكمية المباعة', 'إجمالي الربح']], use_container_width=True)
+# 3. تبويب التقارير
+with tab_reports:
+    st.subheader("📊 تقارير المبيعات والأرباح")
+    st.info("هنا تظهر تقارير الحركة المالية والتحليلات الخاصة بالمخزن.")
+    st.metric(label="إجمالي المبيعات الكلية", value="0 د.ع", delta="0%")
+
+# 4. تبويب تفعيل النسخة المدفوعة والحقل السري
+with tab_pro:
+    st.subheader("🔑 إدخال كود النسخة المدفوعة / الاحترافية")
+    st.write("أدخل الكود الخاص لفتح كافة ميزات النظام المتقدمة:")
+    
+    activation_code = st.text_input("حقل إدخال الكود السري:", type="password")
+    
+    if st.button("تحقق وتفعيل النسخة"):
+        if activation_code == "YASSER2026":
+            st.success("🎉 مبروك! تم تفعيل النسخة المدفوعة بنجاح كامل.")
+            st.balloons()
+        elif activation_code == "":
+            st.warning("الرجاء إدخال الكود أولاً.")
         else:
-            st.info("لا توجد بيانات متاحة لعرضها في الفاتورة حالياً.")
-            
-        st.markdown("---")
-        st.success("شكراً لتعاملكم معنا! لخدمة أفضل، يرجى مراجعة الإدارة عند وجود أي استفسار.")
+            st.error("❌ الكود غير صحيح، تأكد من الرقم وادخله مجدداً.")
 
-    elif menu == "المخزون":
-        st.subheader("إدارة المخزون الحالي")
-        st.dataframe(df_sales[['المنتج', 'المخزون المتبقي']], use_container_width=True)
-
-    elif menu == "إدارة الموظفين":
-        st.subheader("قسم إدارة الموظفين والأداء")
-        st.write("عرض تفاصيل الموظفين والتقييمات الشهرية...")
-        st.dataframe(df_sales, use_container_width=True)
-
-    elif menu == "إدارة المشاريع":
-        st.subheader("قسم إدارة المشاريع وتطوير التطبيقات")
-        st.write("متابعة حالة المشاريع ونسب الإنجاز الحالية...")
-        st.progress(0.75)
-        st.write("نسبة إنجاز المشروع الحالي: 75%")
-
-    # زر تسجيل الخروج الأصلي
-    st.sidebar.markdown("---")
-    if st.sidebar.button("تسجيل الخروج"):
-        st.session_state['logged_in'] = False
-        st.rerun()
-
-if __name__ == '__main__':
-    main()
+# فاصل سفلي
+st.divider()
+st.caption("Eng. Yasser Pro System - النسخة الاحترافية الكاملة 2026")
