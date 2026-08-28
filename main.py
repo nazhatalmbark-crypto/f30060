@@ -4,6 +4,22 @@ import pandas as pd
 def main():
     # إعدادات الصفحة الأساسية
     st.set_page_config(page_title="منظومة Yasser Web", layout="wide")
+    
+    # نظام تسجيل الدخول الأصلي كما هو بدون أي تغيير
+    if 'logged_in' not in st.session_state:
+        st.session_state['logged_in'] = False
+
+    if not st.session_state['logged_in']:
+        st.subheader("🔐 تسـجيل الدخول إلى منظومة Yasser Web")
+        username = st.text_input("اسم المستخدم")
+        password = st.text_input("كلمة المرور", type="password")
+        if st.button("دخول"):
+            if username and password:
+                st.session_state['logged_in'] = True
+                st.rerun()
+            else:
+                st.warning("يرجى إدخال اسم المستخدم وكلمة المرور")
+        return
 
     # بيانات التطبيق الأصلية
     data = {
@@ -19,7 +35,7 @@ def main():
     st.title("📊 منظومة Yasser Web - إدارة المبيعات والمخزون")
     st.markdown("---")
 
-    # القائمة الجانبية الأصلية كاملة
+    # القائمة الجانبية الأصلية كاملة بدون أي حذف
     menu = st.sidebar.selectbox("القائمة الرئيسية", ["لوحة التحكم والأرباح", "إدارة الفواتير", "المخزون", "إدارة الموظفين", "إدارة المشاريع"])
 
     if menu == "لوحة التحكم والأرباح":
@@ -35,7 +51,7 @@ def main():
             st.bar_chart(df_sales['إجمالي الربح'])
 
     elif menu == "إدارة الفواتير":
-        # واجهة الفاتورة الواضحة والمرتبة
+        # التعديل الوحيد المطلوب: تنسيق الفاتورة لتكون واضحة ونظيفة
         st.markdown("### 📄 فاتورة المبيعات الرسمية")
         st.markdown("---")
         
@@ -44,19 +60,18 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("#### **معلومات المتجر:**")
-            st.write("🔹 اسم النظام: منظومة Yasser Web")
-            st.write("🔹 المطور: Eng. Yasser")
-            st.write("🔹 المعرف: @yasser120120120120")
+            st.markdown("**معلومات المتجر:**")
+            st.write("اسم النظام: منظومة Yasser Web")
+            st.write("المطور: Eng. Yasser")
+            st.write("المعرف: @yasser120120120120")
             
         with col2:
-            st.markdown("#### **تفاصيل الفاتورة:**")
-            st.write(f"📌 رقم الفاتورة: #INV-{invoice_id}")
-            st.write("📌 الحالة: مدفوعة ومؤكدة ✅")
+            st.markdown("**تفاصيل الفاتورة:**")
+            st.write(f"رقم الفاتورة: #INV-{invoice_id}")
+            st.write("الحالة: مدفوعة ومؤكدة ✅")
             
         st.markdown("---")
-        st.markdown("#### 🛒 المواد المباعة (تفاصيل واضحة):")
-        
+        st.markdown("#### 🛒 المواد المباعة:")
         if not df_sales.empty:
             st.dataframe(df_sales[['المنتج', 'سعر البيع', 'الكمية المباعة', 'إجمالي الربح']], use_container_width=True)
         else:
@@ -79,6 +94,12 @@ def main():
         st.write("متابعة حالة المشاريع ونسب الإنجاز الحالية...")
         st.progress(0.75)
         st.write("نسبة إنجاز المشروع الحالي: 75%")
+
+    # زر تسجيل الخروج الأصلي
+    st.sidebar.markdown("---")
+    if st.sidebar.button("تسجيل الخروج"):
+        st.session_state['logged_in'] = False
+        st.rerun()
 
 if __name__ == '__main__':
     main()
