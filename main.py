@@ -51,28 +51,31 @@ def main():
             st.bar_chart(df_sales['إجمالي الربح'])
 
     elif menu == "إدارة الفواتير":
-        # التعديل الوحيد المطلوب: واجهة الفاتورة صارت واضحة ومرتبة
+        # قسم الفاتورة المعدل ليكون واضحاً، مرتباً، وبدون أي تداخل
         st.markdown("### 📄 فاتورة المبيعات الرسمية")
         st.markdown("---")
         
         invoice_id = st.selectbox("اختر رقم الفاتورة للعرض:", df_sales.index.tolist() if not df_sales.empty else [1])
         
+        # استخدام حاوية أو تنظيم الأجزاء لضمان الوضوح التام
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("**معلومات المتجر:**")
-            st.write("اسم النظام: منظومة Yasser Web")
-            st.write("المطور: Eng. Yasser")
-            st.write("المعرف: @yasser120120120120")
+            st.markdown("#### **معلومات المتجر:**")
+            st.write("🔹 اسم النظام: منظومة Yasser Web")
+            st.write("🔹 المطور: Eng. Yasser")
+            st.write("🔹 المعرف: @yasser120120120120")
             
         with col2:
-            st.markdown("**تفاصيل الفاتورة:**")
-            st.write(f"رقم الفاتورة: #INV-{invoice_id}")
-            st.write("الحالة: مدفوعة ومؤكدة ✅")
+            st.markdown("#### **تفاصيل الفاتورة:**")
+            st.write(f"📌 رقم الفاتورة: #INV-{invoice_id}")
+            st.write("📌 الحالة: مدفوعة ومؤكدة ✅")
             
         st.markdown("---")
-        st.markdown("#### 🛒 المواد المباعة:")
+        st.markdown("#### 🛒 المواد المباعة (تفاصيل واضحة):")
+        
         if not df_sales.empty:
+            # عرض جدول الفاتورة بشكل صافي ومريح للعين
             st.dataframe(df_sales[['المنتج', 'سعر البيع', 'الكمية المباعة', 'إجمالي الربح']], use_container_width=True)
         else:
             st.info("لا توجد بيانات متاحة لعرضها في الفاتورة حالياً.")
