@@ -5,43 +5,20 @@ def main():
     # إعدادات الصفحة الأساسية
     st.set_page_config(page_title="منظومة Yasser Web", layout="wide")
     
-    # تهيئة حالة الجلسة للتسجيل والحسابات الجديدة
+    # نظام تسجيل الدخول الأصلي كما هو بدون أي تغيير
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
-    if 'users_db' not in st.session_state:
-        # قاعدة بيانات بسيطة مخزنة مؤقتاً لتسجيل الحسابات الجديدة
-        st.session_state['users_db'] = {"admin": "1234"}
 
     if not st.session_state['logged_in']:
-        st.subheader("🔐 منظومة Yasser Web - بوابة الدخول")
-        
-        # تقسيم الشاشة إلى تبويبين (تسجيل دخول / إنشاء حساب جديد)
-        tab1, tab2 = st.tabs(["تسجيل الدخول", "إنشاء حساب جديد"])
-        
-        with tab1:
-            st.markdown("### تسـجيل الدخول إلى الحساب")
-            username = st.text_input("اسم المستخدم", key="login_user")
-            password = st.text_input("كلمة المرور", type="password", key="login_pass")
-            if st.button("دخول"):
-                if username in st.session_state['users_db'] and st.session_state['users_db'][username] == password:
-                    st.session_state['logged_in'] = True
-                    st.rerun()
-                else:
-                    st.warning("اسم المستخدم أو كلمة المرور غير صحيحة")
-                    
-        with tab2:
-            st.markdown("### إنشاء حساب جديد")
-            new_user = st.text_input("اختر اسم المستخدم الجديد", key="new_user")
-            new_pass = st.text_input("اختر كلمة المرور الجديدة", type="password", key="new_pass")
-            if st.button("تسجيل الحساب"):
-                if new_user and new_pass:
-                    if new_user in st.session_state['users_db']:
-                        st.warning("اسم المستخدم موجود مسبقاً، ياختر غيره")
-                    else:
-                        st.session_state['users_db'][new_user] = new_pass
-                        st.success("تم إنشاء الحساب بنجاح! يمكنك الانتقال لتبويب تسجيل الدخول والدخول الآن.")
-                else:
-                    st.warning("يرجى ملء جميع الحقول المطلوبة")
+        st.subheader("🔐 تسـجيل الدخول إلى منظومة Yasser Web")
+        username = st.text_input("اسم المستخدم")
+        password = st.text_input("كلمة المرور", type="password")
+        if st.button("دخول"):
+            if username and password:
+                st.session_state['logged_in'] = True
+                st.rerun()
+            else:
+                st.warning("يرجى إدخال اسم المستخدم وكلمة المرور")
         return
 
     # بيانات التطبيق الأصلية
@@ -74,7 +51,7 @@ def main():
             st.bar_chart(df_sales['إجمالي الربح'])
 
     elif menu == "إدارة الفواتير":
-        # التعديل المطلوب على واجهة الفاتورة لتكون مرتبة
+        # التعديل الوحيد المطلوب: واجهة الفاتورة صارت مرتبة وواضحة
         st.markdown("### 📄 فاتورة المبيعات الرسمية")
         st.markdown("---")
         
