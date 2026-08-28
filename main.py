@@ -7,26 +7,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن كود CSS لجعل الواجهة من اليمين لليسار (RTL) وتعديل الخطوط والعرض
-st.markdown(
-    """
-    <style>
-    /* جعل الصفحة بالكامل من اليمين لليسار */
-    html, body, [class*="css"] {
-        direction: rtl;
-        text-align: right;
-    }
-    /* تعديل محاذاة عناصر التبويبات والمح-كات */
-    .stTabs [data-baseweb="tab-list"] {
-        direction: rtl;
-        justify-content: flex-start;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# شريط جانبي
+# شريط جانبى أو حالة المستخدم
 st.sidebar.title("إدارة المستخدم")
 user_name = st.sidebar.text_input("اسم المستخدم الحالي", "ياسر")
 st.sidebar.success(f"مرحباً بك، {user_name}")
@@ -45,7 +26,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# تبويبات النظام الرئيسية مرتبة بالعربي الصحيح
+# تبويبات النظام الرئيسية
 tab_reports, tab_sales, tab_inventory, tab_pro = st.tabs([
     "📊 التقارير", 
     "🛒 سلة المبيعات", 
@@ -56,6 +37,7 @@ tab_reports, tab_sales, tab_inventory, tab_pro = st.tabs([
 with tab_reports:
     st.subheader("تقارير المبيعات والأرباح")
     st.info("هنا تظهر تقارير الحركة المالية والتحليلات الخاصة بالمخزن.")
+    # مثال لعنصر تفاعلي
     st.metric(label="إجمالي المبيعات", value="0 د.ع", delta="0%")
 
 with tab_sales:
@@ -65,12 +47,13 @@ with tab_sales:
     with col1:
         st.text_input("اسم الزبون")
     with col2:
-        st.number_input("المبلغ الإجمالي", min_value=0, step=1000)
+        st.number_input("البلغ الإجمالي", min_value=0, step=1000)
     st.button("إصدار وطباعة الفاتورة", type="primary")
 
 with tab_inventory:
     st.subheader("إدارة المخزن")
     st.info("هنا تظهر بضائع المستخدم حصراً.")
+    # جدول تجريبي لإدارة المخزن
     st.text_input("بحث عن مادة في المخزن...")
     st.write("قائمة البضائع الحالية فارغة حالياً، أضف بضائع جديدة.")
 
