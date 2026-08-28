@@ -32,54 +32,63 @@ if "cart" not in st.session_state:
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
-# دالة لتوليد ملف الـ PDF بالفاتورة (إنجليزية بالكامل وبشكل مرتب ونظيف)
+# دالة توليد ملف الـ PDF بالفاتورة (منسقة وواضحة جداً وبدون أي تداخل)
 def generate_pdf_invoice(inv):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # رأس الفاتورة
-    p.setFont("Helvetica-Bold", 22)
-    p.drawString(180, height - 50, "YASSER WEB INVOICE")
+    # رأس الفاتورة الاحترافي
+    p.setFont("Helvetica-Bold", 20)
+    p.drawString(50, height - 50, "YASSER WEB - OFFICIAL INVOICE")
     
+    p.setFont("Helvetica", 10)
+    p.drawString(width - 200, height - 50, f"Date: {inv['التاريخ']}")
+    
+    p.setStrokeColorRGB(0.2, 0.2, 0.2)
+    p.setLineWidth(1)
+    p.line(50, height - 65, width - 50, height - 65)
+    
+    # معلومات الفاتورة والزبون
     p.setFont("Helvetica-Bold", 11)
-    p.drawString(50, height - 90, f"Invoice No: {inv['رقم الفاتورة']}")
-    p.drawString(50, height - 115, f"Customer Name: {inv['الزبون']}")
-    p.drawString(50, height - 140, f"Date & Time: {inv['التاريخ']}")
-    p.drawString(50, height - 165, f"Payment Type: {inv['نوع الدفع']}")
+    p.drawString(50, height - 90, f"Invoice Number: {inv['رقم الفاتورة']}")
+    p.drawString(50, height - 110, f"Customer Name: {inv['الزبون']}")
+    p.drawString(50, height - 130, f"Payment Type: {inv['نوع الدفع']}")
     
-    p.line(50, height - 180, width - 50, height - 180)
+    p.line(50, height - 145, width - 50, height - 145)
     
-    # تفاصيل المواد
-    p.setFont("Helvetica-Bold", 13)
-    p.drawString(50, height - 210, "Purchased Items:")
+    # تفاصيل المواد المباعة
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, height - 170, "Purchased Items Details:")
     
-    p.setFont("Helvetica", 11)
-    # رسم المواد بشكل مرتب سطر تحت سطر إذا تعددت
-    text_y = height - 235
+    p.setFont("Helvetica", 10)
+    text_y = height - 195
     items_list_str = inv['المنتجات'].split(" , ")
     for prod_line in items_list_str:
-        p.drawString(70, text_y, f"- {prod_line}")
-        text_y -= 25
-    
-    text_y -= 15
+        p.drawString(70, text_y, f">> {prod_line}")
+        text_y -= 22
+        
+    text_y -= 10
     p.line(50, text_y, width - 50, text_y)
     
+    # الملخص المالي للفاتورة
     text_y -= 30
-    p.setFont("Helvetica-Bold", 12)
+    p.setFont("Helvetica-Bold", 11)
     p.drawString(50, text_y, f"Total Amount: {inv['المبلغ الكلي']:,} IQD")
     
-    text_y -= 25
+    text_y -= 22
     p.drawString(50, text_y, f"Paid Amount: {inv['الواصل']:,} IQD")
     
-    text_y -= 25
+    text_y -= 22
     p.drawString(50, text_y, f"Remaining Debt: {inv['المتبقي (الدين)']:,} IQD")
     
-    text_y -= 35
+    text_y -= 40
+    p.setLineWidth(0.5)
     p.line(50, text_y, width - 50, text_y)
     
+    # رسالة الشكر في النهاية
     p.setFont("Helvetica-Oblique", 10)
-    p.drawString(210, text_y - 30, "Thank you for your business with Yasser Web!")
+    p.drawString(180, text_y - 30, "Thank you for your business with Yasser Web!")
     
     p.showPage()
     p.save()
@@ -190,7 +199,7 @@ with tab1:
         current_count = len(res_prod_count.data) if res_prod_count.data else 0
     except Exception:
         current_count = 0
-    
+        
     if not st.session_state.is_vip and current_count >= 5:
         st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة باستخدام كود (`YASSER2026`) من القائمة الجانبية لإضافة منتجات بلا حدود!")
     else:
@@ -244,7 +253,7 @@ with tab2:
         res_prod = supabase.table("products").select("*").eq("username", username).execute()
     except Exception:
         res_prod = None
-    
+        
     if res_prod and res_prod.data:
         cols = st.columns(3)
         for idx, item in enumerate(res_prod.data):
@@ -415,7 +424,6 @@ with tab4:
 with tab5:
     st.subheader("📄 سجل الفواتير ومتابعة ديون العملاء (الذمم)")
     
-    # زر لتنظيف الفواتير القديمة الخاطئة إذا ظهرت مربعات
     if st.session_state.invoices_list:
         if st.button("🗑️ مسح السجل القديم (لتحديث الفواتير وتجنب المربعات القديمة)"):
             st.session_state.invoices_list = []
