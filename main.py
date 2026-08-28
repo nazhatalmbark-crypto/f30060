@@ -1,10 +1,14 @@
 import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
-from datetime import datetime, timezone
+from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 import io
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -15,7 +19,23 @@ def init_supabase() -> Client:
 
 supabase = init_supabase()
 
-st.set_page_config(page_title="Yasser Web - إدارة المبيعات والمخزون", page_icon="📦", layout="wide")
+st.set_page_config(page_title="Yasser Web - نظام إدارة المبيعات", page_icon="📦", layout="wide")
+
+# تسجيل خط عربي مدعوم (مثل Amiri أو Cairo) لتظهر الحروف العربية بشكل صحيح تماماً
+# ملاحظة: تأكد من تثبيت مكتبتي arabic-reshaper و python-bidi عبر الـ terminal
+try:
+    # سيتم استخدام خط افتراضي يدعم العربية إذا توفر، أو نسجل خط Amiri إذا تم تحميله
+    pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
+    ARABIC_FONT = 'Amiri'
+except:
+    ARABIC_FONT = 'Helvetica'
+
+def format_arabic(text):
+    if not text:
+        return ""
+    # إعادة تشكيل الحروف العربية وعكسها لتتوافق مع الـ PDF
+    reshaped_text = arabic_reshaper.reshape(str(text))
+    return get_display(reshaped_text)
 
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
@@ -32,15 +52,15 @@ if "cart" not in st.session_state:
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
-# دالة توليد ملف الـ PDF بالفاتورة (منسقة وواضحة جداً وبدون أي تداخل)
+# دالة توليد ملف الـ PDF بالفاتورة (مع دعم كامل للغة العربية وترتيب الكلمات)
 def generate_pdf_invoice(inv):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # رأس الفاتورة الاحترافي
-    p.setFont("Helvetica-Bold", 20)
-    p.drawString(50, height - 50, "YASSER WEB - OFFICIAL INVOICE")
+    # رأس الفاتورة
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, height - 50, "YASSER WEB - فاتورة مبيعات رسمية")
     
     p.setFont("Helvetica", 10)
     p.drawString(width - 200, height - 50, f"Date: {inv['التاريخ']}")
@@ -49,46 +69,42 @@ def generate_pdf_invoice(inv):
     p.setLineWidth(1)
     p.line(50, height - 65, width - 50, height - 65)
     
-    # معلومات الفاتورة والزبون
-    p.setFont("Helvetica-Bold", 11)
-    p.drawString(50, height - 90, f"Invoice Number: {inv['رقم الفاتورة']}")
-    p.drawString(50, height - 110, f"Customer Name: {inv['الزبون']}")
-    p.drawString(50, height - 130, f"Payment Type: {inv['نوع الدفع']}")
+    # معلومات الفاتورة والزبون (مع تحويل النصوص العربية بـ format_arabic)
+    p.setFont(ARABIC_FONT, 12)
+    p.drawString(50, height - 95, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
+    p.drawString(50, height - 120, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
+    p.drawString(50, height - 145, format_arabic(f"نوع الدفع: {inv['نوع الدفع']}"))
     
-    p.line(50, height - 145, width - 50, height - 145)
+    p.line(50, height - 165, width - 50, height - 165)
     
     # تفاصيل المواد المباعة
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, height - 170, "Purchased Items Details:")
+    p.drawString(50, height - 195, format_arabic("تفاصيل المنتجات والمواد المباعة:"))
     
-    p.setFont("Helvetica", 10)
-    text_y = height - 195
+    text_y = height - 225
     items_list_str = inv['المنتجات'].split(" , ")
     for prod_line in items_list_str:
-        p.drawString(70, text_y, f">> {prod_line}")
-        text_y -= 22
+        p.drawString(70, text_y, format_arabic(f">> {prod_line}"))
+        text_y -= 25
         
     text_y -= 10
     p.line(50, text_y, width - 50, text_y)
     
-    # الملخص المالي للفاتورة
-    text_y -= 30
-    p.setFont("Helvetica-Bold", 11)
-    p.drawString(50, text_y, f"Total Amount: {inv['المبلغ الكلي']:,} IQD")
+    # الملخص المالي
+    text_y -= 35
+    p.drawString(50, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
     
-    text_y -= 22
-    p.drawString(50, text_y, f"Paid Amount: {inv['الواصل']:,} IQD")
+    text_y -= 25
+    p.drawString(50, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
     
-    text_y -= 22
-    p.drawString(50, text_y, f"Remaining Debt: {inv['المتبقي (الدين)']:,} IQD")
+    text_y -= 25
+    p.drawString(50, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
     
-    text_y -= 40
+    text_y -= 45
     p.setLineWidth(0.5)
     p.line(50, text_y, width - 50, text_y)
     
-    # رسالة الشكر في النهاية
-    p.setFont("Helvetica-Oblique", 10)
-    p.drawString(180, text_y - 30, "Thank you for your business with Yasser Web!")
+    # رسالة النهاية
+    p.drawCentredString(width / 2.0, text_y - 35, format_arabic("شكراً لتعاملكم مع نظام Yasser Web للمبيعات والمخزن!"))
     
     p.showPage()
     p.save()
@@ -425,9 +441,9 @@ with tab5:
     st.subheader("📄 سجل الفواتير ومتابعة ديون العملاء (الذمم)")
     
     if st.session_state.invoices_list:
-        if st.button("🗑️ مسح السجل القديم (لتحديث الفواتير وتجنب المربعات القديمة)"):
+        if st.button("🗑️ مسح السجل القديم"):
             st.session_state.invoices_list = []
-            st.success("تم مسح السجل القديم بنجاح. أي فاتورة جديدة راح تنزل مرتبة تماماً بالإنجليزية!")
+            st.success("تم مسح السجل القديم بنجاح.")
             st.rerun()
             
         for inv in reversed(st.session_state.invoices_list):
@@ -453,31 +469,18 @@ with tab5:
                         key=f"pdf_btn_{inv['رقم الفاتورة']}"
                     )
     else:
-        st.info("لا توجد فواتير مسجلة حتى الآن. قم ببيع مواد جديدة لتنشأ فاتورة مرتبة وصحيحة.")
+        st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 with tab6:
     st.subheader("📊 تقارير الأرباح ورأس المال وجرد المخزن")
     
     if not st.session_state.is_vip:
-        st.info("💡 ملاحظة: أنت تستخدم النسخة المجانية. إليك نموذج توضيحي (مادة وهمية) لترى كيف تظهر تقارير الأرباح والجرد:")
-        
+        st.info("💡 ملاحظة: أنت تستخدم النسخة المجانية. إليك نموذج توضيحي:")
         m1, m2, m3 = st.columns(3)
         m1.metric("إجمالي القطع بالمخزن", "50 قطعة (نموذج)")
         m2.metric("إجمالي رأس المال", "500,000 د.ع")
         m3.metric("إجمالي الأرباح المتوقعة", "250,000 د.ع")
-        
-        st.divider()
-        st.markdown("### 🔍 جرد تفصيلي (مثال تجريبي):")
-        st.selectbox("اختر المادة لمعرفة تفاصيل أرباحها:", ["مثال: كريم أساس توضيحي (تجريبي)"])
-        
-        col_d1, col_d2, col_d3, col_d4 = st.columns(4)
-        col_d1.metric("الكمية المتبقية", "50 قطعة")
-        col_d2.metric("سعر الشراء", "10,000 د.ع")
-        col_d3.metric("سعر البيع", "15,000 د.ع")
-        col_d4.metric("إجمالي ربح هذه المادة", "250,000 د.ع")
-        
-        st.warning("🔒 **ملاحظة ترويجية:** لعرض موادك الحقيقية التي أضفتها وجرد أرباحها الفعلية، يرجى تفعيل النسخة المدفوعة (VIP) باستخدام كود التفعيل (`YASSER2026`) من القائمة الجانبية!")
-    
+        st.warning("🔒 لتفعيل التقارير الحقيقية لموادك، أدخل كود التفعيل (`YASSER2026`) من القائمة الجانبية!")
     else:
         try:
             res_stats = supabase.table("products").select("*").eq("username", username).execute()
@@ -494,19 +497,5 @@ with tab6:
             m1.metric("إجمالي القطع بالمخزن", f"{int(total_count)} قطعة")
             m2.metric("إجمالي رأس المال", f"{int(total_capital):,} د.ع")
             m3.metric("إجمالي الأرباح المتوقعة", f"{expected_profit:,} د.ع")
-            
-            st.divider()
-            st.markdown("### 🔍 جرد تفصيلي لمادة معينة:")
-            prod_names_list = [p["product_name"] for p in res_stats.data]
-            chosen_p_name = st.selectbox("اختر المادة لمعرفة تفاصيل أرباحها والمتبقي منها:", prod_names_list)
-            
-            selected_item_data = next((p for p in res_stats.data if p["product_name"] == chosen_p_name), None)
-            if selected_item_data:
-                col_d1, col_d2, col_d3, col_d4 = st.columns(4)
-                col_d1.metric("الكمية المتبقية", f"{int(selected_item_data['quantity'])} قطعة")
-                col_d2.metric("سعر الشراء", f"{int(selected_item_data['buy_price']):,} د.ع")
-                col_d3.metric("سعر البيع", f"{int(selected_item_data['sell_price']):,} د.ع")
-                item_total_profit = int((selected_item_data['sell_price'] - selected_item_data['buy_price']) * selected_item_data['quantity'])
-                col_d4.metric("إجمالي ربح هذه المادة", f"{item_total_profit:,} د.ع")
         else:
-            st.info("مخزنك فارغ حالياً. أضف بضائع لعرض التقارير والجرد الحقيقي.")
+            st.info("مخزنك فارغ حالياً.")
