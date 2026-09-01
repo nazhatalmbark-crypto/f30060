@@ -7,7 +7,7 @@ st.set_page_config(page_title="نظام ياسر ويب", page_icon="📊", layo
 # تفعيل حالة التخزين المؤقت للبيانات (Session State)
 if 'inventory' not in st.session_state:
     st.session_state.inventory = [
-        {"id": "101", "name": "كرتونبيبسي", "qty": 5, "price": 15000},
+        {"id": "101", "name": "كرتون بيبسي", "qty": 5, "price": 15000},
         {"id": "102", "name": "شوكولاتة", "qty": 2, "price": 1000}
     ]
 
@@ -50,7 +50,7 @@ if menu == "المخزن والجرد":
         submitted = st.form_submit_button("إضافة للمخزن")
         if submitted and item_name:
             st.session_state.inventory.append({"id": item_id, "name": item_name, "qty": item_qty, "price": item_price})
-            st.success(s"تمت إضافة المادة {item_name} بنجاح!")
+            st.success(f"تمت إضافة المادة {item_name} بنجاح!")
 
     # عرض جدول المخزن
     st.write("### قائمة المواد الحالية:")
