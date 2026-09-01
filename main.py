@@ -9,6 +9,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 import io
 import arabic_reshaper
 from bidi.algorithm import get_display
+import urllib.parse
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -21,7 +22,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - نظام إدارة المبيعات", page_icon="📦", layout="wide")
 
-# تسجيل خط عربي مدعوم لتظهر الحروف العربية بشكل صحيح تماماً
+# تسجيل خط عربي مدعوم
 try:
     pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
     ARABIC_FONT = 'Amiri'
@@ -45,6 +46,9 @@ if "invoices_list" not in st.session_state:
 
 if "cart" not in st.session_state:
     st.session_state.cart = []
+
+if "expenses_list" not in st.session_state:
+    st.session_state.expenses_list = []
 
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
@@ -191,12 +195,13 @@ if st.sidebar.button("تسجيل الخروج"):
 
 st.divider()
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "➕ إضافة مادة جديدة", 
     "📦 عرض المخزن وسلة المبيعات", 
     "👥 إدارة العملاء", 
     "🛒 إتمام البيع والفواتير", 
     "📄 سجل الفواتير", 
+    "💰 صندوق الوردية", 
     "📊 تقارير الأرباح"
 ])
 
@@ -252,19 +257,29 @@ with tab1:
 with tab2:
     st.subheader("🧱 عرض بضائع المحل (اختر عدة مواد لتكوين طلبة الزبون)")
     
+    # ميزة تنبيهات نفاذ المخزن
+    try:
+        res_all_p = supabase.table("products").select("*").eq("username", username).execute()
+        all_products = res_all_p.data if res_all_p.data else []
+    except:
+        all_products = []
+
+    low_stock_items = [p for p in all_products if p['quantity'] <= 2]
+    if low_stock_items:
+        low_names = " ، ".join([f"**{i['product_name']}** ({i['quantity']} قطع)" for i in low_stock_items])
+        st.error(f"🚨 **تنبيه نفاذ مخزون:** المواد التالية وشيكة النفاذ يرجى الانتباه وإعادة توفيرها: {low_names}")
+
     if st.session_state.cart:
         total_items_in_cart = sum(i['qty'] for i in st.session_state.cart)
         total_price_preview = sum(i['sell_price'] * i['qty'] for i in st.session_state.cart)
         st.success(f"🛒 **السلة حالياً تحتوي على:** {total_items_in_cart} قطعة | المجموع المؤقت: **{int(total_price_preview):,} د.ع**")
     
-    try:
-        res_prod = supabase.table("products").select("*").eq("username", username).execute()
-    except Exception:
-        res_prod = None
-        
-    if res_prod and res_prod.data:
+    search_prod_term = st.text_input("🔍 بحث سريع عن منتج في المخزن:", "")
+
+    if all_products:
+        filtered_products = [p for p in all_products if search_prod_term.lower() in p['product_name'].lower()]
         cols = st.columns(3)
-        for idx, item in enumerate(res_prod.data):
+        for idx, item in enumerate(filtered_products):
             with cols[idx % 3]:
                 with st.container(border=True):
                     st.markdown(f"### 📦 {item['product_name']}")
@@ -337,7 +352,9 @@ with tab3:
     st.divider()
     st.subheader("📋 سجل العملاء والزبائن")
     if st.session_state.customer_list:
-        st.dataframe(pd.DataFrame(st.session_state.customer_list), use_container_width=True)
+        search_cust = st.text_input("🔍 بحث عن عميل بالاسم أو رقم الهاتف:", "")
+        filtered_cust = [c for c in st.session_state.customer_list if search_cust.lower() in c['اسم العميل'].lower() or search_cust in c['رقم الهاتف']]
+        st.dataframe(pd.DataFrame(filtered_cust), use_container_width=True)
     else:
         st.info("لا يوجد عملاء مسجلون حالياً.")
 
@@ -455,18 +472,78 @@ with tab5:
                     else:
                         st.success(f"🟢 **المتبقي (دين):** 0 د.ع (مسدد بالكامل)")
                 
+                # تحميل PDF
                 pdf_buffer = generate_pdf_invoice(inv)
-                st.download_button(
-                    label=f"📥 تحميل فاتورة PDF رسمية ({inv['رقم الفاتورة']})",
-                    data=pdf_buffer,
-                    file_name=f"{inv['رقم الفاتورة']}_{inv['الزبون']}.pdf",
-                    mime="application/pdf",
-                    key=f"download_pdf_{inv['رقم الفاتورة']}"
-                )
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    st.download_button(
+                        label=f"📥 تحميل فاتورة PDF ({inv['رقم الفاتورة']})",
+                        data=pdf_buffer,
+                        file_name=f"{inv['رقم الفاتورة']}_{inv['الزبون']}.pdf",
+                        mime="application/pdf",
+                        key=f"download_pdf_{inv['رقم الفاتورة']}"
+                    )
+                with col_btn2:
+                    # ميزة إرسال الفاتورة عبر واتساب
+                    cust_phone_w = ""
+                    for c_obj in st.session_state.customer_list:
+                        if c_obj["اسم العميل"] == inv["الزبون"]:
+                            cust_phone_w = c_obj["رقم الهاتف"]
+                            break
+                    
+                    wa_msg = f"مرحباً {inv['الزبون']}، شكراً لتعاملكم معنا. تفاصيل فاتورتكم ({inv['رقم الفاتورة']}):\nالمنتجات: {inv['المنتجات']}\nالمبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع\nالواصل: {inv['الواصل']:,} د.ع\nالمتبقي: {inv['المتبقي (الدين)']:,} د.ع"
+                    encoded_msg = urllib.parse.quote(wa_msg)
+                    wa_url = f"https://wa.me/{cust_phone_w}?text={encoded_msg}" if cust_phone_w else "https://wa.me/?text=" + encoded_msg
+                    st.markdown(f'<a href="{wa_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-weight:bold;">💬 إرسال عبر واتساب</button></a>', unsafe_allow_html=True)
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 with tab6:
+    st.subheader("💰 صندوق الوردية والحسابات اليومية")
+    
+    col_exp1, col_exp2 = st.columns(2)
+    with col_exp1:
+        with st.form("add_expense_form", clear_on_submit=True):
+            st.write("### 💸 تسجيل مصروف أو سحب نقدي من الصندوق")
+            exp_title = st.text_input("بيان المصروف (مثل: إيجار، خط إنترنت، سحب شخصي):")
+            exp_amount_str = st.text_input("المبلغ (د.ع):", "0")
+            if st.form_submit_button("تسجيل المصروف"):
+                if exp_title.strip():
+                    try:
+                        exp_amt = float(exp_amount_str.strip())
+                        st.session_state.expenses_list.append({
+                            "البيان": exp_title.strip(),
+                            "المبلغ": int(exp_amt),
+                            "الوقت": datetime.now().strftime('%Y-%m-%d %H:%M')
+                        })
+                        st.success("تم تسجيل المصروف بنجاح!")
+                        st.rerun()
+                    except ValueError:
+                        st.error("يرجى إدخال مبلغ صحيح.")
+                else:
+                    st.warning("يرجى كتابة بيان المصروف.")
+
+    with col_exp2:
+        st.write("### 📊 ملخص سيولة صندوق الوردية")
+        total_cash_in = sum(inv['الواصل'] for inv in st.session_state.invoices_list)
+        total_expenses = sum(e['المبلغ'] for e in st.session_state.expenses_list)
+        net_box = total_cash_in - total_expenses
+
+        st.metric(label="إجمالي النقود الواردة (المقبوضات)", value=f"{int(total_cash_in):,} د.ع")
+        st.metric(label="إجمالي المصاريف والسحوبات", value=f"{int(total_expenses):,} د.ع")
+        st.metric(label="الصافي الفعلي بالصندوق حالياً", value=f"{int(net_box):,} د.ع")
+
+    st.divider()
+    st.write("### 📋 سجل المصاريف اليومية")
+    if st.session_state.expenses_list:
+        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
+        if st.button("🗑️ تصفية ومسح سجل المصاريف"):
+            st.session_state.expenses_list = []
+            st.rerun()
+    else:
+        st.info("لا توجد مصاريف مسجلة للوردية الحالية.")
+
+with tab7:
     st.subheader("📊 تقارير الأرباح والمبيعات العامة للمحل")
     
     if st.session_state.invoices_list:
