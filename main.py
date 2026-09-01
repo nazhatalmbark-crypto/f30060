@@ -21,10 +21,8 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - نظام إدارة المبيعات", page_icon="📦", layout="wide")
 
-# تسجيل خط عربي مدعوم (مثل Amiri أو Cairo) لتظهر الحروف العربية بشكل صحيح تماماً
-# ملاحظة: تأكد من تثبيت مكتبتي arabic-reshaper و python-bidi عبر الـ terminal
+# تسجيل خط عربي مدعوم لتظهر الحروف العربية بشكل صحيح تماماً
 try:
-    # سيتم استخدام خط افتراضي يدعم العربية إذا توفر، أو نسجل خط Amiri إذا تم تحميله
     pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
     ARABIC_FONT = 'Amiri'
 except:
@@ -33,7 +31,6 @@ except:
 def format_arabic(text):
     if not text:
         return ""
-    # إعادة تشكيل الحروف العربية وعكسها لتتوافق مع الـ PDF
     reshaped_text = arabic_reshaper.reshape(str(text))
     return get_display(reshaped_text)
 
@@ -52,13 +49,12 @@ if "cart" not in st.session_state:
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
-# دالة توليد ملف الـ PDF بالفاتورة (مع دعم كامل للغة العربية وترتيب الكلمات)
+# دالة توليد ملف الـ PDF بالفاتورة
 def generate_pdf_invoice(inv):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # رأس الفاتورة
     p.setFont("Helvetica-Bold", 16)
     p.drawString(50, height - 50, "YASSER WEB - فاتورة مبيعات رسمية")
     
@@ -69,7 +65,6 @@ def generate_pdf_invoice(inv):
     p.setLineWidth(1)
     p.line(50, height - 65, width - 50, height - 65)
     
-    # معلومات الفاتورة والزبون (مع تحويل النصوص العربية بـ format_arabic)
     p.setFont(ARABIC_FONT, 12)
     p.drawString(50, height - 95, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
     p.drawString(50, height - 120, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
@@ -77,7 +72,6 @@ def generate_pdf_invoice(inv):
     
     p.line(50, height - 165, width - 50, height - 165)
     
-    # تفاصيل المواد المباعة
     p.drawString(50, height - 195, format_arabic("تفاصيل المنتجات والمواد المباعة:"))
     
     text_y = height - 225
@@ -89,7 +83,6 @@ def generate_pdf_invoice(inv):
     text_y -= 10
     p.line(50, text_y, width - 50, text_y)
     
-    # الملخص المالي
     text_y -= 35
     p.drawString(50, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
     
@@ -103,7 +96,6 @@ def generate_pdf_invoice(inv):
     p.setLineWidth(0.5)
     p.line(50, text_y, width - 50, text_y)
     
-    # رسالة النهاية
     p.drawCentredString(width / 2.0, text_y - 35, format_arabic("شكراً لتعاملكم مع نظام Yasser Web للمبيعات والمخزن!"))
     
     p.showPage()
@@ -187,7 +179,7 @@ if not st.session_state.is_vip:
             st.sidebar.success("تم تفعيل النسخة المدفوعة (VIP) بنجاح! 🎉")
             st.rerun()
         else:
-            st.sidebar.error("كود التفعيل غير صحيح! الكود الصحيح هو: YASSER2026")
+            st.sidebar.error("كود التفعيل غير صحيح!")
 else:
     st.sidebar.success("🌟 النسخة المدفوعة (VIP) مفعلة بالكامل")
 
@@ -217,7 +209,7 @@ with tab1:
         current_count = 0
         
     if not st.session_state.is_vip and current_count >= 5:
-        st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة باستخدام كود (`YASSER2026`) من القائمة الجانبية لإضافة منتجات بلا حدود!")
+        st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة لإضافة منتجات بلا حدود!")
     else:
         with st.form("add_product_clean_form", clear_on_submit=True):
             p_name = st.text_input("اسم القطعة / المنتج:")
@@ -263,7 +255,7 @@ with tab2:
     if st.session_state.cart:
         total_items_in_cart = sum(i['qty'] for i in st.session_state.cart)
         total_price_preview = sum(i['sell_price'] * i['qty'] for i in st.session_state.cart)
-        st.success(f"🛒 **السلة حالياً تحتوي على:** {total_items_in_cart} قطعة | المجموع المؤقت: **{int(total_price_preview):,} د.ع** — *(اذهب لتبويب 'إتمام البيع والفواتير' لإنهاء الحساب)*")
+        st.success(f"🛒 **السلة حالياً تحتوي على:** {total_items_in_cart} قطعة | المجموع المؤقت: **{int(total_price_preview):,} د.ع**")
     
     try:
         res_prod = supabase.table("products").select("*").eq("username", username).execute()
@@ -376,7 +368,7 @@ with tab4:
         st.markdown(f"### 💵 المجموع الكلي لكل مواد الزبون: **{int(total_cart_price):,} د.ع**")
         
         if not st.session_state.customer_list:
-            st.warning("⚠️ تنبيه مهم جداً: يجب إضافة وتسجيل العميل أولاً من تبويب (إدارة العملاء) لكي تتمكن من حفظ الفاتورة!")
+            st.warning("⚠️ تنبيه: يجب إضافة وتسجيل العميل أولاً من تبويب (إدارة العملاء)!")
             customer_options = ["لا توجد عملاء مسجلين"]
         else:
             customer_options = [c["اسم العميل"] for c in st.session_state.customer_list]
@@ -435,7 +427,7 @@ with tab4:
                 except Exception as e:
                     st.error(f"❌ خطأ أثناء إتمام البيع: {e}")
     else:
-        st.info("🛒 السلة فارغة حالياً. اذهب إلى تبويب (عرض المخزن وسلة المبيعات) واضغط على زر (إضافة إلى السلة) لأي مواد تريد بيعها للزبون!")
+        st.info("🛒 السلة فارغة حالياً.")
 
 with tab5:
     st.subheader("📄 سجل الفواتير ومتابعة ديون العملاء (الذمم)")
@@ -451,4 +443,48 @@ with tab5:
                 col_inv1, col_inv2, col_inv3 = st.columns([2, 2, 2])
                 with col_inv1:
                     st.markdown(f"#### {inv['رقم الفاتورة']} | {inv['نوع الدفع']}")
-                    st.write(f"👤 **الزبون:** {inv['الزبون'
+                    st.write(f"👤 **الزبون:** {inv['الزبون']}")
+                with col_inv2:
+                    st.write(f"📅 **التاريخ:** {inv['التاريخ']}")
+                    st.write(f"🛒 **المنتجات:** {inv['المنتجات']}")
+                with col_inv3:
+                    st.write(f"💵 **المبلغ الكلي:** `{inv['المبلغ الكلي']:,}` د.ع")
+                    st.write(f"📥 **الواصل:** `{inv['الواصل']:,}` د.ع")
+                    if inv['المتبقي (الدين)'] > 0:
+                        st.error(f"🔴 **المتبقي (دين):** `{inv['المتبقي (الدين)']:,}` د.ع")
+                    else:
+                        st.success(f"🟢 **المتبقي (دين):** 0 د.ع (مسدد بالكامل)")
+                
+                pdf_buffer = generate_pdf_invoice(inv)
+                st.download_button(
+                    label=f"📥 تحميل فاتورة PDF رسمية ({inv['رقم الفاتورة']})",
+                    data=pdf_buffer,
+                    file_name=f"{inv['رقم الفاتورة']}_{inv['الزبون']}.pdf",
+                    mime="application/pdf",
+                    key=f"download_pdf_{inv['رقم الفاتورة']}"
+                )
+    else:
+        st.info("لا توجد فواتير مسجلة حتى الآن.")
+
+with tab6:
+    st.subheader("📊 تقارير الأرباح والمبيعات العامة للمحل")
+    
+    if st.session_state.invoices_list:
+        total_sales_all = sum(inv['المبلغ الكلي'] for inv in st.session_state.invoices_list)
+        total_received_all = sum(inv['الواصل'] for inv in st.session_state.invoices_list)
+        total_debts_all = sum(inv['المتبقي (الدين)'] for inv in st.session_state.invoices_list)
+        
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric(label="إجمالي المبيعات", value=f"{int(total_sales_all):,} د.ع")
+        with m2:
+            st.metric(label="إجمالي المبالغ الواصلة (النقد)", value=f"{int(total_received_all):,} د.ع")
+        with m3:
+            st.metric(label="إجمالي الديون المعلقة (الذمم)", value=f"{int(total_debts_all):,} د.ع")
+            
+        st.divider()
+        st.write("### 📈 جدول حركة الفواتير والذمم التفصيلي")
+        df_invoices = pd.DataFrame(st.session_state.invoices_list)
+        st.dataframe(df_invoices, use_container_width=True)
+    else:
+        st.info("لا توجد بيانات مبيعات كافية لعرض التقارير حالياً.")
