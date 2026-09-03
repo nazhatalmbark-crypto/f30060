@@ -137,11 +137,11 @@ def log_audit(action, details):
     user = st.session_state.logged_in_user or "زائر"
     role = st.session_state.user_role
     st.session_state.audit_logs.insert(0, {
-        "التاريخ والوقت": timestamp,
-        "المستخدم": user,
-        "الصلاحية": role,
-        "العملية": action,
-        "التفاصيل": details
+        "التاريخ والوقت": str(timestamp),
+        "المستخدم": str(user),
+        "الصلاحية": str(role),
+        "العملية": str(action),
+        "التفاصيل": str(details)
     })
 
 def generate_pdf_invoice(inv):
@@ -212,8 +212,8 @@ if not st.session_state.logged_in_user:
                         res = supabase.table("users").select("*").eq("username", login_user.strip()).execute()
                         if res.data:
                             user_info = res.data[0]
-                            st.session_state.logged_in_user = user_info["username"]
-                            st.session_state.user_role = login_role
+                            st.session_state.logged_in_user = str(user_info["username"])
+                            st.session_state.user_role = str(login_role)
                             st.session_state.is_vip = bool(user_info.get("is_paid", False))
                             log_audit("تسجيل دخول", f"تم تسجيل الدخول بواسطة {user_info['username']} بصلاحية ({login_role})")
                             st.success("تم تسجيل الدخول بنجاح!")
@@ -242,8 +242,8 @@ if not st.session_state.logged_in_user:
                                 "username": new_user.strip(),
                                 "is_paid": False
                             }).execute()
-                            st.session_state.logged_in_user = new_user.strip()
-                            st.session_state.user_role = signup_role
+                            st.session_state.logged_in_user = str(new_user.strip())
+                            st.session_state.user_role = str(signup_role)
                             st.session_state.is_vip = False
                             log_audit("إنشاء حساب جديد", f"تم إنشاء حساب جديد باسم {new_user.strip()} بصلاحية ({signup_role})")
                             st.success("🎉 تم إنشاء الحساب وتسجيل الدخول بنجاح!")
@@ -268,22 +268,22 @@ t = lang_dict[st.session_state.lang]
 st.sidebar.write(f"👤 المستخدم: **{username}**")
 st.sidebar.write(f"{t['role_label']} **{user_role}**")
 
-cart_count_badge = sum(item['qty'] for item in st.session_state.cart)
+cart_count_badge = sum(int(item['qty']) for item in st.session_state.cart)
 st.sidebar.info(f"{t['cart_badge']} **{cart_count_badge}**")
 
 st.sidebar.divider()
 st.sidebar.subheader(t["backup_title"])
 
 backup_data = {
-    "username": username,
-    "customers": st.session_state.customer_list,
-    "suppliers": st.session_state.suppliers_list,
-    "invoices": st.session_state.invoices_list,
-    "expenses": st.session_state.expenses_list,
-    "audit_logs": st.session_state.audit_logs,
-    "export_date": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    "username": str(username),
+    "customers": list(st.session_state.customer_list),
+    "suppliers": list(st.session_state.suppliers_list),
+    "invoices": list(st.session_state.invoices_list),
+    "expenses": list(st.session_state.expenses_list),
+    "audit_logs": list(st.session_state.audit_logs),
+    "export_date": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
 }
-backup_json = json.dumps(backup_data, ensure_ascii=False, indent=4)
+backup_json = json.dumps(backup_data, ensure_ascii=False, indent=4, default=str)
 st.sidebar.download_button(
     label=t["backup_download"],
     data=backup_json,
@@ -385,14 +385,14 @@ with tab1:
                                 st.warning("⚠️ تنبيه: سعر البيع أقل من سعر الشراء (خسارة).")
                             
                             supabase.table("products").insert({
-                                "username": username,
-                                "product_name": p_name.strip(),
-                                "color": p_color.strip() if p_color else "عام",
-                                "size": p_size.strip() if p_size else "عام",
-                                "buy_price": p_buy,
-                                "sell_price": p_sell,
-                                "quantity": p_qty,
-                                "barcode": p_barcode.strip() if p_barcode else "بدون"
+                                "username": str(username),
+                                "product_name": str(p_name.strip()),
+                                "color": str(p_color.strip() if p_color else "عام"),
+                                "size": str(p_size.strip() if p_size else "عام"),
+                                "buy_price": float(p_buy),
+                                "sell_price": float(p_sell),
+                                "quantity": int(p_qty),
+                                "barcode": str(p_barcode.strip() if p_barcode else "بدون")
                             }).execute()
                             log_audit("إضافة منتج", f"تمت إضافة المنتج ({p_name.strip()}) بكمية {p_qty}")
                             st.success(f"تمت إضافة المادة ({p_name}) بنجاح!")
@@ -420,8 +420,8 @@ with tab2:
         st.error(f"🚨 **تنبيه قرب نفاد المخزون (Low Stock Alerts):** المواد التالية وشيكة النفاذ أو نفدت تماماً: {low_names}")
 
     if st.session_state.cart:
-        total_items_in_cart = sum(i['qty'] for i in st.session_state.cart)
-        total_price_preview = sum(i['sell_price'] * i['qty'] for i in st.session_state.cart)
+        total_items_in_cart = sum(int(i['qty']) for i in st.session_state.cart)
+        total_price_preview = sum(float(i['sell_price']) * int(i['qty']) for i in st.session_state.cart)
         st.success(f"🛒 **السلة حالياً تحتوي على:** {total_items_in_cart} قطعة | المجموع المؤقت: **{int(total_price_preview):,} د.ع**")
     
     col_s1, col_s2 = st.columns(2)
@@ -462,7 +462,7 @@ with tab2:
                         if not b_code_val or b_code_val == "بدون":
                             b_code_val = f"PRD{item['id']}"
                         try:
-                            rv = barcode.get('code128', b_code_val, writer=ImageWriter())
+                            rv = barcode.get('code128', str(b_code_val), writer=ImageWriter())
                             buffer_bc = io.BytesIO()
                             rv.write(buffer_bc)
                             st.image(buffer_bc.getvalue(), caption=f"باركود: {b_code_val}", width=200)
@@ -515,12 +515,12 @@ with tab3:
         if st.form_submit_button("تسجيل بيانات العميل"):
             if c_name and c_phone:
                 st.session_state.customer_list.append({
-                    "اسم العميل": c_name, 
-                    "رقم الهاتف": c_phone, 
-                    "المحافظة": c_gov,
-                    "العنوان": c_address if c_address else "غير محدد",
-                    "ملاحظات": c_notes if c_notes else "لا يوجد",
-                    "تاريخ التسجيل": datetime.datetime.now().strftime('%Y-%m-%d')
+                    "اسم العميل": str(c_name), 
+                    "رقم الهاتف": str(c_phone), 
+                    "المحافظة": str(c_gov),
+                    "العنوان": str(c_address if c_address else "غير محدد"),
+                    "ملاحظات": str(c_notes if c_notes else "لا يوجد"),
+                    "تاريخ التسجيل": str(datetime.datetime.now().strftime('%Y-%m-%d'))
                 })
                 log_audit("إضافة عميل", f"تم تسجيل العميل {c_name} برقم {c_phone}")
                 st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
@@ -548,10 +548,10 @@ with tab4:
         if st.form_submit_button("إضافة المورد للقائمة"):
             if sup_name.strip():
                 st.session_state.suppliers_list.append({
-                    "اسم المورد": sup_name.strip(),
-                    "رقم الهاتف": sup_phone.strip() if sup_phone else "غير محدد",
-                    "التخصص": sup_notes.strip() if sup_notes else "عام",
-                    "تاريخ الإضافة": datetime.datetime.now().strftime('%Y-%m-%d')
+                    "اسم المورد": str(sup_name.strip()),
+                    "رقم الهاتف": str(sup_phone.strip() if sup_phone else "غير محدد"),
+                    "التخصص": str(sup_notes.strip() if sup_notes else "عام"),
+                    "تاريخ الإضافة": str(datetime.datetime.now().strftime('%Y-%m-%d'))
                 })
                 log_audit("إضافة مورد", f"تم إضافة المورد {sup_name.strip()}")
                 st.success(f"تم إضافة المورد ({sup_name}) بنجاح!")
@@ -640,15 +640,15 @@ with tab5:
                     inv_code = f"INV-{inv_id:03d}"
                     
                     st.session_state.invoices_list.append({
-                        "رقم الفاتورة": inv_code,
-                        "الزبون": cust_name,
-                        "المنتجات": " , ".join(prod_names_str),
+                        "رقم الفاتورة": str(inv_code),
+                        "الزبون": str(cust_name),
+                        "المنتجات": str(" , ".join(prod_names_str)),
                         "المبلغ الكلي": int(total_cart_price),
                         "تكلفتها": int(total_buy_cost_of_invoice),
                         "الواصل": int(paid_amount),
                         "المتبقي (الدين)": int(remaining_amount),
-                        "نوع الدفع": pay_type,
-                        "التاريخ": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+                        "نوع الدفع": str(pay_type),
+                        "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                     })
                     
                     log_audit("إتمام عملية بيع", f"تم إصدار الفاتورة {inv_code} للزبون {cust_name} بمبلغ {int(total_cart_price):,} د.ع")
@@ -732,9 +732,9 @@ with tab7:
                     try:
                         exp_amt = float(exp_amount_str.strip())
                         st.session_state.expenses_list.append({
-                            "البيان": exp_title.strip(),
+                            "البيان": str(exp_title.strip()),
                             "المبلغ": int(exp_amt),
-                            "الوقت": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+                            "الوقت": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                         })
                         log_audit("تسجيل مصروف", f"تم تسجيل مصروف ({exp_title.strip()}) بمبلغ {int(exp_amt):,} د.ع")
                         st.success("تم تسجيل المصروف بنجاح!")
@@ -746,12 +746,12 @@ with tab7:
 
     with col_exp2:
         st.write("### 📊 ملخص سيولة صندوق الوردية وصافي الربح")
-        total_cash_in = sum(inv['الواصل'] for inv in st.session_state.invoices_list)
-        total_expenses = sum(e['المبلغ'] for e in st.session_state.expenses_list)
+        total_cash_in = sum(int(inv['الواصل']) for inv in st.session_state.invoices_list)
+        total_expenses = sum(int(e['المبلغ']) for e in st.session_state.expenses_list)
         net_box = total_cash_in - total_expenses
 
-        total_sales_all = sum(inv['المبلغ الكلي'] for inv in st.session_state.invoices_list)
-        total_cost_of_goods = sum(inv.get('تكلفتها', 0) for inv in st.session_state.invoices_list)
+        total_sales_all = sum(int(inv['المبلغ الكلي']) for inv in st.session_state.invoices_list)
+        total_cost_of_goods = sum(int(inv.get('تكلفتها', 0)) for inv in st.session_state.invoices_list)
         gross_profit = total_sales_all - total_cost_of_goods
         net_profit = gross_profit - total_expenses
 
@@ -775,13 +775,13 @@ with tab8:
     st.subheader("📊 الرسوم البيانية التفاعلية وتقارير الأرباح الصافية")
     
     if st.session_state.invoices_list:
-        total_sales_all = sum(inv['المبلغ الكلي'] for inv in st.session_state.invoices_list)
-        total_received_all = sum(inv['الواصل'] for inv in st.session_state.invoices_list)
-        total_debts_all = sum(inv['المتبقي (الدين)'] for inv in st.session_state.invoices_list)
+        total_sales_all = sum(int(inv['المبلغ الكلي']) for inv in st.session_state.invoices_list)
+        total_received_all = sum(int(inv['الواصل']) for inv in st.session_state.invoices_list)
+        total_debts_all = sum(int(inv['المتبقي (الدين)']) for inv in st.session_state.invoices_list)
         
-        total_cost_of_goods = sum(inv.get('تكلفتها', 0) for inv in st.session_state.invoices_list)
+        total_cost_of_goods = sum(int(inv.get('تكلفتها', 0)) for inv in st.session_state.invoices_list)
         gross_profit = total_sales_all - total_cost_of_goods
-        total_expenses = sum(e['المبلغ'] for e in st.session_state.expenses_list)
+        total_expenses = sum(int(e['المبلغ']) for e in st.session_state.expenses_list)
         net_profit = gross_profit - total_expenses
         
         m1, m2, m3, m4 = st.columns(4)
@@ -799,10 +799,10 @@ with tab8:
         chart_data = pd.DataFrame(
             [
                 {
-                    "الفاتورة": inv["رقم الفاتورة"],
-                    "المبلغ الكلي": inv["المبلغ الكلي"],
-                    "الواصل": inv["الواصل"],
-                    "الدين المتبقي": inv["المتبقي (الدين)"],
+                    "الفاتورة": str(inv["رقم الفاتورة"]),
+                    "المبلغ الكلي": int(inv["المبلغ الكلي"]),
+                    "الواصل": int(inv["الواصل"]),
+                    "الدين المتبقي": int(inv["المتبقي (الدين)"]),
                 }
                 for inv in st.session_state.invoices_list
             ]
