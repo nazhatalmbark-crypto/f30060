@@ -1,15 +1,19 @@
 import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
-from datetime import datetime
+import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import io
+import json
+import qrcode
 import arabic_reshaper
 from bidi.algorithm import get_display
 import urllib.parse
+import barcode
+from barcode.writer import ImageWriter
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -22,7 +26,6 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# تسجيل خط عربي مدعوم
 try:
     pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
     ARABIC_FONT = 'Amiri'
@@ -56,7 +59,6 @@ if "expenses_list" not in st.session_state:
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
-# دالة توليد ملف الـ PDF بالفاتورة
 def generate_pdf_invoice(inv):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
@@ -78,7 +80,6 @@ def generate_pdf_invoice(inv):
     p.drawString(50, height - 145, format_arabic(f"نوع الدفع: {inv['نوع الدفع']}"))
     
     p.line(50, height - 165, width - 50, height - 165)
-    
     p.drawString(50, height - 195, format_arabic("تفاصيل المنتجات والمواد المباعة:"))
     
     text_y = height - 225
@@ -92,17 +93,14 @@ def generate_pdf_invoice(inv):
     
     text_y -= 35
     p.drawString(50, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
-    
     text_y -= 25
     p.drawString(50, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
-    
     text_y -= 25
     p.drawString(50, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
     
     text_y -= 45
     p.setLineWidth(0.5)
     p.line(50, text_y, width - 50, text_y)
-    
     p.drawCentredString(width / 2.0, text_y - 35, format_arabic("شكراً لتعاملكم مع نظام Yasser Web لإدارة المبيعات والمخزن!"))
     
     p.showPage()
@@ -167,11 +165,48 @@ if not st.session_state.logged_in_user:
 
 username = st.session_state.logged_in_user
 
-st.sidebar.title("⚙️ إعدادات الحساب")
+st.sidebar.title("⚙️ إعدادات الحساب والنسخ الاحتياطي")
 st.sidebar.write(f"👤 المستخدم: **{username}**")
 
 cart_count_badge = sum(item['qty'] for item in st.session_state.cart)
 st.sidebar.info(f"🛒 المواد الحالية بالسلة: **{cart_count_badge}** قطعة")
+
+st.sidebar.divider()
+st.sidebar.subheader("🔄 النسخ الاحتياطي الفوري للبيانات")
+
+backup_data = {
+    "username": username,
+    "customers": st.session_state.customer_list,
+    "suppliers": st.session_state.suppliers_list,
+    "invoices": st.session_state.invoices_list,
+    "expenses": st.session_state.expenses_list,
+    "export_date": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+}
+backup_json = json.dumps(backup_data, ensure_ascii=False, indent=4)
+st.sidebar.download_button(
+    label="📥 تحميل نسخة احتياطية (JSON)",
+    data=backup_json,
+    file_name=f"yasser_web_backup_{username}_{datetime.datetime.now().strftime('%Y%m%d')}.json",
+    mime="application/json"
+)
+
+uploaded_backup = st.sidebar.file_uploader("📂 استعادة البيانات من ملف سابق", type=["json"])
+if uploaded_backup is not None:
+    try:
+        restored_data = json.load(uploaded_backup)
+        if "customers" in restored_data and "invoices" in restored_data:
+            st.session_state.customer_list = restored_data.get("customers", [])
+            st.session_state.suppliers_list = restored_data.get("suppliers", [])
+            st.session_state.invoices_list = restored_data.get("invoices", [])
+            st.session_state.expenses_list = restored_data.get("expenses", [])
+            st.sidebar.success("✅ تمت استعادة البيانات بنجاح!")
+            st.rerun()
+        else:
+            st.sidebar.error("❌ ملف النسخة الاحتياطي غير صالح.")
+    except Exception as e:
+        st.sidebar.error(f"خطأ في استعادة الملف: {e}")
+
+st.sidebar.divider()
 
 if not st.session_state.is_vip:
     st.sidebar.warning("🔒 حالة النسخة: **مجانية (محدودة)**")
@@ -198,16 +233,15 @@ if st.sidebar.button("تسجيل الخروج"):
 
 st.divider()
 
-# التبويبات الشاملة لكافة أنواع المحلات
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "➕ إضافة مادة جديدة", 
-    "📦 جرد المخزن", 
+    "📦 جرد المخزن والباركود", 
     "👥 إدارة العملاء والديون", 
     "🏭 إدارة الموردين",
     "🛒 إتمام البيع والفواتير", 
     "📄 سجل الفواتير وواتساب", 
     "💰 صندوق الوردية والمصاريف", 
-    "📊 تقارير الأرباح",
+    "📊 الرسوم البيانية والتقارير",
     "📖 دليل الاستخدام الشامل"
 ])
 
@@ -272,7 +306,7 @@ with tab1:
                     st.warning("يرجى كتابة اسم المادة على الأقل.")
 
 with tab2:
-    st.subheader("📦 جرد المخزن الشامل (بحث بالاسم، الباركود، الألوان والقياسات)")
+    st.subheader("📦 جرد المخزن الشامل مع ميزة توليد وطباعة الباركود والتنبيهات الذكية")
     
     try:
         res_all_p = supabase.table("products").select("*").eq("username", username).execute()
@@ -280,10 +314,11 @@ with tab2:
     except:
         all_products = []
 
+    # ميزة التنبيهات الذكية لانخفاض المخزون
     low_stock_items = [p for p in all_products if p['quantity'] <= 1]
     if low_stock_items:
         low_names = " ، ".join([f"**{i['product_name']}** ({i.get('color','')} - {i.get('size','')})" for i in low_stock_items])
-        st.error(f"🚨 **تنبيه نفاذ المخزون:** المواد التالية وشيكة النفاذ أو نفدت: {low_names}")
+        st.error(f"🚨 **تنبيه المخزون الذكي:** المواد التالية وشيكة النفاذ أو نفدت تماماً: {low_names}")
 
     if st.session_state.cart:
         total_items_in_cart = sum(i['qty'] for i in st.session_state.cart)
@@ -308,10 +343,14 @@ with tab2:
             with cols[idx % 3]:
                 with st.container(border=True):
                     st.markdown(f"### 📦 {item['product_name']}")
-                    st.markdown(f"🎨 **اللون / المواصفات:** `{item.get('color', 'عام')}` | 📏 **القياس / السعة:** `{item.get('size', 'عام')}`")
+                    st.markdown(f"🎨 **اللون:** `{item.get('color', 'عام')}` | 📏 **القياس:** `{item.get('size', 'عام')}`")
                     st.markdown(f"🏷️ **الباركود:** `{item.get('barcode', 'بدون')}`")
                     st.markdown(f"💰 **سعر البيع:** `{int(item['sell_price']):,}` د.ع")
-                    st.markdown(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة")
+                    
+                    if item['quantity'] <= 1:
+                        st.error(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة (شارفت على النفاد!)")
+                    else:
+                        st.markdown(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة")
                     
                     profit_per_unit = int(item['sell_price'] - item['buy_price'])
                     if profit_per_unit < 0:
@@ -319,6 +358,19 @@ with tab2:
                     else:
                         st.success(f"📈 ربح القطعة: {profit_per_unit:,} د.ع")
                     
+                    # ميزة توليد وعرض باركود المنتج
+                    with st.expander("🏷️ توليد وعرض باركود المادة"):
+                        b_code_val = item.get('barcode', '')
+                        if not b_code_val or b_code_val == "بدون":
+                            b_code_val = f"PRD{item['id']}"
+                        try:
+                            rv = barcode.get('code128', b_code_val, writer=ImageWriter())
+                            buffer_bc = io.BytesIO()
+                            rv.write(buffer_bc)
+                            st.image(buffer_bc.getvalue(), caption=f"باركود: {b_code_val}", width=200)
+                        except Exception as ex:
+                            st.error(f"تعذر توليد الباركود: {ex}")
+
                     if item['quantity'] > 0:
                         if st.button(f"🛒 إضافة إلى السلة", key=f"add_cart_{item['id']}"):
                             found_in_cart = False
@@ -370,7 +422,7 @@ with tab3:
                     "المحافظة": c_gov,
                     "العنوان": c_address if c_address else "غير محدد",
                     "ملاحظات": c_notes if c_notes else "لا يوجد",
-                    "تاريخ التسجيل": datetime.now().strftime('%Y-%m-%d')
+                    "تاريخ التسجيل": datetime.datetime.now().strftime('%Y-%m-%d')
                 })
                 st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
                 st.rerun()
@@ -400,7 +452,7 @@ with tab4:
                     "اسم المورد": sup_name.strip(),
                     "رقم الهاتف": sup_phone.strip() if sup_phone else "غير محدد",
                     "التخصص": sup_notes.strip() if sup_notes else "عام",
-                    "تاريخ الإضافة": datetime.now().strftime('%Y-%m-%d')
+                    "تاريخ الإضافة": datetime.datetime.now().strftime('%Y-%m-%d')
                 })
                 st.success(f"تم إضافة المورد ({sup_name}) بنجاح!")
                 st.rerun()
@@ -496,7 +548,7 @@ with tab5:
                         "الواصل": int(paid_amount),
                         "المتبقي (الدين)": int(remaining_amount),
                         "نوع الدفع": pay_type,
-                        "التاريخ": datetime.now().strftime('%Y-%m-%d %H:%M')
+                        "التاريخ": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
                     })
                     
                     st.session_state.cart = []
@@ -508,7 +560,7 @@ with tab5:
         st.info("🛒 السلة فارغة حالياً.")
 
 with tab6:
-    st.subheader("📄 سجل الفواتير، تحميل PDF، ومطالبة الديون عبر واتساب")
+    st.subheader("📄 سجل الفواتير، تحميل PDF، ومطالبة الديون عبر واتساب و QR Code")
     
     if st.session_state.invoices_list:
         if st.button("🗑️ مسح سجل الفواتير القديم"):
@@ -533,6 +585,13 @@ with tab6:
                     else:
                         st.success(f"🟢 **المتبقي (دين):** 0 د.ع (مسدد بالكامل)")
                 
+                with st.expander("📱 عرض QR Code الفاتورة السريع"):
+                    qr_text = f"Invoice: {inv['رقم الفاتورة']} | Cust: {inv['الزبون']} | Total: {inv['المبلغ الكلي']} IQD | Remaining: {inv['المتبقي (الدين)']} IQD"
+                    img = qrcode.make(qr_text)
+                    buf_qr = io.BytesIO()
+                    img.save(buf_qr, format="PNG")
+                    st.image(buf_qr.getvalue(), width=150, caption=f"رمز QR لفاتورة {inv['رقم الفاتورة']}")
+
                 pdf_buffer = generate_pdf_invoice(inv)
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1:
@@ -573,7 +632,7 @@ with tab7:
                         st.session_state.expenses_list.append({
                             "البيان": exp_title.strip(),
                             "المبلغ": int(exp_amt),
-                            "الوقت": datetime.now().strftime('%Y-%m-%d %H:%M')
+                            "الوقت": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
                         })
                         st.success("تم تسجيل المصروف بنجاح!")
                         st.rerun()
@@ -603,7 +662,7 @@ with tab7:
         st.info("لا توجد مصاريف مسجلة للوردية الحالية.")
 
 with tab8:
-    st.subheader("📊 تقارير الأرباح الصافية وحركة المبيعات العامة")
+    st.subheader("📊 الرسوم البيانية التفاعلية وتقارير الأرباح الصافية")
     
     if st.session_state.invoices_list:
         total_sales_all = sum(inv['المبلغ الكلي'] for inv in st.session_state.invoices_list)
@@ -626,94 +685,76 @@ with tab8:
             st.metric(label="صافي الربح الحقيقي 🌟", value=f"{int(net_profit):,} د.ع")
             
         st.divider()
-        st.write("### 📈 جدول حركة الفواتير التفصيلي")
+        st.write("### 📈 الرسوم البيانية التحليلية لحركة المبيعات")
         df_invoices = pd.DataFrame(st.session_state.invoices_list)
-        st.dataframe(df_invoices, use_container_width=True)
+        
+        # ميزة الرسوم البيانية التفاعلية
+        if "المبلغ الكلي" in df_invoices.columns and not df_invoices.empty:
+            chart_data = df_invoices[['رقم الفاتورة', 'المبلغ الكلي']].set_index('رقم الفاتورة')
+            st.bar_chart(chart_data)
+        
+        st.divider()
+        st.write("### 📋 جدول حركة الفواتير التفصيلي")
+        st.dataframe(df_invoices, use_container_width+True)
     else:
-        st.info("لا توجد بيانات مبيعات كافية لعرض التقارير حالياً.")
+        st.info("لا توجد بيانات مبيعات كافية لعرض التقارير والرسوم البيانية حالياً.")
 
 with tab9:
-    st.subheader("📖 دليل الاستخدام التفصيلي والمرتب لكل تبويب في نظام Yasser Web")
+    st.subheader("📖 دليل الاستخدام الشامل والمرتب لكل تبويب في نظام Yasser Web")
     
     st.markdown("""
-    أهلاً بك يا غالي. تم تصميم هذا الدليل ليشرح لك **كل تبويب وكل ميزة بالتفصيل الممل** لتعمل على النظام بكل ثقة واحترافية:
+    أهلاً بك يا غالي. تم تصميم هذا الدليل ليشرح لك **كل تبويب وميزة** أضيفت للنظام لتتمكن من إدارته بكل احترافية ويسر:
+
+    ---
+
+    ### ⚙️ الشريط الجانبي (النسخ الاحتياطي الفوري)
+    * **📥 تحميل نسخة احتياطية (JSON):** يتيح لك بضغطة زر حفظ جميع بيانات عملائك، مورديك، فواتيرك، ومصاريفك في ملف خارجي على جهازك لتأمينها من الضياع.
+    * **📂 استعادة البيانات:** يمكنك استرجاع كافة بياناتك السابقة بكل سهولة عبر رفع ملف النسخ الاحتياطي المحفوظ مسبقاً.
 
     ---
 
     ### 1️⃣ تبويب (➕ إضافة مادة جديدة)
-    * **الغرض منه:** إدخال البضائع أو الأجهزة أو المواد الجديدة إلى المخزن.
-    * **طريقة الاستخدام:**
-      * أدخل **اسم المادة/المنتج** (مثلاً: آيفون 13، قميص رجالي، سماعة بلوتوث).
-      * حدد **اللون أو المواصفات الإضافية** (اختياري، مثل: أسود، أبيض، أو 128GB).
-      * حدد **القياس أو السعة أو الحجم** (اختياري، مثل: Large، XL، أو عام).
-      * اكتب **سعر الشراء** (تكلفة المادة عليك) و**سعر البيع** (السعر للزبون).
-      * حدد **الكمية المتوفرة** ورمز **الباركود** (إن وجد).
-      * اضغط على **"حفظ المادة في المخزن"** لتنضاف فوراً لقاعدة البيانات.
+    * أدخل اسم المادة، اللون، القياس، سعر الشراء، سعر البيع، الكمية، والباركود.
+    * اضغط على **"حفظ المادة في المخزن"** لتنضاف فوراً لقاعدة البيانات.
 
     ---
 
-    ### 2️⃣ تبويب (📦 جرد المخزن)
-    * **الغرض منه:** استعراض جميع البضائع المتوفرة، البحث السريع، ومعرفة النواقص.
-    * **طريقة الاستخدام:**
-      * يمكنك البحث السريع عن أي منتج كتابةً بالاسم أو عبر ماسح الباركود.
-      * يعرض لك كارد لكل منتج يوضح السعر، الكمية المتبقية، وربح القطعة الواحدة.
-      * يظهر تنبيه تلقائي باللون الأحمر إذا كانت المادة وشيكة النفاذ (الكمية 1 أو أقل).
-      * يحتوي كل منتج على زر **"إضافة إلى السلة"** لنقله مباشرة إلى قائمة البيع.
+    ### 2️⃣ تبويب (📦 جرد المخزن والباركود)
+    * استعراض المنتجات والبحث السريع بالاسم أو الباركود.
+    * **🚨 تنبيهات المخزون الذكية:** يظهر لك تنبيه أحمر عاجل إذا كانت المادة وشيكة النفاد (كمية 1 أو أقل) لتتدارك الأمر.
+    * **🏷️ مولد الباركود:** لكل منتج يوجد زر لتوليد وطباعة باركود خاص به واستخدامه بمسح سريع.
 
     ---
 
     ### 3️⃣ تبويب (👥 إدارة العملاء والديون)
-    * **الغرض منه:** حفظ معلومات الزبائن ومتابعة ذممهم المالية ومحافظاتهم.
-    * **طريقة الاستخدام:**
-      * أدخل اسم العميل، رقم الهاتف، اختر المحافظة العراقية، والعنوان التفصيلي.
-      * اضغط **"تسجيل بيانات العميل"** لحفظه في القائمة.
-      * يتيح لك الجدول الأسفل البحث عن أي عميل ومعرفة تفاصيله بسرعة.
+    * تسجيل أسماء العملاء، أرقام هواتفهم، محافظاتهم العراقية، وعناوينهم لمتابعة ذممهم المالية.
 
     ---
 
     ### 4️⃣ تبويب (🏭 إدارة الموردين)
-    * **الغرض منه:** تسجيل أسماء الشركات ووكلاء الجملة الذين تجهز منهم البضاعة.
-    * **طريقة الاستخدام:**
-      * أدخل اسم المورد، رقم هاتفه، ونوع التخصص أو البضاعة الموردة.
-      * يساعدك في الاحتفاظ بسجل كامل لجهات التجهيز الخاصة بمحلك.
+    * الاحتفاظ بسجل كامل لشركات التجهيز ووكلاء الجملة مع أرقام هواتفهم وتخصصاتهم.
 
     ---
 
     ### 5️⃣ تبويب (🛒 إتمام البيع والفواتير)
-    * **الغرض منه:** تجميع المواد التي اختارها الزبون في سلة المبيعات وإصدار الفاتورة.
-    * **طريقة الاستخدام:**
-      * استعرض المواد المضافة للسلة، وعدّل الكميات حسب رغبة الزبون.
-      * اختر اسم الزبون المسجل مسبقاً من القائمة المنسدلة (إلزامي).
-      * حدد **طريقة الدفع**: (كاش نقداً بالكامل، آجل بالكامل كدين، أو دفعة جزئية مع كتابة المبلغ الواصل).
-      * اضغط **"إتمام البيع، خصم المخزن، وحفظ الفاتورة"** ليقوم النظام بخصم الكمية من المخزن وتسجيل الفاتورة في السجل.
+    * تجميع مواد الزبون بسلة المبيعات، اختيار العميل المسجل وطريقة الدفع (كاش، آجل، أو جزئي)، ثم إتمام البيع وخصم الكميات من المخزن تلقائياً.
 
     ---
 
-    ### 6️⃣ تبويب (📄 سجل الفواتير وواتساب)
-    * **الغرض منه:** متابعة الفواتير السابقة، تحميلها بصيغة PDF، أو إرسالها للزبون عبر واتساب.
-    * **طريقة الاستخدام:**
-      * استعرض كافة الفواتير المصدرة مع تفاصيل المبالغ والديون المتبقية.
-      * اضغط على **"تحميل فاتورة PDF"** لتنزيل فاتورة رسمية وجاهزة للطباعة.
-      * اضغط على زر **"إرسال الفاتورة والمطالبة واتساب"** ليتم فتح محادثة الواتساب مع رقم الزبون متضمنةً نص الفاتورة والمبلغ المتبقي بذمته بضغطة زر واحدة!
+    ### 6️⃣ تبويب (📄 سجل الفواتير وواتساب و QR Code)
+    * استعراض الفواتير، تحميلها بصيغة **PDF** رسمية، عرض **QR Code** السريع الخاص بالفاتورة، ومطالبة الديون وإرسال الفاتورة للزبون عبر **واتساب** بضغطة زر واحدة.
 
     ---
 
     ### 7️⃣ تبويب (💰 صندوق الوردية والمصاريف)
-    * **الغرض منه:** تتبع حركة النقدية اليومية، تسجيل المصاريف وسحوبات الصندوق.
-    * **طريقة الاستخدام:**
-      * أدخل بيان المصروف (مثل: إيجار، خط إنترنت، سحب شخصي) مع المبلغ.
-      * يعرض لك النظام ملخصاً حياً ودقيقاً لـ: إجمالي النقدية الداخلة، إجمالي المصاريف، و**الصافي الفعلي بالصندوق حالياً**.
+    * تسجيل المصاريف اليومية وسحوبات الصندوق، مع عرض ملخص حي ومباشر للنقدية الداخلة والصفاء النقدي الفعلي بالصندوق.
 
     ---
 
-    ### 8️⃣ تبويب (📊 تقارير الأرباح)
-    * **الغرض منه:** معرفة الأداء المالي العام للمحل وصافي الأرباح الحقيقية.
-    * **طريقة الاستخدام:**
-      * يعرض مؤشرات عليا لإجمالي المبيعات، المبالغ الواصلة، الديون المعلقة.
-      * يحسب **صافي الربح الحقيقي** بعد خصم تكلفة شراء المواد والمصاريف المسجلة.
-      * يوضح جدولاً تفصيلياً لكل حركة البيع داخل المحل.
+    ### 8️⃣ تبويب (📊 الرسوم البيانية والتقارير)
+    * استعراض مؤشرات المبيعات، الأرباح الكلية والديون المعلقة، بالإضافة إلى **رسوم بيانية تفاعلية** توضح حركة المبيعات بصرياً لمتابعة أداء المحل بدقة.
 
     ---
 
-    💡 **هذا الدليل مصمم ليكون مرجعك الدائم داخل النظام لإدارة محلك بكل احترافية ويسر!**
+    💡 **هذا الدليل هو مرجعك الدائم والشامل لاستخدام كافة ميزات النظام بكل سهولة!**
     """)
