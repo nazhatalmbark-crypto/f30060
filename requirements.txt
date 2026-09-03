@@ -6,4 +6,3 @@ qrcode
 arabic-reshaper
 python-bidi
 python-barcode
-pillow
