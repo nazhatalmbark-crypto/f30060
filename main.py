@@ -111,22 +111,23 @@ if "logged_in_user" not in st.session_state:
 if "user_role" not in st.session_state:
     st.session_state.user_role = "مشرف النظام"
 
-if "customer_list" not in st.session_state:
+# تهيئة آمنة تمنع تحول القوائم إلى DataFrame بالخطأ
+if "customer_list" not in st.session_state or isinstance(st.session_state.customer_list, pd.DataFrame):
     st.session_state.customer_list = []
 
-if "suppliers_list" not in st.session_state:
+if "suppliers_list" not in st.session_state or isinstance(st.session_state.suppliers_list, pd.DataFrame):
     st.session_state.suppliers_list = []
 
-if "invoices_list" not in st.session_state:
+if "invoices_list" not in st.session_state or isinstance(st.session_state.invoices_list, pd.DataFrame):
     st.session_state.invoices_list = []
 
-if "cart" not in st.session_state:
+if "cart" not in st.session_state or isinstance(st.session_state.cart, pd.DataFrame):
     st.session_state.cart = []
 
-if "expenses_list" not in st.session_state:
+if "expenses_list" not in st.session_state or isinstance(st.session_state.expenses_list, pd.DataFrame):
     st.session_state.expenses_list = []
 
-if "audit_logs" not in st.session_state:
+if "audit_logs" not in st.session_state or isinstance(st.session_state.audit_logs, pd.DataFrame):
     st.session_state.audit_logs = []
 
 if "is_vip" not in st.session_state:
@@ -136,6 +137,8 @@ def log_audit(action, details):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     user = st.session_state.logged_in_user or "زائر"
     role = st.session_state.user_role
+    if isinstance(st.session_state.audit_logs, pd.DataFrame):
+        st.session_state.audit_logs = []
     st.session_state.audit_logs.insert(0, {
         "التاريخ والوقت": str(timestamp),
         "المستخدم": str(user),
@@ -413,7 +416,6 @@ with tab2:
     except:
         all_products = []
 
-    # تنبيهات قرب نفاد المخزون (Low Stock Alerts)
     low_stock_items = [p for p in all_products if p['quantity'] <= 2]
     if low_stock_items:
         low_names = " ، ".join([f"**{i['product_name']}** ({i.get('color','')} - {i.get('size','')})" for i in low_stock_items])
@@ -818,12 +820,17 @@ with tab8:
 with tab9:
     st.subheader("📜 سجل نشاطات المستخدمين (Audit Trail / Logs)")
     st.write("تتبع كافة العمليات والنشاطات التي قام بها المستخدمون داخل النظام للرقابة والتدقيق:")
-    if st.session_state.audit_logs:
+    
+    # فحص آمن يمنع أي خطأ لتقييم الـ DataFrame كقيمة منطقية
+    logs_data = st.session_state.audit_logs
+    is_logs_empty = logs_data.empty if isinstance(logs_data, pd.DataFrame) else (not logs_data)
+    
+    if not is_logs_empty:
         if st.button("🗑️ مسح سجل النشاطات"):
             st.session_state.audit_logs = []
             st.success("تم مسح سجل النشاطات بنجاح.")
             st.rerun()
-        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
+        st.dataframe(pd.DataFrame(logs_data), use_container_width=True)
     else:
         st.info("لا توجد نشاطات مسجلة حتى الآن.")
 
