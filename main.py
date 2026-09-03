@@ -2,10 +2,6 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
 import datetime
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.TTFont import TTFont
 import io
 import json
 import qrcode
@@ -14,6 +10,19 @@ from bidi.algorithm import get_display
 import urllib.parse
 import barcode
 from barcode.writer import ImageWriter
+
+# استيراد آمن لمكتبة الـ PDF لضمان عدم توقف التطبيق
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.TTFont import TTFont
+    pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
+    ARABIC_FONT = 'Amiri'
+    REPORTLAB_AVAILABLE = True
+except Exception:
+    REPORTLAB_AVAILABLE = False
+    ARABIC_FONT = 'Helvetica'
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -39,12 +48,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
-try:
-    pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
-    ARABIC_FONT = 'Amiri'
-except:
-    ARABIC_FONT = 'Helvetica'
 
 def format_arabic(text):
     if not text:
@@ -125,7 +128,6 @@ if "logged_in_user" not in st.session_state:
 if "user_role" not in st.session_state:
     st.session_state.user_role = "مشرف النظام"
 
-# تهيئة آمنة للقوائم لتفادي أخطاء الـ DataFrame
 if "customer_list" not in st.session_state or isinstance(st.session_state.customer_list, pd.DataFrame):
     st.session_state.customer_list = []
 
@@ -162,6 +164,8 @@ def log_audit(action, details):
     })
 
 def generate_pdf_invoice(inv):
+    if not REPORTLAB_AVAILABLE:
+        return None
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
@@ -713,13 +717,16 @@ with tab6:
                 pdf_buffer = generate_pdf_invoice(inv)
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1:
-                    st.download_button(
-                        label=f"📥 تحميل فاتورة PDF ({inv['رقم الفاتورة']})",
-                        data=pdf_buffer,
-                        file_name=f"{inv['رقم الفاتورة']}_{inv['الزبون']}.pdf",
-                        mime="application/pdf",
-                        key=f"download_pdf_{inv['رقم الفاتورة']}"
-                    )
+                    if REPORTLAB_AVAILABLE and pdf_buffer:
+                        st.download_button(
+                            label=f"📥 تحميل فاتورة PDF ({inv['رقم الفاتورة']})",
+                            data=pdf_buffer,
+                            file_name=f"{inv['رقم الفاتورة']}_{inv['الزبون']}.pdf",
+                            mime="application/pdf",
+                            key=f"download_pdf_{inv['رقم الفاتورة']}"
+                        )
+                    else:
+                        st.info("ميزة PDF متوقفة مؤقتاً لعدم توفر الحزمة.")
                 with col_btn2:
                     cust_phone_w = ""
                     for c_obj in st.session_state.customer_list:
