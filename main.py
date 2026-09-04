@@ -426,7 +426,7 @@ with tab1:
                         st.warning("يرجى كتابة اسم المادة على الأقل.")
 
 with tab2:
-    st.subheader("📦 جرد المخزن الشامل مع ميزة توليد وطباعة الباركود وحساب الأرباح")
+    st.subheader("📦 جرد المخزن الشامل مع ميزة توليد وطباعة الباركود وحساب أرباح القطع")
     
     try:
         res_all_p = supabase.table("products").select("*").eq("username", username).execute()
@@ -466,7 +466,6 @@ with tab2:
                     st.markdown(f"🏷️ **الباركود:** `{item.get('barcode', 'بدون')}`")
                     st.markdown(f"💰 **سعر الشراء:** `{int(item['buy_price']):,}` د.ع | **سعر البيع:** `{int(item['sell_price']):,}` د.ع")
                     
-                    # حساب وعرض ربح القطعة الواحدة بوضوح
                     buy_p = float(item.get('buy_price', 0))
                     sell_p = float(item.get('sell_price', 0))
                     profit_per_unit = int(sell_p - buy_p)
@@ -875,12 +874,11 @@ with tab10:
 
     st.markdown("---")
     
-    # قسم الدعم الفني وحساب الإنستغرام
+    # قسم الدعم الفني وحساب الإنستغرام الجديد (yaser120120120120)
     st.markdown("### 💬 الدعم الفني المباشر وتواصل المطور")
     st.write("تواجهك مشكلة تقنية، تريد تفعيل النسخة المدفوعة VIP، أو لديك مقترح لتطوير محلك؟ تواصل معي شخصياً:")
     
-    # ضع هنا يوزر حساب الإنستغرام الخاص بك بدلاً من ysr123
-    instagram_username = "ysr123" 
+    instagram_username = "yaser120120120120" 
     instagram_url = f"https://instagram.com/{instagram_username}"
     
     col_sup1, col_sup2 = st.columns(2)
