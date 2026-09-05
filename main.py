@@ -1,3 +1,43 @@
+import streamlit as st
+import pandas as pd
+import datetime
+
+# تعريف دالة السجل التدقيقي ومولد الـ PDF إن لم تكن معرفة مسبقاً
+def log_audit(action, details):
+    if 'audit_logs' not in st.session_state:
+        st.session_state.audit_logs = []
+    st.session_state.audit_logs.append({
+        "التاريخ والوقت": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "النشاط": action,
+        "التفاصيل": details
+    })
+
+def generate_pdf_invoice(inv):
+    # دالة وهمية أو استبدالها بدالتك الفعلية لتوليد الـ PDF
+    return None
+
+# تهيئة المتغيرات في session_state إذا لم تكن موجودة
+if 'invoices_list' not in st.session_state:
+    st.session_state.invoices_list = []
+if 'expenses_list' not in st.session_state:
+    st.session_state.expenses_list = []
+if 'audit_logs' not in st.session_state:
+    st.session_state.audit_logs = []
+
+# تعريف التبويبات العشرة للبرنامج بالكامل
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
+    "📦 المخزون", 
+    "👥 العملاء", 
+    "🛒 نقطة البيع", 
+    "🔄 المرتجعات", 
+    "💵 سندات القبض", 
+    "📄 الفواتير والـ PDF", 
+    "💰 الصندوق والمصاريف", 
+    "📈 التقارير والأرباح", 
+    "📜 سجل النشاطات", 
+    "📖 دليل الاستخدام"
+])
+
 with tab6:
     st.subheader("📄 سجل الفواتير، تحميل PDF، ومطالبة الديون عبر واتساب و QR Code")
     
@@ -12,28 +52,28 @@ with tab6:
             with st.container(border=True):
                 col_inv1, col_inv2, col_inv3 = st.columns([2, 2, 2])
                 with col_inv1:
-                    st.markdown(f"#### 📄 {inv['رقم الفاتورة']}")
-                    st.write(f"👤 **الزبون:** {inv['الزبون']}")
-                    st.write(f"📅 **التاريخ:** {inv['التاريخ']}")
+                    st.markdown(f"#### 📄 {inv.get('رقم الفاتورة', '')}")
+                    st.write(f"👤 **الزبون:** {inv.get('الزبون', '')}")
+                    st.write(f"📅 **التاريخ:** {inv.get('التاريخ', '')}")
                 with col_inv2:
-                    st.write(f"🛍️ **المنتجات:** {inv['المنتجات']}")
-                    st.write(f"💳 **طريقة الدفع:** {inv['نوع الدفع']}")
+                    st.write(f"🛍️ **المنتجات:** {inv.get('المنتجات', '')}")
+                    st.write(f"💳 **طريقة الدفع:** {inv.get('نوع الدفع', '')}")
                 with col_inv3:
-                    st.markdown(f"💰 **المجموع الكلي:** `{inv['المبلغ الكلي']:,}` د.ع")
-                    st.markdown(f"📥 **الواصل:** `{inv['الواصل']:,}` د.ع")
-                    if inv['المتبقي (الدين)'] > 0:
-                        st.markdown(f"🔴 **المتبقي (الدين):** `{inv['المتبقي (الدين)']:,}` د.ع")
+                    st.markdown(f"💰 **المجموع الكلي:** `{inv.get('المبلغ الكلي', 0):,}` د.ع")
+                    st.markdown(f"📥 **الواصل:** `{inv.get('الواصل', 0):,}` د.ع")
+                    if inv.get('المتبقي (الدين)', 0) > 0:
+                        st.markdown(f"🔴 **المتبقي (الدين):** `{inv.get('المتبقي (الدين)', 0):,}` د.ع")
                     else:
                         st.markdown(f"🟢 **المتبقي:** `0` د.ع (مسدد بالكامل)")
 
                 pdf_buffer = generate_pdf_invoice(inv)
                 if pdf_buffer:
                     st.download_button(
-                        label=f"📥 تحميل فاتورة PDF رسمية ({inv['رقم الفاتورة']})",
+                        label=f"📥 تحميل فاتورة PDF رسمية ({inv.get('رقم الفاتورة', '')})",
                         data=pdf_buffer,
-                        file_name=f"Invoice_{inv['رقم الفاتورة']}.pdf",
+                        file_name=f"Invoice_{inv.get('رقم الفاتورة', '')}.pdf",
                         mime="application/pdf",
-                        key=f"pdf_btn_{inv['رقم الفاتورة']}"
+                        key=f"pdf_btn_{inv.get('رقم الفاتورة', '')}"
                     )
                 else:
                     st.info("مكتبة توليد الـ PDF غير متوفرة حالياً.")
@@ -73,8 +113,8 @@ with tab7:
     st.divider()
     st.subheader("📊 ملخص حركة صندوق الوردية والمصاريف المسجلة")
     
-    total_sales_cash = sum(int(inv['الواصل']) for inv in st.session_state.invoices_list)
-    total_expenses_sum = sum(int(ex['المبلغ']) for ex in st.session_state.expenses_list)
+    total_sales_cash = sum(int(inv.get('الواصل', 0)) for inv in st.session_state.invoices_list)
+    total_expenses_sum = sum(int(ex.get('المبلغ', 0)) for ex in st.session_state.expenses_list)
     net_drawer_cash = total_sales_cash - total_expenses_sum
     
     col_box1, col_box2, col_box3 = st.columns(3)
@@ -93,7 +133,7 @@ with tab8:
     st.subheader("📈 الرسوم البيانية، تحليلات الأرباح، والتقارير المالية")
     
     if st.session_state.invoices_list:
-        total_rev = sum(int(i['المبلغ الكلي']) for i in st.session_state.invoices_list)
+        total_rev = sum(int(i.get('المبلغ الكلي', 0)) for i in st.session_state.invoices_list)
         total_cost_inv = sum(int(i.get('تكلفتها', 0)) for i in st.session_state.invoices_list)
         net_profit_val = total_rev - total_cost_inv
         
@@ -108,7 +148,7 @@ with tab8:
         st.divider()
         st.write("### 📊 تحليل المبيعات والإيرادات حسب الفواتير:")
         df_inv_chart = pd.DataFrame(st.session_state.invoices_list)
-        if not df_inv_chart.empty:
+        if not df_inv_chart.empty and "رقم الفاتورة" in df_inv_chart.columns and "المبلغ الكلي" in df_inv_chart.columns:
             st.bar_chart(df_inv_chart, x="رقم الفاتورة", y="المبلغ الكلي")
     else:
         st.info("لا توجد بيانات كافية لعرض الرسوم البيانية. قم بإتمام عمليات بيع أولاً.")
