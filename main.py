@@ -10,7 +10,7 @@ __st__.set_page_config(
     layout="wide"
 )
 
-# محاكاة قاعدة البيانات بالسحاب (Session State للاختبار الحي)
+# محاكاة قاعدة البيانات (Session State)
 if 'products' not in __st__.session_state:
     __st__.session_state['products'] = [
         {"id": 1, "name": "لابتوب ديل كورو i5", "category": "لابتوب", "price": 450000, "qty": 5, "barcode": "1001"},
@@ -37,19 +37,12 @@ if 'cashiers_status' not in __st__.session_state:
 # ==========================================
 __st__.sidebar.title("🔐 بوابة تسجيل الدخول")
 
-# حقول تسجيل الدخول الأساسية
 store_name = __st__.sidebar.text_input("اسم المحل (معرف النظام):", "محل التكنولوجيا الذكية")
-username = __st__.sidebar.text_input("اسم المستخدم:")
-password = __st__.sidebar.text_input("كلمة المرور:", type="password")
+username = __st__.sidebar.text_input("اسم المستخدم:", "المدير")
+password = __st__.sidebar.text_input("كلمة المرور:", type="password", value="1234")
 user_role = __st__.sidebar.selectbox("اختر الصلاحية:", ["مشرف النظام (المالك)", "كاشير"])
 
 __st__.sidebar.markdown("---")
-
-# التحقق البسيط من الدخول
-if not username:
-    __st__.sidebar.warning("⚠️ يرجى إدخال اسم المستخدم للبدء.")
-    __st__.stop()
-
 __st__.sidebar.info(f"المحل الحالي: **{store_name}**\n\nالمستخدم: **{username}**\n\nالصلاحية: **{user_role}**")
 
 # زر تفعيل/إيقاف الكاشير (يظهر للمالك فقط)
