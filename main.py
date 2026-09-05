@@ -11,6 +11,9 @@ __st__.set_page_config(
 )
 
 # محاكاة قاعدة البيانات (Session State)
+if 'logged_in' not in __st__.session_state:
+    __st__.session_state['logged_in'] = False
+
 if 'products' not in __st__.session_state:
     __st__.session_state['products'] = [
         {"id": 1, "name": "لابتوب ديل كورو i5", "category": "لابتوب", "price": 450000, "qty": 5, "barcode": "1001"},
@@ -32,28 +35,64 @@ if 'customers' not in __st__.session_state:
 if 'cashiers_status' not in __st__.session_state:
     __st__.session_state['cashiers_status'] = {"نشط": True}
 
-# ==========================================
-# واجهة تسجيل الدخول الجانبية (Sidebar Login)
-# ==========================================
-__st__.sidebar.title("🔐 بوابة تسجيل الدخول")
 
-store_name = __st__.sidebar.text_input("اسم المحل (معرف النظام):", "محل التكنولوجيا الذكية")
-username = __st__.sidebar.text_input("اسم المستخدم:", "المدير")
-password = __st__.sidebar.text_input("كلمة المرور:", type="password", value="1234")
-user_role = __st__.sidebar.selectbox("اختر الصلاحية:", ["مشرف النظام (المالك)", "كاشير"])
+# ==========================================
+# 1. شاشة تسجيل الدخول المستقلة (Login Screen)
+# ==========================================
+if not __st__.session_state['logged_in']:
+    __st__.title("🔐 بوابة تسجيل الدخول لنظام المحل")
+    __st__.markdown("يرجى إدخال معلومات الدخول للوصول إلى لوحة التحكم ونقطة البيع.")
+    
+    with __st__.form("login_form"):
+        store_input = __st__.text_input("اسم المحل:", "محل التكنولوجيا الذكية")
+        username_input = __st__.text_input("اسم المستخدم:")
+        password_input = __st__.text_input("كلمة المرور:", type="password")
+        role_input = __st__.selectbox("الصلاحية:", ["مشرف النظام (المالك)", "كاشير"])
+        
+        login_btn = __st__.form_submit_button("تسجيل الدخول 🚀")
+        
+        if login_btn:
+            if username_input.strip() != "":
+                __st__.session_state['logged_in'] = True
+                __st__.session_state['store_name'] = store_input
+                __st__.session_state['username'] = username_input
+                __st__.session_state['user_role'] = role_input
+                __st__.success("تم تسجيل الدخول بنجاح! جاري فتح النظام...")
+                __st__.rerun()
+            else:
+                __st__.error("يرجى إدخال اسم المستخدم على الأقل!")
+    
+    __st__.stop()  # إيقاف تنفيذ باقي الكود لحين تسجيل الدخول
+
+
+# استرجاع الجلسة بعد تسجيل الدخول
+store_name = __st__.session_state.get('store_name', 'المحل الذكي')
+username = __st__.session_state.get('username', 'مدير')
+user_role = __st__.session_state.get('user_role', 'مشرف النظام (المالك)')
+
+
+# ==========================================
+# الشريط الجانبي (Sidebar بعد الدخول)
+# ==========================================
+__st__.sidebar.title("⚙️ لوحة التحكم الجانبية")
+__st__.sidebar.info(f"المحل: **{store_name}**\n\nالمستخدم: **{username}**\n\nالصلاحية: **{user_role}**")
+
+if __st__.sidebar.button("🚪 تسجيل الخروج"):
+    __st__.session_state['logged_in'] = False
+    __st__.rerun()
 
 __st__.sidebar.markdown("---")
-__st__.sidebar.info(f"المحل الحالي: **{store_name}**\n\nالمستخدم: **{username}**\n\nالصلاحية: **{user_role}**")
 
 # زر تفعيل/إيقاف الكاشير (يظهر للمالك فقط)
 if user_role == "مشرف النظام (المالك)":
-    __st__.sidebar.markdown("### ⚙️ إدارة حسابات الكاشير")
+    __st__.sidebar.markdown("### 🔒 إدارة الكاشير")
     cashier_active = __st__.sidebar.checkbox("السماح بدخول الكاشير للعمل", value=__st__.session_state['cashiers_status'].get("نشط", True))
     __st__.session_state['cashiers_status']["نشط"] = cashier_active
 else:
     if not __st__.session_state['cashiers_status'].get("نشط", True):
         __st__.error("⚠️ عذراً، تم إيقاف حساب الكاشير من قبل المالك مؤقتاً. يرجى مراجعة الإدارة.")
         __st__.stop()
+
 
 # ==========================================
 # واجهة التبويبات الرئيسية للنظام
@@ -69,8 +108,9 @@ tabs = __st__.tabs([
     "📖 دليل الاستخدام والشرح"
 ])
 
+
 # ------------------------------------------
-# تبويب 1: نقطة البيع (POS) + حاسبة الباقي
+# تبويب 1: نقطة البيع (POS) بنظام البطاقات (Cards) + حاسبة الباقي
 # ------------------------------------------
 with tabs[0]:
     __st__.header("🛒 نقطة البيع السريعة (الكاشير)")
@@ -78,38 +118,47 @@ with tabs[0]:
     col1, col2 = __st__.columns([2, 1])
     
     with col1:
-        __st__.subheader("قائمة المواد المتاحة للبيع")
-        search_query = __st__.text_input("بحث عن مادة بالاسم أو الباركود:", "")
+        __st__.subheader("📦 المواد المتاحة للبيع (نظام البطاقات)")
+        search_query = __st__.text_input("🔍 بحث عن مادة بالاسم أو الباركود:", "")
         
         filtered_products = [p for p in __st__.session_state['products'] if search_query.lower() in p['name'].lower() or search_query in p['barcode']]
         
-        for prod in filtered_products:
-            c1, c2, c3 = __st__.columns([3, 2, 2])
-            c1.write(f"**{prod['name']}**")
-            c2.write(f"السعر: {prod['price']:,} د.ع")
-            c3.write(f"المخزون: {prod['qty']}")
-            if __st__.button(f"إضافة للسلة ➕", key=f"add_{prod['id']}"):
-                if prod['qty'] > 0:
-                    prod['qty'] -= 1
-                    __st__.session_state['sales'].append({
-                        "item": prod['name'],
-                        "price": prod['price'],
-                        "time": datetime.now().strftime("%Y-%m-%d %H:%M")
-                    })
-                    __st__.success(f"تم إضافة {prod['name']} بنجاح!")
-                    __st__.rerun()
-                else:
-                    __st__.error("عذراً، المادة نفذت من المخزن!")
-            __st__.markdown("---")
+        if not filtered_products:
+            __st__.warning("لم يتم العثور على مادة مطابقة للبحث.")
+        else:
+            # عرض المنتجات بنظام شبكة بطاقات (Columns Grid)
+            cols = __st__.columns(2)
+            for index, prod in enumerate(filtered_products):
+                with cols[index % 2]:
+                    with __st__.container(border=True):
+                        __st__.markdown(f"### {prod['name']}")
+                        __st__.write(f"📂 التصنيف: {prod['category']}")
+                        __st__.write(f"💰 السعر: **{prod['price']:,}** د.ع")
+                        
+                        stock_color = "🟢" if prod['qty'] > 2 else "🔴"
+                        __st__.write(f"الكمية المتوفرة: {stock_color} **{prod['qty']}**")
+                        
+                        if __st__.button(f"إضافة للسلة ➕", key=f"card_add_{prod['id']}"):
+                            if prod['qty'] > 0:
+                                prod['qty'] -= 1
+                                __st__.session_state['sales'].append({
+                                    "item": prod['name'],
+                                    "price": prod['price'],
+                                    "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                                })
+                                __st__.success(f"تمت إضافة {prod['name']} بنجاح!")
+                                __st__.rerun()
+                            else:
+                                __st__.error("عذراً، المادة نفذت من المخزن!")
 
     with col2:
         __st__.subheader("🧾 سلة المبيعات والفاتورة")
         if not __st__.session_state['sales']:
-            __st__.info("السلة فارغة حالياً.")
+            __st__.info("السلة فارغة حالياً. اضغط على 'إضافة للسلة' من بطاقات المواد.")
         else:
             total_amount = 0
             for i, sale in enumerate(__st__.session_state['sales']):
-                __st__.write(f"{i+1}. {sale['item']} - {sale['price']:,} د.ع")
+                __st__.write(f"{i+1}. {sale['item']} - **{sale['price']:,}** د.ع")
                 total_amount += sale['price']
             
             __st__.markdown("---")
@@ -126,11 +175,12 @@ with tabs[0]:
                 else:
                     __st__.error(f"المبلغ غير كافٍ! ناقص بمقدار: {abs(change_due):,} دينار")
 
-            if __st__.button("✅ إتمام البيع وطبع الفاتورة"):
+            if __st__.button("✅ إتمام البيع وطبع الفاتورة", use_container_width=True):
                 __st__.balloons()
                 __st__.success("تم إتمام عملية البيع بنجاح وتحديث المخزن!")
                 __st__.session_state['sales'] = []
                 __st__.rerun()
+
 
 # ------------------------------------------
 # تبويب 2: إدارة المخزن
@@ -163,6 +213,7 @@ with tabs[1]:
         stock_status = "🔴 قارب على النفاد!" if p['qty'] <= 2 else "🟢 متوفر"
         __st__.write(f"**{p['name']}** | التصنيف: {p['category']} | السعر: {p['price']:,} د.ع | الكمية: **{p['qty']}** ({stock_status})")
 
+
 # ------------------------------------------
 # تبويب 3: العملاء والديون
 # ------------------------------------------
@@ -172,7 +223,7 @@ with tabs[2]:
     with __st__.form("add_customer"):
         c_name = __st__.text_input("اسم الزبون:")
         c_phone = __st__.text_input("رقم الهاتف:")
-        c_debt = __st__.number_input("المبلغ المترتب بذمته (دين):", min_value=0, step=1000)
+        c_debt = __st__.number_input("المبلغ المترتب بذمته (د.ع):", min_value=0, step=1000)
         c_sub = __st__.form_submit_button("تسجيل عميل جديد")
         if c_sub and c_name:
             __st__.session_state['customers'].append({"name": c_name, "phone": c_phone, "debt": c_debt})
@@ -182,6 +233,7 @@ with tabs[2]:
     __st__.subheader("قائمة الديون المسجلة")
     for cust in __st__.session_state['customers']:
         __st__.write(f"- العميل: **{cust['name']}** | الهاتف: {cust['phone']} | الدين الذمي: **{cust['debt']:,} د.ع**")
+
 
 # ------------------------------------------
 # تبويب 4: المصروفات النثرية
@@ -213,6 +265,7 @@ with tabs[3]:
             total_expenses += ex['amount']
         __st__.markdown(f"### إجمالي المصاريف المسجلة: **{total_expenses:,} دينار**")
 
+
 # ------------------------------------------
 # تبويب 5: التقارير والأرباح
 # ------------------------------------------
@@ -229,6 +282,7 @@ with tabs[4]:
     __st__.markdown("---")
     __st__.info("💡 هذا التقرير يجمع لك مدخلات المحل والمصاريف النثرية بشكل لحظي لتسهيل تصفير الوردية بدقة.")
 
+
 # ------------------------------------------
 # تبويب 6: دليل الاستخدام والفيديو التوضيحي
 # ------------------------------------------
@@ -240,7 +294,7 @@ with tabs[5]:
     __st__.info("مكان مخصص لعرض فيديو الشرح (يمكنك ربط رابط فيديو يوتيوب الخاص بك هنا مباشرة لاحقاً):")
     
     __st__.markdown("""
-    * **نقطة البيع (POS):** تتيح لك اختيار المواد، وتظهر لك حاسبة الباقي للزبون فور إدخال المبلغ المستلم.
+    * **نقطة البيع (POS):** بطاقات تفاعلية للمواد، مع حاسبة الباقي للزبون فور إدخال المبلغ المستلم.
     * **إدارة المخزن:** تظهر لك المواد وتنبيهات الألوان في حال اقتراب نفاذ البضاعة.
     * **المصروفات النثرية:** تسجل من خلالها مصاريف المحل اليومية لخصمها من الصندوق.
     * **الحفظ السحابي:** جميع بياناتك محفوظة تلقائياً على السحابة ولا تتطلب حفظاً يدوياً مستمراً.
