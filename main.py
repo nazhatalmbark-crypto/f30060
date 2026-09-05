@@ -2,7 +2,7 @@ import streamlit as __st__
 from datetime import datetime
 
 # ==========================================
-# إعدادات الصفحة
+# إعدادات الصفحة ووضع الليلي (Dark Mode)
 # ==========================================
 __st__.set_page_config(
     page_title="نظام إدارة المحل الاحترافي",
@@ -10,7 +10,7 @@ __st__.set_page_config(
     layout="wide"
 )
 
-# محاكاة قاعدة البيانات بالسحاب (Session State للاختبار الحي)
+# محاكاة قاعدة البيانات بالسحاب (Supabase / Session State للاختبار الحي)
 if 'products' not in __st__.session_state:
     __st__.session_state['products'] = [
         {"id": 1, "name": "لابتوب ديل كورو i5", "category": "لابتوب", "price": 450000, "qty": 5, "barcode": "1001"},
@@ -33,24 +33,14 @@ if 'cashiers_status' not in __st__.session_state:
     __st__.session_state['cashiers_status'] = {"نشط": True}
 
 # ==========================================
-# واجهة تسجيل الدخول الجانبية (Sidebar Login)
+# شريط الجانب لتسجيل الدخول واختيار الصلاحية
 # ==========================================
-__st__.sidebar.title("🔐 بوابة تسجيل الدخول")
-
-# حقول تسجيل الدخول الأساسية
+__st__.sidebar.title("🔐 بوابة الدخول للمحل")
 store_name = __st__.sidebar.text_input("اسم المحل (معرف النظام):", "محل التكنولوجيا الذكية")
-username = __st__.sidebar.text_input("اسم المستخدم:")
-password = __st__.sidebar.text_input("كلمة المرور:", type="password")
 user_role = __st__.sidebar.selectbox("اختر الصلاحية:", ["مشرف النظام (المالك)", "كاشير"])
 
 __st__.sidebar.markdown("---")
-
-# التحقق البسيط من الدخول
-if not username:
-    __st__.sidebar.warning("⚠️ يرجى إدخال اسم المستخدم للبدء.")
-    __st__.stop()
-
-__st__.sidebar.info(f"المحل الحالي: **{store_name}**\n\nالمستخدم: **{username}**\n\nالصلاحية: **{user_role}**")
+__st__.sidebar.info(f"المحل الحالي: **{store_name}**\n\nالصلاحية: **{user_role}**")
 
 # زر تفعيل/إيقاف الكاشير (يظهر للمالك فقط)
 if user_role == "مشرف النظام (المالك)":
@@ -59,7 +49,7 @@ if user_role == "مشرف النظام (المالك)":
     __st__.session_state['cashiers_status']["نشط"] = cashier_active
 else:
     if not __st__.session_state['cashiers_status'].get("نشط", True):
-        __st__.error("⚠️ عذراً، تم إيقاف حساب الكاشير من قبل المالك مؤقتاً. يرجى مراجعة الإدارة.")
+        __st__.error("⚠️ عذراً، تم إيقاف حساب الكاشير من قبل المالك مؤقتاً. يراجع الإدارة.")
         __st__.stop()
 
 # ==========================================
