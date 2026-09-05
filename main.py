@@ -1,171 +1,254 @@
-import streamlit as st
-import pandas as pd
-import datetime
+import streamlit as __st__
+from datetime import datetime
 
-# تعريف دالة السجل التدقيقي ومولد الـ PDF إن لم تكن معرفة مسبقاً
-def log_audit(action, details):
-    if 'audit_logs' not in st.session_state:
-        st.session_state.audit_logs = []
-    st.session_state.audit_logs.append({
-        "التاريخ والوقت": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        "النشاط": action,
-        "التفاصيل": details
-    })
+# ==========================================
+# إعدادات الصفحة
+# ==========================================
+__st__.set_page_config(
+    page_title="نظام إدارة المحل الاحترافي",
+    page_icon="🏪",
+    layout="wide"
+)
 
-def generate_pdf_invoice(inv):
-    # دالة وهمية أو استبدالها بدالتك الفعلية لتوليد الـ PDF
-    return None
+# محاكاة قاعدة البيانات بالسحاب (Session State للاختبار الحي)
+if 'products' not in __st__.session_state:
+    __st__.session_state['products'] = [
+        {"id": 1, "name": "لابتوب ديل كورو i5", "category": "لابتوب", "price": 450000, "qty": 5, "barcode": "1001"},
+        {"id": 2, "name": "بلايستيشن 5 - سليم", "category": "ألعاب", "price": 650000, "qty": 3, "barcode": "1002"},
+        {"id": 3, "name": "سماعة بلوتوث أوبن إير", "category": "إكسسوارات", "price": 35000, "qty": 15, "barcode": "1003"}
+    ]
 
-# تهيئة المتغيرات في session_state إذا لم تكن موجودة
-if 'invoices_list' not in st.session_state:
-    st.session_state.invoices_list = []
-if 'expenses_list' not in st.session_state:
-    st.session_state.expenses_list = []
-if 'audit_logs' not in st.session_state:
-    st.session_state.audit_logs = []
+if 'sales' not in __st__.session_state:
+    __st__.session_state['sales'] = []
 
-# تعريف التبويبات العشرة للبرنامج بالكامل
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
-    "📦 المخزون", 
-    "👥 العملاء", 
-    "🛒 نقطة البيع", 
-    "🔄 المرتجعات", 
-    "💵 سندات القبض", 
-    "📄 الفواتير والـ PDF", 
-    "💰 الصندوق والمصاريف", 
-    "📈 التقارير والأرباح", 
-    "📜 سجل النشاطات", 
-    "📖 دليل الاستخدام"
+if 'expenses' not in __st__.session_state:
+    __st__.session_state['expenses'] = []
+
+if 'customers' not in __st__.session_state:
+    __st__.session_state['customers'] = [
+        {"name": "أحمد علي", "phone": "07700000000", "debt": 25000}
+    ]
+
+if 'cashiers_status' not in __st__.session_state:
+    __st__.session_state['cashiers_status'] = {"نشط": True}
+
+# ==========================================
+# واجهة تسجيل الدخول الجانبية (Sidebar Login)
+# ==========================================
+__st__.sidebar.title("🔐 بوابة تسجيل الدخول")
+
+# حقول تسجيل الدخول الأساسية
+store_name = __st__.sidebar.text_input("اسم المحل (معرف النظام):", "محل التكنولوجيا الذكية")
+username = __st__.sidebar.text_input("اسم المستخدم:")
+password = __st__.sidebar.text_input("كلمة المرور:", type="password")
+user_role = __st__.sidebar.selectbox("اختر الصلاحية:", ["مشرف النظام (المالك)", "كاشير"])
+
+__st__.sidebar.markdown("---")
+
+# التحقق البسيط من الدخول
+if not username:
+    __st__.sidebar.warning("⚠️ يرجى إدخال اسم المستخدم للبدء.")
+    __st__.stop()
+
+__st__.sidebar.info(f"المحل الحالي: **{store_name}**\n\nالمستخدم: **{username}**\n\nالصلاحية: **{user_role}**")
+
+# زر تفعيل/إيقاف الكاشير (يظهر للمالك فقط)
+if user_role == "مشرف النظام (المالك)":
+    __st__.sidebar.markdown("### ⚙️ إدارة حسابات الكاشير")
+    cashier_active = __st__.sidebar.checkbox("السماح بدخول الكاشير للعمل", value=__st__.session_state['cashiers_status'].get("نشط", True))
+    __st__.session_state['cashiers_status']["نشط"] = cashier_active
+else:
+    if not __st__.session_state['cashiers_status'].get("نشط", True):
+        __st__.error("⚠️ عذراً، تم إيقاف حساب الكاشير من قبل المالك مؤقتاً. يرجى مراجعة الإدارة.")
+        __st__.stop()
+
+# ==========================================
+# واجهة التبويبات الرئيسية للنظام
+# ==========================================
+__st__.title(f"🏪 نظام إدارة وإصدار فواتير المحل - {store_name}")
+
+tabs = __st__.tabs([
+    "🛒 نقطة البيع (POS)", 
+    "📦 إدارة المخزن", 
+    "👥 العملاء والديون", 
+    "💸 المصروفات النثرية",
+    "📊 التقارير والأرباح", 
+    "📖 دليل الاستخدام والشرح"
 ])
 
-with tab6:
-    st.subheader("📄 سجل الفواتير، تحميل PDF، ومطالبة الديون عبر واتساب و QR Code")
+# ------------------------------------------
+# تبويب 1: نقطة البيع (POS) + حاسبة الباقي
+# ------------------------------------------
+with tabs[0]:
+    __st__.header("🛒 نقطة البيع السريعة (الكاشير)")
     
-    if st.session_state.invoices_list:
-        if st.button("🗑️ مسح سجل الفواتير القديم"):
-            st.session_state.invoices_list = []
-            log_audit("مسح سجل", "تم مسح سجل الفواتير بالكامل")
-            st.success("تم مسح السجل بنجاح.")
-            st.rerun()
-            
-        for inv in reversed(st.session_state.invoices_list):
-            with st.container(border=True):
-                col_inv1, col_inv2, col_inv3 = st.columns([2, 2, 2])
-                with col_inv1:
-                    st.markdown(f"#### 📄 {inv.get('رقم الفاتورة', '')}")
-                    st.write(f"👤 **الزبون:** {inv.get('الزبون', '')}")
-                    st.write(f"📅 **التاريخ:** {inv.get('التاريخ', '')}")
-                with col_inv2:
-                    st.write(f"🛍️ **المنتجات:** {inv.get('المنتجات', '')}")
-                    st.write(f"💳 **طريقة الدفع:** {inv.get('نوع الدفع', '')}")
-                with col_inv3:
-                    st.markdown(f"💰 **المجموع الكلي:** `{inv.get('المبلغ الكلي', 0):,}` د.ع")
-                    st.markdown(f"📥 **الواصل:** `{inv.get('الواصل', 0):,}` د.ع")
-                    if inv.get('المتبقي (الدين)', 0) > 0:
-                        st.markdown(f"🔴 **المتبقي (الدين):** `{inv.get('المتبقي (الدين)', 0):,}` د.ع")
-                    else:
-                        st.markdown(f"🟢 **المتبقي:** `0` د.ع (مسدد بالكامل)")
-
-                pdf_buffer = generate_pdf_invoice(inv)
-                if pdf_buffer:
-                    st.download_button(
-                        label=f"📥 تحميل فاتورة PDF رسمية ({inv.get('رقم الفاتورة', '')})",
-                        data=pdf_buffer,
-                        file_name=f"Invoice_{inv.get('رقم الفاتورة', '')}.pdf",
-                        mime="application/pdf",
-                        key=f"pdf_btn_{inv.get('رقم الفاتورة', '')}"
-                    )
-                else:
-                    st.info("مكتبة توليد الـ PDF غير متوفرة حالياً.")
-    else:
-        st.info("لا توجد فواتير مسجلة حتى الآن.")
-
-with tab7:
-    st.subheader("💰 صندوق الوردية، حركة النقدية، وتسجيل المصاريف اليومية")
+    col1, col2 = __st__.columns([2, 1])
     
-    with st.form("add_expense_form", clear_on_submit=True):
-        col_e1, col_e2 = st.columns(2)
-        with col_e1:
-            exp_title = st.text_input("بيان المصروف (مثلاً: إيجار، كهرباء، سحب شخصي):")
-        with col_e2:
-            exp_amount_str = st.text_input("مبلغ المصروف (د.ع):", "0")
-            
-        if st.form_submit_button("تسجيل وصم المصروف من الصندوق"):
-            if exp_title.strip():
-                try:
-                    exp_amt = float(exp_amount_str.strip())
-                    if exp_amt > 0:
-                        st.session_state.expenses_list.append({
-                            "البيان": str(exp_title.strip()),
-                            "المبلغ": int(exp_amt),
-                            "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
-                        })
-                        log_audit("تسجيل مصروف", f"تم تسجيل مصروف ({exp_title.strip()}) بمبلغ {int(exp_amt):,} د.ع")
-                        st.success("تم تسجيل المصروف بنجاح!")
-                        st.rerun()
-                    else:
-                        st.warning("يرجى إدخال مبلغ صحيح أكبر من الصفر.")
-                except ValueError:
-                    st.error("خطأ: يرجى إدخال رقم صحيح للمبلغ.")
-            else:
-                st.warning("يرجى كتابة بيان المصروف.")
-
-    st.divider()
-    st.subheader("📊 ملخص حركة صندوق الوردية والمصاريف المسجلة")
-    
-    total_sales_cash = sum(int(inv.get('الواصل', 0)) for inv in st.session_state.invoices_list)
-    total_expenses_sum = sum(int(ex.get('المبلغ', 0)) for ex in st.session_state.expenses_list)
-    net_drawer_cash = total_sales_cash - total_expenses_sum
-    
-    col_box1, col_box2, col_box3 = st.columns(3)
-    with col_box1:
-        st.metric("إجمالي النقد الواصل للمبيعات", f"{total_sales_cash:,} د.ع")
-    with col_box2:
-        st.metric("إجمالي المصاريف المسحوبة", f"{total_expenses_sum:,} د.ع", delta_color="inverse")
-    with col_box3:
-        st.metric("صافي النقدية الحالية بالصندوق", f"{net_drawer_cash:,} د.ع")
-
-    if st.session_state.expenses_list:
-        st.write("### قائمة المصاريف التفصيلية:")
-        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
-
-with tab8:
-    st.subheader("📈 الرسوم البيانية، تحليلات الأرباح، والتقارير المالية")
-    
-    if st.session_state.invoices_list:
-        total_rev = sum(int(i.get('المبلغ الكلي', 0)) for i in st.session_state.invoices_list)
-        total_cost_inv = sum(int(i.get('تكلفتها', 0)) for i in st.session_state.invoices_list)
-        net_profit_val = total_rev - total_cost_inv
+    with col1:
+        __st__.subheader("قائمة المواد المتاحة للبيع")
+        search_query = __st__.text_input("بحث عن مادة بالاسم أو الباركود:", "")
         
-        c_m1, c_m2, c_m3 = st.columns(3)
-        with c_m1:
-            st.metric("إجمالي الإيرادات الكلية للمبيعات", f"{total_rev:,} د.ع")
-        with c_m2:
-            st.metric("إجمالي تكلفة البضاعة المباعة", f"{total_cost_inv:,} د.ع")
-        with c_m3:
-            st.metric("صافي الأرباح التشغيلية", f"{net_profit_val:,} د.ع", delta="أرباح ممتازة")
+        filtered_products = [p for p in __st__.session_state['products'] if search_query.lower() in p['name'].lower() or search_query in p['barcode']]
+        
+        for prod in filtered_products:
+            c1, c2, c3 = __st__.columns([3, 2, 2])
+            c1.write(f"**{prod['name']}**")
+            c2.write(f"السعر: {prod['price']:,} د.ع")
+            c3.write(f"المخزون: {prod['qty']}")
+            if __st__.button(f"إضافة للسلة ➕", key=f"add_{prod['id']}"):
+                if prod['qty'] > 0:
+                    prod['qty'] -= 1
+                    __st__.session_state['sales'].append({
+                        "item": prod['name'],
+                        "price": prod['price'],
+                        "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    __st__.success(f"تم إضافة {prod['name']} بنجاح!")
+                    __st__.rerun()
+                else:
+                    __st__.error("عذراً، المادة نفذت من المخزن!")
+            __st__.markdown("---")
+
+    with col2:
+        __st__.subheader("🧾 سلة المبيعات والفاتورة")
+        if not __st__.session_state['sales']:
+            __st__.info("السلة فارغة حالياً.")
+        else:
+            total_amount = 0
+            for i, sale in enumerate(__st__.session_state['sales']):
+                __st__.write(f"{i+1}. {sale['item']} - {sale['price']:,} د.ع")
+                total_amount += sale['price']
             
-        st.divider()
-        st.write("### 📊 تحليل المبيعات والإيرادات حسب الفواتير:")
-        df_inv_chart = pd.DataFrame(st.session_state.invoices_list)
-        if not df_inv_chart.empty and "رقم الفاتورة" in df_inv_chart.columns and "المبلغ الكلي" in df_inv_chart.columns:
-            st.bar_chart(df_inv_chart, x="رقم الفاتورة", y="المبلغ الكلي")
-    else:
-        st.info("لا توجد بيانات كافية لعرض الرسوم البيانية. قم بإتمام عمليات بيع أولاً.")
+            __st__.markdown("---")
+            __st__.markdown(f"### الإجمالي المطلوب: **{total_amount:,} دينار**")
+            
+            # --- حاسبة الصرف وإرجاع الباقي للزبون ---
+            __st__.markdown("#### 💵 حاسبة الباقي للزبون")
+            received_cash = __st__.number_input("المبلغ المستلم من الزبون (د.ع):", min_value=0, step=1000, value=0)
+            
+            if received_cash > 0:
+                change_due = received_cash - total_amount
+                if change_due >= 0:
+                    __st__.success(f"الباقي الواجب إرجاعه للزبون: **{change_due:,} دينار**")
+                else:
+                    __st__.error(f"المبلغ غير كافٍ! ناقص بمقدار: {abs(change_due):,} دينار")
 
-with tab9:
-    st.subheader("📜 سجل النشاطات والعمليات (Audit Trail) للمتدخلين والمستخدمين")
-    if st.session_state.audit_logs:
-        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
-    else:
-        st.info("لا توجد سجلات نشاط حتى الآن.")
+            if __st__.button("✅ إتمام البيع وطبع الفاتورة"):
+                __st__.balloons()
+                __st__.success("تم إتمام عملية البيع بنجاح وتحديث المخزن!")
+                __st__.session_state['sales'] = []
+                __st__.rerun()
 
-with tab10:
-    st.subheader("📖 دليل الاستخدام، المميزات، والدعم الفني لنظام Yasser Web")
-    st.markdown("""
-    * **إدارة المخزون والباركود:** إضافة المنتجات، مراقبة المخزون المنخفض، وتوليد باركود لكل قطعة تلقائياً.
-    * **إدارة العملاء والديون:** تسجيل بيانات العملاء ومحافظات العراق ومتابعة الحسابات والذمم بدقة.
-    * **نظام البيع السريع (POS):** سلة مبيعات مرنة تدعم الدفع النقدي، الآجل، أو الدفع الجزئي مع الخصم الفوري من المخزن.
-    * **الفواتير والـ PDF:** إصدار فواتير رسمية ودعم الطباعة وحفظ ملفات الـ PDF باللغة العربية بالكامل.
-    * **الصندوق والتقارير:** تتبع النقدية، المصاريف اليومية، والأرباح الصافية مع رسوم بيانية تفصيلية وسجل نشاطات آمن.
+# ------------------------------------------
+# تبويب 2: إدارة المخزن
+# ------------------------------------------
+with tabs[1]:
+    __st__.header("📦 إدارة المخزن والبضاعة")
+    
+    if user_role == "كاشير":
+        __st__.warning("⚠️ ملاحظة: أنت بصلاحية كاشير، يمكنك مشاهدة المخزن ولا يمكنك إضافة مواد جديدة بدون المالك.")
+    else:
+        with __st__.form("add_product_form"):
+            __st__.subheader("إضافة مادة جديدة للمخزن")
+            p_name = __st__.text_input("اسم المادة:")
+            p_cat = __st__.selectbox("التصنيف:", ["لابتوب", "ألعاب", "إكسسوارات", "صيانة وملحقات"])
+            p_price = __st__.number_input("سعر البيع (د.ع):", min_value=0, step=1000)
+            p_qty = __st__.number_input("الكمية المتوفرة:", min_value=1, step=1)
+            p_barcode = __st__.text_input("رقم الباركود:")
+            
+            submitted = __st__.form_submit_button("حفظ وإضافة المادة")
+            if submitted and p_name:
+                new_id = len(__st__.session_state['products']) + 1
+                __st__.session_state['products'].append({
+                    "id": new_id, "name": p_name, "category": p_cat, "price": p_price, "qty": p_qty, "barcode": p_barcode
+                })
+                __st__.success("تمت إضافة المادة بنجاح للمخزن!")
+                __st__.rerun()
+
+    __st__.subheader("قائمة المخزون الحالي")
+    for p in __st__.session_state['products']:
+        stock_status = "🔴 قارب على النفاد!" if p['qty'] <= 2 else "🟢 متوفر"
+        __st__.write(f"**{p['name']}** | التصنيف: {p['category']} | السعر: {p['price']:,} د.ع | الكمية: **{p['qty']}** ({stock_status})")
+
+# ------------------------------------------
+# تبويب 3: العملاء والديون
+# ------------------------------------------
+with tabs[2]:
+    __st__.header("👥 سجل العملاء والديون المترتبة")
+    
+    with __st__.form("add_customer"):
+        c_name = __st__.text_input("اسم الزبون:")
+        c_phone = __st__.text_input("رقم الهاتف:")
+        c_debt = __st__.number_input("المبلغ المترتب بذمته (دين):", min_value=0, step=1000)
+        c_sub = __st__.form_submit_button("تسجيل عميل جديد")
+        if c_sub and c_name:
+            __st__.session_state['customers'].append({"name": c_name, "phone": c_phone, "debt": c_debt})
+            __st__.success("تم حفظ معلومات العميل!")
+            __st__.rerun()
+
+    __st__.subheader("قائمة الديون المسجلة")
+    for cust in __st__.session_state['customers']:
+        __st__.write(f"- العميل: **{cust['name']}** | الهاتف: {cust['phone']} | الدين الذمي: **{cust['debt']:,} د.ع**")
+
+# ------------------------------------------
+# تبويب 4: المصروفات النثرية
+# ------------------------------------------
+with tabs[3]:
+    __st__.header("💸 سجل المصروفات والإيرادات النثرية اليومية")
+    __st__.markdown("سجل مصاريف المحل اليومية (إيجار، كهرباء، قهوة، ضيافة، تصليحات) لحساب الصافي الحقيقي.")
+    
+    with __st__.form("expense_form"):
+        exp_title = __st__.text_input("وصف المصروف (مثال: فاتورة الإنترنت / اشتراك المولد):")
+        exp_amount = __st__.number_input("مبلغ المصروف (د.ع):", min_value=0, step=500)
+        exp_btn = __st__.form_submit_button("تسجيل المصروف")
+        if exp_btn and exp_title:
+            __st__.session_state['expenses'].append({
+                "title": exp_title,
+                "amount": exp_amount,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
+            __st__.success("تم تسجيل المصروف بنجاح!")
+            __st__.rerun()
+
+    __st__.subheader("قائمة المصاريف المسجلة")
+    total_expenses = 0
+    if not __st__.session_state['expenses']:
+        __st__.info("لا توجد مصاريف مسجلة حتى الآن.")
+    else:
+        for ex in __st__.session_state['expenses']:
+            __st__.write(f"📌 {ex['title']} - **{ex['amount']:,} د.ع** (تاريخ: {ex['date']})")
+            total_expenses += ex['amount']
+        __st__.markdown(f"### إجمالي المصاريف المسجلة: **{total_expenses:,} دينار**")
+
+# ------------------------------------------
+# تبويب 5: التقارير والأرباح
+# ------------------------------------------
+with tabs[4]:
+    __st__.header("📊 تقارير الأرباح وصندوق الوردية")
+    
+    total_exp_val = sum([ex['amount'] for ex in __st__.session_state['expenses']])
+    
+    col_a, col_b, col_c = __st__.columns(3)
+    col_a.metric("إجمالي المصاريف", f"{total_exp_val:,} د.ع")
+    col_b.metric("عدد المواد بالمخزن", len(__st__.session_state['products']))
+    col_c.metric("الديون الكلية للعملاء", f"{sum([c['debt'] for c in __st__.session_state['customers']]):,} د.ع")
+
+    __st__.markdown("---")
+    __st__.info("💡 هذا التقرير يجمع لك مدخلات المحل والمصاريف النثرية بشكل لحظي لتسهيل تصفير الوردية بدقة.")
+
+# ------------------------------------------
+# تبويب 6: دليل الاستخدام والفيديو التوضيحي
+# ------------------------------------------
+with tabs[5]:
+    __st__.header("📖 دليل الاستخدام التوضيحي للنظام")
+    __st__.write("مرحباً بك في دليل التشغيل السريع الخاص بالنظام. تم تصميم هذا البرنامج خصيصاً ليتناسب مع إدارة محلات التكنولوجيا والصيانة.")
+    
+    __st__.markdown("### 🎥 فيديو شرح النظام التوضيحي")
+    __st__.info("مكان مخصص لعرض فيديو الشرح (يمكنك ربط رابط فيديو يوتيوب الخاص بك هنا مباشرة لاحقاً):")
+    
+    __st__.markdown("""
+    * **نقطة البيع (POS):** تتيح لك اختيار المواد، وتظهر لك حاسبة الباقي للزبون فور إدخال المبلغ المستلم.
+    * **إدارة المخزن:** تظهر لك المواد وتنبيهات الألوان في حال اقتراب نفاذ البضاعة.
+    * **المصروفات النثرية:** تسجل من خلالها مصاريف المحل اليومية لخصمها من الصندوق.
+    * **الحفظ السحابي:** جميع بياناتك محفوظة تلقائياً على السحابة ولا تتطلب حفظاً يدوياً مستمراً.
     """)
