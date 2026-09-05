@@ -93,7 +93,7 @@ with tabs[0]:
                         "price": prod['price'],
                         "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
-                    __st__.success(تم إضافة {prod['name']} بنجاح!)
+                    __st__.success(f"تم إضافة {prod['name']} بنجاح!")
                     __st__.rerun()
                 else:
                     __st__.error("عذراً، المادة نفذت من المخزن!")
@@ -157,7 +157,6 @@ with tabs[1]:
 
     __st__.subheader("قائمة المخزون الحالي")
     for p in __st__.session_state['products']:
-        # تنبيه نفاد المخزون الذكي بلون أحمر إذا أقل من قطعتين
         stock_status = "🔴 قارب على النفاد!" if p['qty'] <= 2 else "🟢 متوفر"
         __st__.write(f"**{p['name']}** | التصنيف: {p['category']} | السعر: {p['price']:,} د.ع | الكمية: **{p['qty']}** ({stock_status})")
 
@@ -169,7 +168,7 @@ with tabs[2]:
     
     with __st__.form("add_customer"):
         c_name = __st__.text_input("اسم الزبون:")
-        c_phone = __st__.text_input("رقم الهاتق:")
+        c_phone = __st__.text_input("رقم الهاتف:")
         c_debt = __st__.number_input("المبلغ المترتب بذمته (دين):", min_value=0, step=1000)
         c_sub = __st__.form_submit_button("تسجيل عميل جديد")
         if c_sub and c_name:
@@ -179,10 +178,10 @@ with tabs[2]:
 
     __st__.subheader("قائمة الديون المسجلة")
     for cust in __st__.session_state['customers']:
-        __st__.write(- العميل: **{cust['name']}** | الهاتف: {cust['phone']} | الدين الذمي: **{cust['debt']:,} د.ع**)
+        __st__.write(f"- العميل: **{cust['name']}** | الهاتف: {cust['phone']} | الدين الذمي: **{cust['debt']:,} د.ع**")
 
 # ------------------------------------------
-# تبويب 4: المصروفات النثرية (جديد)
+# تبويب 4: المصروفات النثرية
 # ------------------------------------------
 with tabs[3]:
     __st__.header("💸 سجل المصروفات والإيرادات النثرية اليومية")
@@ -217,12 +216,11 @@ with tabs[3]:
 with tabs[4]:
     __st__.header("📊 تقارير الأرباح وصندوق الوردية")
     
-    total_sales_rev = sum([s['price'] for s in __st__.session_state['sales']]) # للتوضيح
     total_exp_val = sum([ex['amount'] for ex in __st__.session_state['expenses']])
     
     col_a, col_b, col_c = __st__.columns(3)
     col_a.metric("إجمالي المصاريف", f"{total_exp_val:,} د.ع")
-    col_b.metric("عدد العمليات بالمخزن", len(__st__.session_state['products']))
+    col_b.metric("عدد المواد بالمخزن", len(__st__.session_state['products']))
     col_c.metric("الديون الكلية للعملاء", f"{sum([c['debt'] for c in __st__.session_state['customers']]):,} د.ع")
 
     __st__.markdown("---")
@@ -237,12 +235,10 @@ with tabs[5]:
     
     __st__.markdown("### 🎥 فيديو شرح النظام التوضيحي")
     __st__.info("مكان مخصص لعرض فيديو الشرح (يمكنك ربط رابط فيديو يوتيوب الخاص بك هنا مباشرة لاحقاً):")
-    # مثال لوضع فيديو توضيحي جاهز بالموقع:
-    # __st__.video("https://www.youtube.com/watch?v=YOUR_VIDEO_ID")
     
     __st__.markdown("""
     * **نقطة البيع (POS):** تتيح لك اختيار المواد، وتظهر لك حاسبة الباقي للزبون فور إدخال المبلغ المستلم.
     * **إدارة المخزن:** تظهر لك المواد وتنبيهات الألوان في حال اقتراب نفاذ البضاعة.
     * **المصروفات النثرية:** تسجل من خلالها مصاريف المحل اليومية لخصمها من الصندوق.
-    * **الحفظ السحابي:** جميع بياناتك محفوظة تلقائياً على سحابة Supabase ولا تتطلب حفظاً يدوياً مستمراً.
+    * **الحفظ السحابي:** جميع بياناتك محفوظة تلقائياً على السحابة ولا تتطلب حفظاً يدوياً مستمراً.
     """)
