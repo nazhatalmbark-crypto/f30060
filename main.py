@@ -1,11 +1,6 @@
 import streamlit as st
 
-st.set_page_config(
-    page_title="Yasser Web - إدارة المحلات",
-    page_layout="centered",
-    initial_sidebar_state="expanded",
-)
-
+# تطبيق تنسيق الـ CSS المتجاوب لشاشات الموبايل واللابتوب
 st.markdown(
     """
     <style>
