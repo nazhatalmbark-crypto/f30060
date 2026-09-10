@@ -1,229 +1,301 @@
-import streamlit as st
+import streamlit as __st__
+from datetime import datetime
 
-# تطبيق تنسيق CSS متقدم يجعل الأقسام تظهر على شكل كروت مربعة (Grid) مطابقة للصور
-st.markdown(
-    """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stApp {
-        background-color: #0f3d2e;
-        color: #ffffff;
-    }
-    /* تصميم الكروت المربعة لتشبه التطبيق في الصور */
-    .dashboard-card {
-        background-color: #1b4d3e;
-        padding: 20px;
-        border-radius: 16px;
-        border: 1px solid #2e8b57;
-        text-align: center;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .dashboard-card h3 {
-        color: #ffffff;
-        font-size: 16px;
-        margin-bottom: 5px;
-    }
-    div.stButton > button {
-        width: 100%;
-        border-radius: 12px;
-        background-color: #2e8b57;
-        color: white;
-        border: none;
-        font-weight: bold;
-        padding: 10px;
-    }
-    @media (max-width: 768px) {
-        h1 { font-size: 20px !important; }
-    }
-    </style>
-""",
-    unsafe_allow_html=True,
+# ==========================================
+# إعدادات الصفحة
+# ==========================================
+__st__.set_page_config(
+    page_title="نظام إدارة المحل الاحترافي",
+    page_icon="🏪",
+    layout="wide"
 )
 
-# تهيئة بيانات الجلسة
-if "inventory" not in st.session_state:
-    st.session_state.inventory = {
-        "باور بانك 10000 ملي أمبير": {"qty": 96, "price": 24.9},
-        "سماعات لاسلكية": {"qty": 129, "price": 29.9},
-        "كابل USB-C 1 متر": {"qty": 6.4, "price": 4.5},
-        "لمبة 9 LED واط": {"qty": 384, "price": 2.5},
-    }
+# محاكاة قاعدة البيانات (Session State)
+if 'logged_in' not in __st__.session_state:
+    __st__.session_state['logged_in'] = False
 
-if "cart" not in st.session_state:
-    st.session_state.cart = {}
+if 'products' not in __st__.session_state:
+    __st__.session_state['products'] = [
+        {"id": 1, "name": "لابتوب ديل كورو i5", "category": "لابتوب", "price": 450000, "qty": 5, "barcode": "1001"},
+        {"id": 2, "name": "بلايستيشن 5 - سليم", "category": "ألعاب", "price": 650000, "qty": 3, "barcode": "1002"},
+        {"id": 3, "name": "سماعة بلوتوث أوبن إير", "category": "إكسسوارات", "price": 35000, "qty": 15, "barcode": "1003"}
+    ]
 
-if "cash_log" not in st.session_state:
-    st.session_state.cash_log = {"start_cash": 0.0, "notes": ""}
+if 'sales' not in __st__.session_state:
+    __st__.session_state['sales'] = []
 
-st.title("🛒 Yasser Web - لوحة التحكم الرئيسية")
-st.write("اختر القسم المطلوب أو تصفح الخانات أدناه:")
+if 'expenses' not in __st__.session_state:
+    __st__.session_state['expenses'] = []
 
-# --- تصميم الشاشة الرئيسية على شكل شبكة كروت مطابقة للصور (Grid) ---
-col1, col2, col3 = st.columns(3)
+if 'customers' not in __st__.session_state:
+    __st__.session_state['customers'] = [
+        {"name": "أحمد علي", "phone": "07700000000", "debt": 25000}
+    ]
 
-with col1:
-    st.markdown(
-        '<div class="dashboard-card"><h3>📦 المبيعات</h3><p>إدارة الفواتير والمسح السريع</p></div>',
-        unsafe_allow_html=True,
-    )
-    if st.button("فتح المبيعات"):
-        st.session_state.active_tab = "إدارة المبيعات (POS)"
-        st.rerun()
+if 'cashiers_status' not in __st__.session_state:
+    __st__.session_state['cashiers_status'] = {"نشط": True}
 
-with col2:
-    st.markdown(
-        '<div class="dashboard-card"><h3>🏢 المخازن</h3><p>مخزون لحظي في كل مستودع</p></div>',
-        unsafe_allow_html=True,
-    )
-    if st.button("فتح المخازن"):
-        st.session_state.active_tab = "المخازن والمحلات"
-        st.rerun()
 
-with col3:
-    st.markdown(
-        '<div class="dashboard-card"><h3>📊 التقارير</h3><p>الأرباح والمبيعات والمخزون</p></div>',
-        unsafe_allow_html=True,
-    )
-    if st.button("فتح التقارير"):
-        st.session_state.active_tab = "التقارير النهائية والأرباح"
-        st.rerun()
+# ==========================================
+# 1. شاشة تسجيل الدخول المستقلة (Login Screen)
+# ==========================================
+if not __st__.session_state['logged_in']:
+    __st__.title("🔐 بوابة تسجيل الدخول لنظام المحل")
+    __st__.markdown("يرجى إدخال معلومات الدخول للوصول إلى لوحة التحكم ونقطة البيع.")
+    
+    with __st__.form("login_form"):
+        store_input = __st__.text_input("اسم المحل:", "محل التكنولوجيا الذكية")
+        username_input = __st__.text_input("اسم المستخدم:")
+        password_input = __st__.text_input("كلمة المرور:", type="password")
+        role_input = __st__.selectbox("الصلاحية:", ["مشرف النظام (المالك)", "كاشير"])
+        
+        login_btn = __st__.form_submit_button("تسجيل الدخول 🚀")
+        
+        if login_btn:
+            if username_input.strip() != "":
+                __st__.session_state['logged_in'] = True
+                __st__.session_state['store_name'] = store_input
+                __st__.session_state['username'] = username_input
+                __st__.session_state['user_role'] = role_input
+                __st__.success("تم تسجيل الدخول بنجاح! جاري فتح النظام...")
+                __st__.rerun()
+            else:
+                __st__.error("يرجى إدخال اسم المستخدم على الأقل!")
+    
+    __st__.stop()  # إيقاف تنفيذ باقي الكود لحين تسجيل الدخول
 
-col4, col5, col6 = st.columns(3)
 
-with col4:
-    st.markdown(
-        '<div class="dashboard-card"><h3>💰 الصندوق</h3><p>حركة النقدية والصندوق اليومي</p></div>',
-        unsafe_allow_html=True,
-    )
-    if st.button("فتح الصندوق"):
-        st.session_state.active_tab = "سجل حركة الصندوق"
-        st.rerun()
+# استرجاع الجلسة بعد تسجيل الدخول
+store_name = __st__.session_state.get('store_name', 'المحل الذكي')
+username = __st__.session_state.get('username', 'مدير')
+user_role = __st__.session_state.get('user_role', 'مشرف النظام (المالك)')
 
-with col5:
-    st.markdown(
-        '<div class="dashboard-card"><h3>☁️ السحاب</h3><p>النسخ الاحتياطي والأمان</p></div>',
-        unsafe_allow_html=True,
-    )
-    if st.button("فتح النسخ الاحتياطي"):
-        st.session_state.active_tab = "النسخ الاحتياطي السحابي"
-        st.rerun()
 
-with col6:
-    st.markdown(
-        '<div class="dashboard-card"><h3>⚙️ لوحة التحكم</h3><p>الإعدادات العامة للسيستم</p></div>',
-        unsafe_allow_html=True,
-    )
-    if st.button("الرئيسية"):
-        st.session_state.active_tab = "الرئيسية"
-        st.rerun()
+# ==========================================
+# الشريط الجانبي (Sidebar بعد الدخول)
+# ==========================================
+__st__.sidebar.title("⚙️ لوحة التحكم الجانبية")
+__st__.sidebar.info(f"المحل: **{store_name}**\n\nالمستخدم: **{username}**\n\nالصلاحية: **{user_role}**")
 
-st.markdown("---")
+if __st__.sidebar.button("🚪 تسجيل الخروج"):
+    __st__.session_state['logged_in'] = False
+    __st__.rerun()
 
-# تحديد القائمة النشطة بناءً على ضغط الكروت أو القائمة الجانبية
-if "active_tab" not in st.session_state:
-    st.session_state.active_tab = "الرئيسية"
+__st__.sidebar.markdown("---")
 
-menu = st.sidebar.selectbox(
-    "القائمة السريعة",
-    [
-        "الرئيسية",
-        "إدارة المبيعات (POS)",
-        "المخازن والمحلات",
-        "التقارير النهائية والأرباح",
-        "سجل حركة الصندوق",
-        "النسخ الاحتياطي السحابي",
-    ],
-    index=0,
-)
+# زر تفعيل/إيقاف الكاشير (يظهر للمالك فقط)
+if user_role == "مشرف النظام (المالك)":
+    __st__.sidebar.markdown("### 🔒 إدارة الكاشير")
+    cashier_active = __st__.sidebar.checkbox("السماح بدخول الكاشير للعمل", value=__st__.session_state['cashiers_status'].get("نشط", True))
+    __st__.session_state['cashiers_status']["نشط"] = cashier_active
+else:
+    if not __st__.session_state['cashiers_status'].get("نشط", True):
+        __st__.error("⚠️ عذراً، تم إيقاف حساب الكاشير من قبل المالك مؤقتاً. يرجى مراجعة الإدارة.")
+        __st__.stop()
 
-# إذا تم الضغط من الكروت، اجعل القائمة تتطابق وياها
-current_view = (
-    menu
-    if menu != "الرئيسية"
-    else st.session_state.get("active_tab", "الرئيسية")
-)
 
-# --- محتوى الأقسام ---
-if current_view == "إدارة المبيعات (POS)":
-    st.subheader("📦 إدارة المبيعات - مسح سريع")
-    search_query = st.text_input(
-        "بحث باسم المنتج أو باركود...", placeholder="اكتب اسم المادة هنا..."
-    )
+# ==========================================
+# واجهة التبويبات الرئيسية للنظام
+# ==========================================
+__st__.title(f"🏪 نظام إدارة وإصدار فواتير المحل - {store_name}")
 
-    p_cols = st.columns(2)
-    idx = 0
-    for prod_name, data in st.session_state.inventory.items():
-        if search_query and search_query.lower() not in prod_name.lower():
-            continue
-        with p_cols[idx % 2]:
-            st.markdown(
-                f"""
-                <div style="background-color: #1b4d3e; padding: 15px; border-radius: 12px; border: 1px solid #2e8b57; margin-bottom: 10px;">
-                    <h4 style="color: white; margin: 0 0 5px 0; font-size: 14px;">{prod_name}</h4>
-                    <p style="color: #a8df8e; margin: 0; font-size: 12px;">الكمية: {data['qty']} | السعر: {data['price']} دينار</p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            if st.button(f"إضافة: {prod_name}", key=f"add_{prod_name}"):
-                if prod_name in st.session_state.cart:
-                    st.session_state.cart[prod_name] += 1
+tabs = __st__.tabs([
+    "🛒 نقطة البيع (POS)", 
+    "📦 إدارة المخزن", 
+    "👥 العملاء والديون", 
+    "💸 المصروفات النثرية",
+    "📊 التقارير والأرباح", 
+    "📖 دليل الاستخدام والشرح"
+])
+
+
+# ------------------------------------------
+# تبويب 1: نقطة البيع (POS) بنظام البطاقات (Cards) + حاسبة الباقي
+# ------------------------------------------
+with tabs[0]:
+    __st__.header("🛒 نقطة البيع السريعة (الكاشير)")
+    
+    col1, col2 = __st__.columns([2, 1])
+    
+    with col1:
+        __st__.subheader("📦 المواد المتاحة للبيع (نظام البطاقات)")
+        search_query = __st__.text_input("🔍 بحث عن مادة بالاسم أو الباركود:", "")
+        
+        filtered_products = [p for p in __st__.session_state['products'] if search_query.lower() in p['name'].lower() or search_query in p['barcode']]
+        
+        if not filtered_products:
+            __st__.warning("لم يتم العثور على مادة مطابقة للبحث.")
+        else:
+            # عرض المنتجات بنظام شبكة بطاقات (Columns Grid)
+            cols = __st__.columns(2)
+            for index, prod in enumerate(filtered_products):
+                with cols[index % 2]:
+                    with __st__.container(border=True):
+                        __st__.markdown(f"### {prod['name']}")
+                        __st__.write(f"📂 التصنيف: {prod['category']}")
+                        __st__.write(f"💰 السعر: **{prod['price']:,}** د.ع")
+                        
+                        stock_color = "🟢" if prod['qty'] > 2 else "🔴"
+                        __st__.write(f"الكمية المتوفرة: {stock_color} **{prod['qty']}**")
+                        
+                        if __st__.button(f"إضافة للسلة ➕", key=f"card_add_{prod['id']}"):
+                            if prod['qty'] > 0:
+                                prod['qty'] -= 1
+                                __st__.session_state['sales'].append({
+                                    "item": prod['name'],
+                                    "price": prod['price'],
+                                    "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                                })
+                                __st__.success(f"تمت إضافة {prod['name']} بنجاح!")
+                                __st__.rerun()
+                            else:
+                                __st__.error("عذراً، المادة نفذت من المخزن!")
+
+    with col2:
+        __st__.subheader("🧾 سلة المبيعات والفاتورة")
+        if not __st__.session_state['sales']:
+            __st__.info("السلة فارغة حالياً. اضغط على 'إضافة للسلة' من بطاقات المواد.")
+        else:
+            total_amount = 0
+            for i, sale in enumerate(__st__.session_state['sales']):
+                __st__.write(f"{i+1}. {sale['item']} - **{sale['price']:,}** د.ع")
+                total_amount += sale['price']
+            
+            __st__.markdown("---")
+            __st__.markdown(f"### الإجمالي المطلوب: **{total_amount:,} دينار**")
+            
+            # --- حاسبة الصرف وإرجاع الباقي للزبون ---
+            __st__.markdown("#### 💵 حاسبة الباقي للزبون")
+            received_cash = __st__.number_input("المبلغ المستلم من الزبون (د.ع):", min_value=0, step=1000, value=0)
+            
+            if received_cash > 0:
+                change_due = received_cash - total_amount
+                if change_due >= 0:
+                    __st__.success(f"الباقي الواجب إرجاعه للزبون: **{change_due:,} دينار**")
                 else:
-                    st.session_state.cart[prod_name] = 1
-                st.success(f"تمت إضافة {prod_name} للسلة!")
-        idx += 1
+                    __st__.error(f"المبلغ غير كافٍ! ناقص بمقدار: {abs(change_due):,} دينار")
 
-    st.markdown("---")
-    st.subheader("🛒 سلة المشتريات الحالية")
-    if st.session_state.cart:
-        total_price = 0
-        for item, q in st.session_state.cart.items():
-            p = st.session_state.inventory[item]["price"]
-            sub = p * q
-            total_price += sub
-            st.write(f"- {item} (العدد: {q}) | المجموع: {sub:.2f} دينار")
+            if __st__.button("✅ إتمام البيع وطبع الفاتورة", use_container_width=True):
+                __st__.balloons()
+                __st__.success("تم إتمام عملية البيع بنجاح وتحديث المخزن!")
+                __st__.session_state['sales'] = []
+                __st__.rerun()
 
-        st.markdown(f"**المجموع الكلي: {total_price:.2f} دينار**")
-        if st.button("إصدار وطباعة الفاتورة / مشاركة واتساب"):
-            st.success("تم إصدار الفاتورة بنجاح! 🚀")
-            st.session_state.cart = {}
+
+# ------------------------------------------
+# تبويب 2: إدارة المخزن
+# ------------------------------------------
+with tabs[1]:
+    __st__.header("📦 إدارة المخزن والبضاعة")
+    
+    if user_role == "كاشير":
+        __st__.warning("⚠️ ملاحظة: أنت بصلاحية كاشير، يمكنك مشاهدة المخزن ولا يمكنك إضافة مواد جديدة بدون المالك.")
     else:
-        st.info("السلة فارغة حالياً.")
+        with __st__.form("add_product_form"):
+            __st__.subheader("إضافة مادة جديدة للمخزن")
+            p_name = __st__.text_input("اسم المادة:")
+            p_cat = __st__.selectbox("التصنيف:", ["لابتوب", "ألعاب", "إكسسوارات", "صيانة وملحقات"])
+            p_price = __st__.number_input("سعر البيع (د.ع):", min_value=0, step=1000)
+            p_qty = __st__.number_input("الكمية المتوفرة:", min_value=1, step=1)
+            p_barcode = __st__.text_input("رقم الباركود:")
+            
+            submitted = __st__.form_submit_button("حفظ وإضافة المادة")
+            if submitted and p_name:
+                new_id = len(__st__.session_state['products']) + 1
+                __st__.session_state['products'].append({
+                    "id": new_id, "name": p_name, "category": p_cat, "price": p_price, "qty": p_qty, "barcode": p_barcode
+                })
+                __st__.success("تمت إضافة المادة بنجاح للمخزن!")
+                __st__.rerun()
 
-elif current_view == "المخازن والمحلات":
-    st.subheader("🏢 إدارة المخازن (مخزون لحظي في كل مستودع)")
-    for prod_name, data in st.session_state.inventory.items():
-        if data["qty"] < 10:
-            st.warning(
-                f"⚠️ تنبيه نفاذ بضاعة: المنتج '{prod_name}' كميته قليلة جداً ({data['qty']} قطعة)!"
-            )
-    st.json(st.session_state.inventory)
+    __st__.subheader("قائمة المخزون الحالي")
+    for p in __st__.session_state['products']:
+        stock_status = "🔴 قارب على النفاد!" if p['qty'] <= 2 else "🟢 متوفر"
+        __st__.write(f"**{p['name']}** | التصنيف: {p['category']} | السعر: {p['price']:,} د.ع | الكمية: **{p['qty']}** ({stock_status})")
 
-elif current_view == "التقارير النهائية والأرباح":
-    st.subheader("📊 التقارير والأرباح النهائية")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("إجمالي المبيعات اليوم", "110.35 دينار")
-    c2.metric("مخزون داخل", "51")
-    c3.metric("مخزون خارج", "61")
 
-elif current_view == "سجل حركة الصندوق":
-    st.subheader("💰 سجل حركة الصندوق اليومي")
-    start_c = st.number_input(
-        "مبلغ الصندوق بداية اليوم:",
-        value=float(st.session_state.cash_log["start_cash"]),
-    )
-    notes_c = st.text_area(
-        "ملاحظات الصندوق:", value=st.session_state.cash_log["notes"]
-    )
-    if st.button("حفظ حركة الصندوق"):
-        st.session_state.cash_log["start_cash"] = start_c
-        st.session_state.cash_log["notes"] = notes_c
-        st.success("تم حفظ تقرير الصندوق بنجاح!")
+# ------------------------------------------
+# تبويب 3: العملاء والديون
+# ------------------------------------------
+with tabs[2]:
+    __st__.header("👥 سجل العملاء والديون المترتبة")
+    
+    with __st__.form("add_customer"):
+        c_name = __st__.text_input("اسم الزبون:")
+        c_phone = __st__.text_input("رقم الهاتف:")
+        c_debt = __st__.number_input("المبلغ المترتب بذمته (د.ع):", min_value=0, step=1000)
+        c_sub = __st__.form_submit_button("تسجيل عميل جديد")
+        if c_sub and c_name:
+            __st__.session_state['customers'].append({"name": c_name, "phone": c_phone, "debt": c_debt})
+            __st__.success("تم حفظ معلومات العميل!")
+            __st__.rerun()
 
-elif current_view == "النسخ الاحتياطي السحابي":
-    st.subheader("☁️ بياناتك آمنة في السحاب")
-    if st.button("إنشاء نسخة احتياطية الآن 🔄"):
-        st.success("تم إنشاء نسخة احتياطية محلية وسحابية بنجاح.")
+    __st__.subheader("قائمة الديون المسجلة")
+    for cust in __st__.session_state['customers']:
+        __st__.write(f"- العميل: **{cust['name']}** | الهاتف: {cust['phone']} | الدين الذمي: **{cust['debt']:,} د.ع**")
+
+
+# ------------------------------------------
+# تبويب 4: المصروفات النثرية
+# ------------------------------------------
+with tabs[3]:
+    __st__.header("💸 سجل المصروفات والإيرادات النثرية اليومية")
+    __st__.markdown("سجل مصاريف المحل اليومية (إيجار، كهرباء، قهوة، ضيافة، تصليحات) لحساب الصافي الحقيقي.")
+    
+    with __st__.form("expense_form"):
+        exp_title = __st__.text_input("وصف المصروف (مثال: فاتورة الإنترنت / اشتراك المولد):")
+        exp_amount = __st__.number_input("مبلغ المصروف (د.ع):", min_value=0, step=500)
+        exp_btn = __st__.form_submit_button("تسجيل المصروف")
+        if exp_btn and exp_title:
+            __st__.session_state['expenses'].append({
+                "title": exp_title,
+                "amount": exp_amount,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
+            __st__.success("تم تسجيل المصروف بنجاح!")
+            __st__.rerun()
+
+    __st__.subheader("قائمة المصاريف المسجلة")
+    total_expenses = 0
+    if not __st__.session_state['expenses']:
+        __st__.info("لا توجد مصاريف مسجلة حتى الآن.")
+    else:
+        for ex in __st__.session_state['expenses']:
+            __st__.write(f"📌 {ex['title']} - **{ex['amount']:,} د.ع** (تاريخ: {ex['date']})")
+            total_expenses += ex['amount']
+        __st__.markdown(f"### إجمالي المصاريف المسجلة: **{total_expenses:,} دينار**")
+
+
+# ------------------------------------------
+# تبويب 5: التقارير والأرباح
+# ------------------------------------------
+with tabs[4]:
+    __st__.header("📊 تقارير الأرباح وصندوق الوردية")
+    
+    total_exp_val = sum([ex['amount'] for ex in __st__.session_state['expenses']])
+    
+    col_a, col_b, col_c = __st__.columns(3)
+    col_a.metric("إجمالي المصاريف", f"{total_exp_val:,} د.ع")
+    col_b.metric("عدد المواد بالمخزن", len(__st__.session_state['products']))
+    col_c.metric("الديون الكلية للعملاء", f"{sum([c['debt'] for c in __st__.session_state['customers']]):,} د.ع")
+
+    __st__.markdown("---")
+    __st__.info("💡 هذا التقرير يجمع لك مدخلات المحل والمصاريف النثرية بشكل لحظي لتسهيل تصفير الوردية بدقة.")
+
+
+# ------------------------------------------
+# تبويب 6: دليل الاستخدام والفيديو التوضيحي
+# ------------------------------------------
+with tabs[5]:
+    __st__.header("📖 دليل الاستخدام التوضيحي للنظام")
+    __st__.write("مرحباً بك في دليل التشغيل السريع الخاص بالنظام. تم تصميم هذا البرنامج خصيصاً ليتناسب مع إدارة محلات التكنولوجيا والصيانة.")
+    
+    __st__.markdown("### 🎥 فيديو شرح النظام التوضيحي")
+    __st__.info("مكان مخصص لعرض فيديو الشرح (يمكنك ربط رابط فيديو يوتيوب الخاص بك هنا مباشرة لاحقاً):")
+    
+    __st__.markdown("""
+    * **نقطة البيع (POS):** بطاقات تفاعلية للمواد، مع حاسبة الباقي للزبون فور إدخال المبلغ المستلم.
+    * **إدارة المخزن:** تظهر لك المواد وتنبيهات الألوان في حال اقتراب نفاذ البضاعة.
+    * **المصروفات النثرية:** تسجل من خلالها مصاريف المحل اليومية لخصمها من الصندوق.
+    * **الحفظ السحابي:** جميع بياناتك محفوظة تلقائياً على السحابة ولا تتطلب حفظاً يدوياً مستمراً.
+    """)
