@@ -1,26 +1,21 @@
-import streamlit as st
+import streamlit as str_lib
 
-# ضبط إعدادات الصفحة لتكون متجاوبة ومرتبة
-st.set_page_config(
+# يجب أن يكون هذا السطر هو أول أمر ستريمليت في الملف تماماً
+str_lib.set_page_config(
     page_title="Yasser Web - إدارة المحلات", page_layout="centered"
 )
 
-# تطبيق CSS مخصص لإصلاح الخطوط وشاشات الموبايل وجعل التصميم يشبه التطبيق الاحترافي
-st.markdown(
+# تطبيق تنسيق الـ CSS المتجاوب لشاشات الموبايل واللابتوب
+str_lib.markdown(
     """
     <style>
-    /* إخفاء القوائم الثقيلة والعناصر الافتراضية للـ Streamlit */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-
-    /* تنسيق لون الخلفية العام ليكون أخضر غامق ومريح للنظر */
     .stApp {
         background-color: #0f3d2e;
         color: #ffffff;
     }
-
-    /* تنسيق الأزرار لتكون مرتبة وعصرية */
     div.stButton > button {
         width: 100%;
         border-radius: 12px;
@@ -29,8 +24,6 @@ st.markdown(
         border: 1px solid #2e8b57;
         font-weight: bold;
     }
-
-    /* إصلاح تداخل الجداول والخطوط على شاشات الهواتف المحمولة */
     @media (max-width: 768px) {
         .stDataFrame {
             width: 100% !important;
@@ -45,27 +38,27 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# تهيئة حالة الجلسة (Session State) لحفظ البيانات والمميزات السابقة بدون ضياع
-if "inventory" not in st.session_state:
-    st.session_state.inventory = {
+# تهيئة حالة الجلسة (Session State) لحفظ البيانات والمميزات
+if "inventory" not in str_lib.session_state:
+    str_lib.session_state.inventory = {
         "باور بانك 10000 ملي أمبير": {"qty": 96, "price": 24.9},
         "سماعات لاسلكية": {"qty": 129, "price": 29.9},
         "كابل USB-C 1 متر": {"qty": 6.4, "price": 4.5},
         "لمبة 9 LED واط": {"qty": 384, "price": 2.5},
     }
 
-if "cart" not in st.session_state:
-    st.session_state.cart = {}
+if "cart" not in str_lib.session_state:
+    str_lib.session_state.cart = {}
 
-if "cash_log" not in st.session_state:
-    st.session_state.cash_log = {"start_cash": 0.0, "notes": ""}
+if "cash_log" not in str_lib.session_state:
+    str_lib.session_state.cash_log = {"start_cash": 0.0, "notes": ""}
 
 # عنوان التطبيق الرئيسي
-st.title("🛒 Yasser Web - إدارة المبيعات والمخازن")
-st.write("النسخة المطورة المتجاوبة لكل الأجهزة (موبايل ولابتوب)")
+str_lib.title("🛒 Yasser Web - إدارة المبيعات والمخازن")
+str_lib.write("النسخة المطورة المتجاوبة لكل الأجهزة (موبايل ولابتوب)")
 
-# القائمة الجانبية أو التنقل السريع بين الأقسام الأساسية
-menu = st.sidebar.selectbox(
+# القائمة الرئيسية للتنقل بين الأقسام
+menu = str_lib.sidebar.selectbox(
     "القائمة الرئيسية",
     [
         "إدارة المبيعات (POS)",
@@ -76,23 +69,20 @@ menu = st.sidebar.selectbox(
     ],
 )
 
-# --- 1. قسم إدارة المبيعات (شاشة البيع والسلة) ---
+# --- 1. قسم إدارة المبيعات (POS) ---
 if menu == "إدارة المبيعات (POS)":
-    st.subheader("📦 إدارة المبيعات - مسح سريع")
-
-    # شريط البحث الفوري السريع
-    search_query = st.text_input(
+    str_lib.subheader("📦 إدارة المبيعات - مسح سريع")
+    search_query = str_lib.text_input(
         "بحث باسم المنتج أو باركود...", placeholder="اكتب اسم المادة هنا..."
     )
 
-    # عرض المنتجات بشكل شبكي (Grid) متجاوب
-    cols = st.columns(2)
+    cols = str_lib.columns(2)
     idx = 0
-    for prod_name, data in st.session_state.inventory.items():
+    for prod_name, data in str_lib.session_state.inventory.items():
         if search_query and search_query.lower() not in prod_name.lower():
             continue
         with cols[idx % 2]:
-            st.markdown(
+            str_lib.markdown(
                 f"""
                 <div style="background-color: #1b4d3e; padding: 15px; border-radius: 12px; border: 1px solid #2e8b57; margin-bottom: 10px;">
                     <h4 style="color: white; margin: 0 0 10px 0; font-size: 14px;">{prod_name}</h4>
@@ -101,82 +91,84 @@ if menu == "إدارة المبيعات (POS)":
                 """,
                 unsafe_allow_html=True,
             )
-            if st.button(f"إضافة للسلة: {prod_name}", key=f"add_{prod_name}"):
-                if prod_name in st.session_state.cart:
-                    st.session_state.cart[prod_name] += 1
+            if str_lib.button(
+                f"إضافة للسلة: {prod_name}", key=f"add_{prod_name}"
+            ):
+                if prod_name in str_lib.session_state.cart:
+                    str_lib.session_state.cart[prod_name] += 1
                 else:
-                    st.session_state.cart[prod_name] = 1
-                st.success(f"تمت إضافة {prod_name} للسلة!")
+                    str_lib.session_state.cart[prod_name] = 1
+                str_lib.success(f"تمت إضافة {prod_name} للسلة!")
         idx += 1
 
-    # عرض السلة العائمة وعداد المنتجات
-    st.markdown("---")
-    st.subheader("🛒 سلة المشتريات الحالية")
-    if st.session_state.cart:
+    str_lib.markdown("---")
+    str_lib.subheader("🛒 سلة المشتريات الحالية")
+    if str_lib.session_state.cart:
         total_price = 0
-        for item, q in st.session_state.cart.items():
-            p = st.session_state.inventory[item]["price"]
+        for item, q in str_lib.session_state.cart.items():
+            p = str_lib.session_state.inventory[item]["price"]
             sub = p * q
             total_price += sub
-            st.write(f"- {item} (العدد: {q}) | المجموع: {sub:.2f} دينار")
+            str_lib.write(f"- {item} (العدد: {q}) | المجموع: {sub:.2f} دينار")
 
-        st.markdown(f"**المجموع الكلي للفاتورة: {total_price:.2f} دينار**")
-        if st.button("إصدار وطباعة فاتورة PDF / مشاركة واتساب"):
-            st.success(
+        str_lib.markdown(
+            f"**المجموع الكلي للفاتورة: {total_price:.2f} دينار**"
+        )
+        if str_lib.button("إصدار وطباعة فاتورة PDF / مشاركة واتساب"):
+            str_lib.success(
                 "تم إصدار الفاتورة وتجهيزها للمشاركة بنجاح! 🚀 (تتم محاكاة الطباعة)"
             )
-            st.session_state.cart = {}
+            str_lib.session_state.cart = {}
     else:
-        st.info("السلة فارغة حالياً.")
+        str_lib.info("السلة فارغة حالياً.")
 
 # --- 2. قسم المخازن والمحلات ---
 elif menu == "المخازن والمحلات":
-    st.subheader("🏢 إدارة المخازن (مخزون لحظي في كل مستودع)")
-    st.write("تتبع كل صنف في جميع متاجر الفروع الرئيسية والفرعية.")
+    str_lib.subheader("🏢 إدارة المخازن (مخزون لحظي في كل مستودع)")
+    str_lib.write("تتبع كل صنف في جميع متاجر الفروع الرئيسية والفرعية.")
 
-    # نظام تنبيهات نفاذ المخزون (Low Stock Alerts)
-    for prod_name, data in st.session_state.inventory.items():
+    for prod_name, data in str_lib.session_state.inventory.items():
         if data["qty"] < 10:
-            st.warning(
+            str_lib.warning(
                 f"⚠️ تنبيه نفاذ بضاعة: المنتج '{prod_name}' كميته قليلة جداً ({data['qty']} قطعة)!"
             )
 
-    st.json(st.session_state.inventory)
+    str_lib.json(str_lib.session_state.inventory)
 
 # --- 3. قسم التقارير النهائية والأرباح ---
 elif menu == "التقارير النهائية والأرباح":
-    st.subheader("📊 التقارير والأرباح النهائية")
-    col1, col2, col3 = st.columns(3)
+    str_lib.subheader("📊 التقارير والأرباح النهائية")
+    col1, col2, col3 = str_lib.columns(3)
     col1.metric("إجمالي المبيعات اليوم", "110.35 دينار")
     col2.metric("مخزون داخل", "51")
     col3.metric("مخزون خارج", "61")
 
-    st.markdown("---")
-    st.info(
+    str_lib.markdown("---")
+    str_lib.info(
         "تقرير الأرباح الصافية والمصروفات مفعل وجاهز لعرض تفاصيل الحركة المالية."
     )
 
 # --- 4. قسم سجل حركة الصندوق ---
 elif menu == "سجل حركة الصندوق":
-    st.subheader("💰 سجل حركة الصندوق اليومي (Cash Drawer Log)")
-    start_c = st.number_input(
+    str_lib.subheader("💰 سجل حركة الصندوق اليومي (Cash Drawer Log)")
+    start_c = str_lib.number_input(
         "مبلغ الصندوق بداية اليوم (كاش):",
-        value=float(st.session_state.cash_log["start_cash"]),
+        value=float(str_lib.session_state.cash_log["start_cash"]),
     )
-    notes_c = st.text_area(
+    notes_c = str_lib.text_area(
         "ملاحظات الصندوق والمصاريف النثرية:",
-        value=st.session_state.cash_log["notes"],
+        value=str_lib.session_state.cash_log["notes"],
     )
-    if st.button("حفظ حركة الصندوق"):
-        st.session_state.cash_log["start_cash"] = start_c
-        st.session_state.cash_log["notes"] = notes_c
-        st.success("تم حفظ تقرير الصندوق بنجاح!")
+    if str_lib.button("حفظ حركة الصندوق"):
+        str_lib.session_state.cash_log["start_cash"] = start_c
+        str_lib.session_state.cash_log["notes"] = notes_c
+        str_lib.success("تم حفظ تقرير الصندوق بنجاح!")
 
 # --- 5. قسم النسخ الاحتياطي السحابي ---
 elif menu == "النسخ الاحتياطي السحابي":
-    st.subheader("☁️ بياناتك آمنة في السحاب")
-    st.write("أنشئ نسخة احتياطية بنقرة زر واحدة (محلي وسحابي).")
-    if st.button("إنشاء نسخة احتياطية الآن 🔄"):
-        st.success(
+    str_lib.subheader("☁️ بياناتك آمنة في السحاب")
+    str_lib.write("أنشئ نسخة احتياطية بنقرة زر واحدة (محلي وسحابي).")
+    if str_lib.button("إنشاء نسخة احتياطية الآن 🔄"):
+        str_lib.success(
             "تم إنشاء نسخة احتياطية محلية وسحابية بنجاح، بياناتك محروسة ولن تضيع أبداً."
         )
