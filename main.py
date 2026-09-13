@@ -79,7 +79,7 @@ def log_audit(action, details):
         "التفاصيل": str(details)
     })
 
-# دالة خزن وتوليد الـ PDF الداخلي
+# دالة خزن وتوليد الـ PDF الداخلي الاحترافي
 def generate_pdf_invoice(inv):
     if not REPORTLAB_AVAILABLE:
         return None
@@ -88,7 +88,7 @@ def generate_pdf_invoice(inv):
     width, height = letter
     
     p.setFont(ARABIC_FONT, 14)
-    p.drawString(50, height - 40, format_arabic("YASSER WEB - فاتورة طلبية توصيل رسمية"))
+    p.drawString(50, height - 40, format_arabic("YASSER WEB - فاتورة طلبية رسمية"))
     p.setFont("Helvetica", 10)
     p.drawString(width - 150, height - 40, f"Date: {inv['التاريخ']}")
     
@@ -119,8 +119,6 @@ def generate_pdf_invoice(inv):
     p.drawString(50, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
     text_y -= 22
     p.drawString(50, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"تكلفة البنزين والتوصيل (pbf): {inv.get('pbf', 0):,} دينار عراقي"))
     
     text_y -= 40
     p.line(50, text_y, width - 50, text_y)
@@ -131,7 +129,7 @@ def generate_pdf_invoice(inv):
     buffer.seek(0)
     return buffer
 
-# دالة توليد صفحة الطباعة المنفصلة (HTML/JS للطباعة المباشرة)
+# دالة توليد صفحة الطباعة المنفصلة (HTML نظيف بدون مسار الملف وبدون بنزين)
 def get_printable_invoice_html(inv):
     html_content = f"""
     <!DOCTYPE html>
@@ -140,15 +138,16 @@ def get_printable_invoice_html(inv):
         <meta charset="UTF-8">
         <title>فاتورة رقم {inv['رقم الفاتورة']}</title>
         <style>
-            body {{ font-family: 'Tahoma', Arial, sans-serif; padding: 20px; color: #333; }}
-            .invoice-box {{ max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); border-radius: 8px; }}
+            @page {{ size: auto; margin: 15mm; }}
+            body {{ font-family: 'Tahoma', Arial, sans-serif; padding: 10px; color: #333; background: #fff; }}
+            .invoice-box {{ max-width: 750px; margin: auto; padding: 30px; border: 1px solid #ddd; border-radius: 8px; }}
             .header {{ text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }}
             .info-table {{ width: 100%; margin-bottom: 20px; border-collapse: collapse; }}
             .info-table td {{ padding: 8px; vertical-align: top; }}
             .products-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
             .products-table th, .products-table td {{ border: 1px solid #ddd; padding: 10px; text-align: right; }}
             .products-table th {{ background-color: #f2f2f2; }}
-            .totals {{ float: left; width: 300px; }}
+            .totals {{ float: left; width: 320px; }}
             .totals table {{ width: 100%; border-collapse: collapse; }}
             .totals td {{ padding: 6px; border-bottom: 1px solid #eee; }}
             .footer {{ clear: both; text-align: center; margin-top: 40px; font-size: 14px; color: #777; border-top: 1px solid #eee; padding-top: 15px; }}
@@ -157,7 +156,7 @@ def get_printable_invoice_html(inv):
     <body onload="window.print()">
         <div class="invoice-box">
             <div class="header">
-                <h2>YASSER WEB - فاتورة طلبية توصيل</h2>
+                <h2>YASSER WEB - فاتورة طلبية مبيعات</h2>
                 <p>التاريخ: {inv['التاريخ']}</p>
             </div>
             <table class="info-table">
@@ -183,7 +182,6 @@ def get_printable_invoice_html(inv):
                     <tr><td><strong>المبلغ الكلي:</strong></td><td>{inv['المبلغ الكلي']:,} د.ع</td></tr>
                     <tr><td><strong>المبلغ الواصل:</strong></td><td>{inv['الواصل']:,} د.ع</td></tr>
                     <tr><td><strong>المتبقي (الدين):</strong></td><td>{inv['المتبقي (الدين)']:,} د.ع</td></tr>
-                    <tr><td><strong>تكلفة البنزين (pbf):</strong></td><td>{inv.get('pbf', 0):,} د.ع</td></tr>
                 </table>
             </div>
             <div class="footer">
@@ -490,7 +488,6 @@ with tabs[4]:
         
         paid_val = total_price if pay_t == "نقد (كاش)" else (0 if pay_t == "آجل (دين)" else float(str_lit.text_input("المبلغ الواصل:", "0") or 0))
         rem_val = total_price - paid_val
-        pbf_val = float(str_lit.text_input("تكلفة البنزين والتوصيل (pbf):", "0") or 0)
 
         if str_lit.button("💾 إتمام البيع وحفظ الفاتورة", type="primary"):
             if c_opts == ["لا توجد عملاء"] or not str_lit.session_state.customer_list:
@@ -515,7 +512,6 @@ with tabs[4]:
                         "تكلفتها": int(tot_cost),
                         "الواصل": int(paid_val),
                         "المتبقي (الدين)": int(rem_val),
-                        "pbf": int(pbf_val),
                         "نوع الدفع": pay_t,
                         "حالة الفاتورة واللون": "🟢 مسددة" if rem_val == 0 else "🟡 آجل",
                         "التاريخ": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -541,7 +537,6 @@ with tabs[5]:
                 "المبلغ الكلي": f"{inv['المبلغ الكلي']:,} د.ع",
                 "الواصل": f"{inv['الواصل']:,} د.ع",
                 "المتبقي": f"{inv['المتبقي (الدين)']:,} د.ع",
-                "بنزين (pbf)": f"{inv.get('pbf', 0):,} د.ع",
                 "الحالة": inv["حالة الفاتورة واللون"]
             })
         str_lit.dataframe(pd.DataFrame(table_display_data), use_container_width=True)
@@ -553,7 +548,7 @@ with tabs[5]:
                 with c_i1:
                     str_lit.markdown(f"#### {inv['رقم الفاتورة']} | الزبون: {inv['الزبون']}")
                     str_lit.write(f"الحالة: {inv['حالة الفاتورة واللون']} | المجموع: **{inv['المبلغ الكلي']:,}** د.ع")
-                    str_lit.write(f"المتبقي (دين): **{inv['المتبقي (الدين)']:,}** د.ع | بنزين (pbf): **{inv.get('pbf', 0):,}** د.ع")
+                    str_lit.write(f"المتبقي (دين): **{inv['المتبقي (الدين)']:,}** د.ع")
                     str_lit.write(f"المنتجات: {inv['المنتجات']}")
                 with c_i2:
                     if inv['المتبقي (الدين)'] > 0:
@@ -571,7 +566,7 @@ with tabs[5]:
                             except: 
                                 pass
                 with c_i3:
-                    # 1. زر تحميل ملف الـ PDF المخزون بالنظام
+                    # 1. زر تحميل ملف الـ PDF الاحترافي
                     pdf_buf = generate_pdf_invoice(inv)
                     if pdf_buf and REPORTLAB_AVAILABLE:
                         str_lit.download_button(
@@ -582,7 +577,7 @@ with tabs[5]:
                             key=f"pdf_btn_{idx_i}"
                         )
                     
-                    # 2. زر منفصل للطباعة المباشرة عبر المتصفح
+                    # 2. زر الطباعة المنفصل عبر المتصفح (نظيف وخالي من مسار الملف والبنزين)
                     html_code = get_printable_invoice_html(inv)
                     str_lit.download_button(
                         label="🖨️ طباعة الفاتورة عبر المتصفح",
@@ -598,7 +593,7 @@ with tabs[5]:
                     w_phone = str_lit.text_input(f"رقم هاتف الواتساب لـ {inv['الزبون']}:", value=default_phone, key=f"wphone_{idx_i}")
                     
                     if w_phone.strip():
-                        msg = urllib.parse.quote(f"مرحباً بك يا أستاذ {inv['الزبون']},\n\nإليك تفاصيل فاتورتك ({inv['رقم الفاتورة']}):\n- المنتجات: {inv['المنتجات']}\n- المبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع\n- الواصل: {inv['الواصل']:,} د.ع\n- المتبقي (الدين): {inv['المتبقي (الدين)']:,} د.ع\n- تكلفة النقل/البنزين (pbf): {inv.get('pbf', 0):,} د.ع\n\nشكراً لتعاملكم معنا في نظام Yasser Web!")
+                        msg = urllib.parse.quote(f"مرحباً بك يا أستاذ {inv['الزبون']},\n\nإليك تفاصيل فاتورتك ({inv['رقم الفاتورة']}):\n- المنتجات: {inv['المنتجات']}\n- المبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع\n- الواصل: {inv['الواصل']:,} د.ع\n- المتبقي (الدين): {inv['المتبقي (الدين)']:,} د.ع\n\nشكراً لتعاملكم معنا في نظام Yasser Web!")
                         str_lit.markdown(f"[💬 اضغط هنا للإرسال عبر واتساب مباشرة](https://wa.me/{w_phone.strip()}?text={msg})", unsafe_allow_html=True)
                     else:
                         str_lit.warning("⚠️ أدخل رقم الهاتف لتفعيل رابط واتساب.")
@@ -626,10 +621,8 @@ with tabs[7]:
     str_lit.subheader("📊 التقارير والأرباح")
     tot_rev = sum(i['المبلغ الكلي'] for i in str_lit.session_state.invoices_list)
     tot_cost = sum(i.get('تكلفتها', 0) for i in str_lit.session_state.invoices_list)
-    tot_pbf = sum(i.get('pbf', 0) for i in str_lit.session_state.invoices_list)
     str_lit.metric("إجمالي الإيرادات", f"{tot_rev:,} د.ع")
-    str_lit.metric("إجمالي مصاريف البنزين (pbf)", f"{tot_pbf:,} د.ع")
-    str_lit.metric("صافي الأرباح (بعد خصم التكلفة والبنزين)", f"{tot_rev - tot_cost - tot_pbf:,} د.ع")
+    str_lit.metric("صافي الأرباح (بعد خصم التكلفة)", f"{tot_rev - tot_cost:,} د.ع")
 
 with tabs[8]:
     str_lit.subheader("📜 سجل النشاطات والعمليات")
