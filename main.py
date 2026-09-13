@@ -699,205 +699,59 @@ with tab6:
     if st.session_state.invoices_list:
         if st.button("🗑️ مسح سجل الفواتير القديم"):
             st.session_state.invoices_list = []
-            log_audit("مسح سجل", "تم مسح سجل الفواتير بالكامل")
-            st.success("تم مسح السجل بنجاح.")
+            log_audit("مسح سجل الفواتير", "تم مسح جميع الفواتير المسجلة")
+            st.success("تم مسح السجل.")
             st.rerun()
             
-        for index_inv, inv in enumerate(reversed(st.session_state.invoices_list)):
-            status_color = inv.get("حالة الفاتورة واللون", "🟢 مسددة بالكامل (كاش)")
-            
-            with st.container(border=True):
-                col_inv1, col_inv2, col_inv3 = st.columns([2, 2, 2])
-                with col_inv1:
-                    st.markdown(f"#### {inv['رقم الفاتورة']} | العميل: {inv['الزبون']}")
-                    st.write(f"🏷️ **حالة الفاتورة:** {status_color}")
-                    st.write(f"📅 التاريخ: {inv['التاريخ']} | نوع الدفع: {inv['نوع الدفع']}")
-                    st.write(f"📦 المنتجات: {inv['المنتجات']}")
-                with col_inv2:
-                    st.markdown(f"💰 **المبلغ الكلي:** `{inv['المبلغ الكلي']:,}` د.ع")
-                    st.markdown(f"💵 **الواصل:** `{inv['الواصل']:,}` د.ع")
-                    st.markdown(f"📌 **المتبقي (الدين):** `{inv['المتبقي (الدين)']:,}` د.ع")
-                    
-                    if inv['المتبقي (الدين)'] > 0:
-                        with st.expander("💵 تسجيل دفعة سداد للدين"):
-                            pay_off_amount_str = st.text_input(f"المبلغ المراد تسديده للفاتورة {inv['رقم الفاتورة']}:", "0", key=f"pay_in_{index_inv}")
-                            if st.button("تأكيد وتسجيل السداد", key=f"btn_pay_{index_inv}"):
-                                try:
-                                    pay_off_val = float(pay_off_amount_str)
-                                    if pay_off_val <= 0:
-                                        st.warning("يرجى إدخال مبلغ سداد صحيح.")
-                                    elif pay_off_val > inv['المتبقي (الدين)']:
-                                        st.error("❌ مبلغ السداد أكبر من الدين المتبقي!")
-                                    else:
-                                        inv['الواصل'] += pay_off_val
-                                        inv['المتبقي (الدين)'] -= pay_off_val
-                                        if inv['المتبقي (الدين)'] == 0:
-                                            inv['حالة الفاتورة واللون'] = "🟢 مسددة بالكامل (كاش)"
-                                        
-                                        log_audit("سداد دين", f"تم تسديد مبلغ {pay_off_val:,} د.ع للفاتورة {inv['رقم الفاتورة']}")
-                                        st.success(f"✅ تم سداد المبلغ بنجاح! المتبقي الجديد: {inv['المتبقي (الدين)']:,} د.ع")
-                                        st.rerun()
-                                except ValueError:
-                                    st.error("يرجى إدخال رقم صالح.")
-                    else:
-                        st.success("✨ هذه الفاتورة مسددة بالكامل.")
-
-                with col_inv3:
-                    pdf_buffer = generate_pdf_invoice(inv)
-                    if pdf_buffer and REPORTLAB_AVAILABLE:
+        for idx, inv in enumerate(st.session_state.invoices_list):
+            with st.expander(f"📄 فاتورة: {inv['رقم الفاتورة']} | الزبون: {inv['الزبون']} | المجموع: {inv['المبلغ الكلي']:,} د.ع ({inv['حالة الفاتورة واللون']})"):
+                st.write(f"📅 **التاريخ والوقت:** {inv['التاريخ']}")
+                st.write(f"🛒 **المنتجات والمواد:** {inv['المنتجات']}")
+                st.write(f"💰 **المبلغ الكلي:** {inv['المبلغ الكلي']:,} د.ع | **الواصل:** {inv['الواصل']:,} د.ع | **المتبقي (الدين):** {inv['المتبقي (الدين)']:,} د.ع")
+                
+                col_btn1, col_btn2 = st.columns(2)
+                
+                with col_btn1:
+                    pdf_buf = generate_pdf_invoice(inv)
+                    if pdf_buf:
                         st.download_button(
-                            label="📥 تحميل فاتورة PDF",
-                            data=pdf_buffer,
-                            file_name=f"Invoice_{inv['رقم الفاتورة']}.pdf",
+                            label="📥 تحميل الفاتورة PDF",
+                            data=pdf_buf,
+                            file_name=f"Invoice_{inv['رقم_الفاتورة'] if 'رقم_الفاتورة' in inv else inv['رقم الفاتورة']}.pdf",
                             mime="application/pdf",
-                            key=f"pdf_{inv['رقم الفاتورة']}_{index_inv}"
+                            key=f"pdf_dl_{idx}"
                         )
-                    
-                    cust_phone_found = ""
-                    for c_obj in st.session_state.customer_list:
-                        if c_obj["اسم العميل"] == inv["الزبون"]:
-                            cust_phone_found = c_obj["رقم الهاتف"]
-                            break
-                    
-                    if cust_phone_found:
-                        wa_msg = f"مرحباً بك عزيزي العميل {inv['الزبون']},\nبخصوص فاتورتكم رقم ({inv['رقم الفاتورة']}) بمبلغ إجمالي ({inv['المبلغ الكلي']:,} د.ع).\nالمبلغ الواصل: {inv['الواصل']:,} د.ع\nالمتبقي بذمتكم (الدين): {inv['المتبقي (الدين)']:,} د.ع\nشكراً لتعاملكم مع نظام Yasser Web!"
-                        encoded_wa = urllib.parse.quote(wa_msg)
-                        wa_link = f"https://wa.me/{cust_phone_found}?text={encoded_wa}"
-                        st.markdown(f"[💬 إرسال كشف الدين للواتساب]({wa_link})", unsafe_allow_html=True)
+                    else:
+                        st.info("مكتبة PDF غير متوفرة.")
+                
+                with col_btn2:
+                    wa_msg = f"مرحباً {inv['الزبون']}, تفاصيل فاتورتك رقم {inv['رقم الفاتورة']}: المجموع الكلي: {inv['المبلغ الكلي']:,} د.ع, الواصل: {inv['الواصل']:,} د.ع, المتبقي (الدين): {inv['المتبقي (الدين)']:,} د.ع. شكراً لتعاملكم معنا!"
+                    encoded_wa = urllib.parse.quote(wa_msg)
+                    st.markdown(f"📱 [إرسال الفاتورة عبر واتساب](https://wa.me/?text={encoded_wa})", unsafe_allow_html=True)
 
-                    with st.expander("📷 عرض QR Code للفاتورة"):
-                        qr = qrcode.QRCode(version=1, box_size=5, border=2)
-                        qr.add_data(f"Invoice: {inv['رقم الفاتورة']} | Cust: {inv['الزبون']} | Total: {inv['المبلغ الكلي']} | Remaining: {inv['المتبقي (الدين)']}")
-                        qr.make(fit=True)
-                        img = qr.make_image(fill_color="black", back_color="white")
-                        buf_qr = io.BytesIO()
-                        img.save(buf_qr)
-                        st.image(buf_qr.getvalue(), width=150)
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 with tab7:
-    st.subheader("💵 صندوق سداد (إصدار وصولات السداد وإرسالها واتساب)")
-    
-    with st.form("payment_receipt_form", clear_on_submit=True):
-        st.write("### 🧾 إصدار وصل سداد جديد للزبون")
-        
-        if not st.session_state.customer_list:
-            st.warning("⚠️ لا توجد عملاء مسجلون. يرجى إضافة عميل من تبويب إدارة العملاء أولاً.")
-            cust_options_pay = ["لا يوجد عملاء"]
-        else:
-            cust_options_pay = [c["اسم العميل"] for c in st.session_state.customer_list]
-            
-        selected_cust_pay = st.selectbox("اختر اسم الزبون المسدد:", cust_options_pay)
-        pay_amount_str = st.text_input("المبلغ المدفوع (د.ع):", "0")
-        pay_notes = st.text_input("ملاحظات الوصل (رقم الفاتورة المعنية / دفعة حساب):", "تسديد دفعة مالية")
-        
-        submit_pay = st.form_submit_button("إصدار وطفظ وصل السداد", type="primary")
-        
-        if submit_pay:
-            if cust_options_pay == ["لا يوجد عملاء"]:
-                st.error("❌ لا يمكن إصدار وصل بدون عميل.")
-            else:
-                try:
-                    p_val = float(pay_amount_str.strip())
-                    if p_val <= 0:
-                        st.warning("يرجى إدخال مبلغ صحيح أكبر من الصفر.")
-                    else:
-                        receipt_id = f"REC-{len(st.session_state.payments_receipts) + 1:03d}"
-                        current_date_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
-                        
-                        receipt_obj = {
-                            "رقم الوصل": str(receipt_id),
-                            "اسم الزبون": str(selected_cust_pay),
-                            "المبلغ": int(p_val),
-                            "التاريخ": str(current_date_str),
-                            "ملاحظات": str(pay_notes)
-                        }
-                        
-                        st.session_state.payments_receipts.insert(0, receipt_obj)
-                        log_audit("إصدار وصل سداد", f"تم إصدار وصل سداد رقم {receipt_id} للزبون {selected_cust_pay} بمبلغ {int(p_val):,} د.ع")
-                        st.success(f"✅ تم إصدار وصل السداد ({receipt_id}) بنجاح!")
-                        st.rerun()
-                except ValueError:
-                    st.error("❌ يرجى إدخال رقم مبلغ صحيح.")
-
-    st.divider()
-    st.subheader("📋 سجل وصولات السداد الصادرة")
-    if st.session_state.payments_receipts:
-        for idx_r, rec in enumerate(st.session_state.payments_receipts):
-            with st.container(border=True):
-                col_r1, col_r2, col_r3 = st.columns([2, 2, 2])
-                with col_r1:
-                    st.markdown(f"#### 🧾 {rec['رقم الوصل']} | الزبون: {rec['اسم الزبون']}")
-                    st.write(f"📅 **التاريخ والوقت:** {rec['التاريخ']}")
-                    st.write(f"📝 **الملاحظات:** {rec['ملاحظات']}")
-                with col_r2:
-                    st.markdown(f"💵 **المبلغ المسدد:** `{rec['المبلغ']:,}` د.ع")
-                with col_r3:
-                    cust_phone_r = ""
-                    for c_o in st.session_state.customer_list:
-                        if c_o["اسم العميل"] == rec["اسم الزبون"]:
-                            cust_phone_r = c_o["رقم الهاتف"]
-                            break
-                    
-                    if cust_phone_r:
-                        wa_rec_msg = f"مرحباً بك عزيزي العميل {rec['اسم الزبون']},\nنؤكد استلامنا دفعة مالية بمبلغ ({rec['المبلغ']:,} د.ع)\nرقم الوصل: {rec['رقم الوصل']}\nالتاريخ: {rec['التاريخ']}\nملاحظات: {rec['ملاحظات']}\nشكراً لتعاملكم مع نظام Yasser Web!"
-                        encoded_wa_rec = urllib.parse.quote(wa_rec_msg)
-                        wa_rec_link = f"https://wa.me/{cust_phone_r}?text={encoded_wa_rec}"
-                        st.markdown(f"[💬 إرسال وصل السداد للواتساب]({wa_rec_link})", unsafe_allow_html=True)
-                    else:
-                        st.warning("رقم الهاتف غير متوفر لهذا الزبون.")
-    else:
-        st.info("لا توجد وصولات سداد مسجلة حتى الآن.")
+    st.subheader("💵 صندوق سداد الديون والمصاريف اليومية")
+    st.write("إدارة النقدية والمصاريف الواردة والصادرة.")
+    # يمكن إضافة نموذج المصاريف أو السداد هنا
 
 with tab8:
-    st.subheader("📈 الرسوم البيانية التفاعلية وتقارير الأرباح والمبيعات")
-    
-    total_rev = sum(inv['المبلغ الكلي'] for inv in st.session_state.invoices_list)
-    total_cost = sum(inv.get('تكلفتها', 0) for inv in st.session_state.invoices_list)
-    net_profit = total_rev - total_cost
-    total_debt = sum(inv['المتبقي (الدين)'] for inv in st.session_state.invoices_list)
-    
-    m1, m2, m3, m4 = st.columns(4)
-    with m1:
-        st.metric("إجمالي الإيرادات", f"{total_rev:,} د.ع")
-    with m2:
-        st.metric("إجمالي التكاليف", f"{total_cost:,} د.ع")
-    with m3:
-        st.metric("صافي الأرباح التشغيلية", f"{net_profit:,} د.ع")
-    with m4:
-        st.metric("إجمالي الديون المعلقة", f"{total_debt:,} د.ع")
-        
-    st.divider()
-    if st.session_state.invoices_list:
-        df_inv_chart = pd.DataFrame(st.session_state.invoices_list)
-        st.write("### 📊 مبيعات الفواتير حسب المبلغ الإجمالي:")
-        st.bar_chart(df_inv_chart, x="رقم الفاتورة", y="المبلغ الكلي")
-    else:
-        st.info("لا توجد بيانات كافية لعرض الرسوم البيانية.")
+    st.subheader("📊 الرسوم البيانية والتقارير المالية")
+    st.write("تحليلات المبيعات والأرباح والمخزون.")
 
 with tab9:
-    st.subheader("📜 سجل النشاطات والعمليات (Audit Trail & Activity Logs)")
-    st.write("يتتبع هذا السجل كافة العمليات الحساسة (تسجيل الدخول، إضافة منتجات، إتمام المبيعات، وتفعيل النسخ).")
-    
+    st.subheader("📜 سجل النشاطات (Audit Trail)")
     if st.session_state.audit_logs:
         st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
     else:
         st.info("لا توجد نشاطات مسجلة حتى الآن.")
 
 with tab10:
-    st.subheader("📖 دليل الاستخدام الشامل والمميزات والدعم الفني")
+    st.subheader("📖 دليل الاستخدام والمميزات والدعم")
     st.markdown("""
-    ### 🌟 مرحباً بك في نظام Yasser Web الشامل لإدارة المبيعات والمخازن والمحلات التجارية
-    
-    * **➕ إضافة المواد:** قم بإضافة الأجهزة والبضائع مع تحديد السعر والكمية واللون والقياس والباركود.
-    * **📦 جرد المخزن:** راقب مخزونك بذكاء مع تنبيهات تلقائية للمواد التي وشكت على النفاذ وتوليد باركود لكل منتج.
-    * **👥 إدارة العملاء والديون:** سجل أسماء الزبائن، أرقام هواتفهم، ومحافظاتهم لتتبع حساباتهم وذممهم بدقة.
-    * **🛒 نظام المبيعات والسلة:** تجميع سريع للمواد مع حساب الخصومات وإصدار الفواتير وطباعتها بصيغة **PDF**.
-    * **📄 سجل الفواتير والسداد:** تتبع الفواتير الملونة (أصفر للديون وأخضر للكاش) مع إمكانية سداد الديون وتحديث المبالغ فوراً.
-    * **💵 صندوق سداد:** إصدار وصولات سداد رسمية (تتضمن اسم الزبون، التاريخ، والمبلغ) مع إمكانية **إرسال الوصل للواتساب مباشرة**.
-    * **💬 إرسال عبر واتساب:** إرسال كشف الحساب والفاتورة للعميل مباشرة عبر رابط واتساب تفاعلي ومباشر مع **QR Code**.
-    * **📊 التقارير وصندوق الوردية:** متابعة النقد، وعرض رسوم بيانية دقيقة للأرباح والمبيعات.
-    
-    > **💡 ملاحظة:** لتفعيل النسخة المدفوعة (VIP) بلا حدود، استخدم كود التفعيل الخاص: `YASSER2026`.
+    * **إضافة المواد:** أضف منتجاتك بسهولة مع تتبع الأسعار والكميات.
+    * **إدارة المخزن:** تتبع المخزون وتوليد الباركود.
+    * **المبيعات والفواتير:** إصدار فواتير بيع كاش أو آجل وتوليد ملفات PDF.
     """)
