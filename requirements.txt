@@ -1,8 +1,3 @@
-streamlit
-pandas
-supabase
 reportlab
-qrcode
 arabic-reshaper
 python-bidi
-python-barcode
