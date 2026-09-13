@@ -115,6 +115,8 @@ def generate_pdf_invoice(inv):
     p.drawString(50, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
     text_y -= 25
     p.drawString(50, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
+    text_y -= 25
+    p.drawString(50, text_y, format_arabic(f"تكلفة البنزين (pbf): {inv.get('pbf', 0):,} دينار عراقي"))
     
     text_y -= 45
     p.line(50, text_y, width - 50, text_y)
@@ -415,6 +417,7 @@ with tabs[4]:
         
         paid_val = total_price if pay_t == "نقد (كاش)" else (0 if pay_t == "آجل (دين)" else float(str_lit.text_input("المبلغ الواصل:", "0") or 0))
         rem_val = total_price - paid_val
+        pbf_val = float(str_lit.text_input("تكلفة البنزين (pbf):", "0") or 0)
 
         if str_lit.button("💾 إتمام البيع وحفظ الفاتورة", type="primary"):
             if c_opts == ["لا توجد عملاء"] or not str_lit.session_state.customer_list:
@@ -439,6 +442,7 @@ with tabs[4]:
                         "تكلفتها": int(tot_cost),
                         "الواصل": int(paid_val),
                         "المتبقي (الدين)": int(rem_val),
+                        "pbf": int(pbf_val),
                         "نوع الدفع": pay_t,
                         "حالة الفاتورة واللون": "🟢 مسددة" if rem_val == 0 else "🟡 آجل",
                         "التاريخ": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -453,14 +457,32 @@ with tabs[4]:
 
 with tabs[5]:
     str_lit.subheader("📄 سجل الفواتير، سداد الديون، PDF، وواتساب")
+    
     if str_lit.session_state.invoices_list:
+        # عرض جدول منسق أولاً لجميع الفواتير مع خانة البنزين (pbf) لفتح جدول واضح
+        table_display_data = []
+        for inv in str_lit.session_state.invoices_list:
+            table_display_data.append({
+                "رقم الفاتورة": inv["رقم الفاتورة"],
+                "التاريخ": inv["التاريخ"],
+                "الزبون": inv["الزبون"],
+                "المبلغ الكلي": f"{inv['المبلغ الكلي']:,} د.ع",
+                "الواصل": f"{inv['الواصل']:,} د.ع",
+                "المتبقي": f"{inv['المتبقي (الدين)']:,} د.ع",
+                "بنزين (pbf)": f"{inv.get('pbf', 0):,} د.ع",
+                "الحالة": inv["حالة الفاتورة واللون"]
+            })
+        str_lit.dataframe(pd.DataFrame(table_display_data), use_container_width=True)
+        str_lit.divider()
+
+        # تفاصيل الفواتير مع أزرار PDF وواتساب والسداد
         for idx_i, inv in enumerate(reversed(str_lit.session_state.invoices_list)):
             with str_lit.container(border=True):
                 c_i1, c_i2, c_i3 = str_lit.columns([2, 2, 2])
                 with c_i1:
                     str_lit.markdown(f"#### {inv['رقم الفاتورة']} | {inv['الزبون']}")
                     str_lit.write(f"الحالة: {inv['حالة الفاتورة واللون']} | المجموع: **{inv['المبلغ الكلي']:,}** د.ع")
-                    str_lit.write(f"المتبقي (دين): **{inv['المتبقي (الدين)']:,}** د.ع")
+                    str_lit.write(f"المتبقي (دين): **{inv['المتبقي (الدين)']:,}** د.ع | بنزين (pbf): **{inv.get('pbf', 0):,}** د.ع")
                 with c_i2:
                     if inv['المتبقي (الدين)'] > 0:
                         pay_more = str_lit.text_input("سداد مبلغ إضافي:", "0", key=f"pm_{idx_i}")
@@ -483,7 +505,7 @@ with tabs[5]:
                     
                     phone_f = next((c['رقم الهاتف'] for c in str_lit.session_state.customer_list if c['اسم العميل'] == inv['الزبون']), "")
                     if phone_f:
-                        msg = urllib.parse.quote(f"مرحباً {inv['الزبون']},\nتفاصيل فاتورتك ({inv['رقم الفاتورة']}):\nالمبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع\nالمتبقي بذمتك: {inv['المتبقي (الدين)']:,} د.ع\nشكراً لتعاملكم معنا!")
+                        msg = urllib.parse.quote(f"مرحباً {inv['الزبون']},\nتفاصيل فاتورتك ({inv['رقم الفاتورة']}):\nالمبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع\nالمتبقي بذمتك: {inv['المتبقي (الدين)']:,} د.ع\nتكلفة البنزين: {inv.get('pbf', 0):,} د.ع\nشكراً لتعاملكم معنا!")
                         str_lit.markdown(f"[💬 إرسال واتساب](https://wa.me/{phone_f}?text={msg})", unsafe_allow_html=True)
     else:
         str_lit.info("لا توجد فواتير مسجلة.")
@@ -509,8 +531,10 @@ with tabs[7]:
     str_lit.subheader("📊 التقارير والأرباح")
     tot_rev = sum(i['المبلغ الكلي'] for i in str_lit.session_state.invoices_list)
     tot_cost = sum(i.get('تكلفتها', 0) for i in str_lit.session_state.invoices_list)
+    tot_pbf = sum(i.get('pbf', 0) for i in str_lit.session_state.invoices_list)
     str_lit.metric("إجمالي الإيرادات", f"{tot_rev:,} د.ع")
-    str_lit.metric("صافي الأرباح", f"{tot_rev - tot_cost:,} د.ع")
+    str_lit.metric("إجمالي مصاريف البنزين (pbf)", f"{tot_pbf:,} د.ع")
+    str_lit.metric("صافي الأرباح (بعد خصم التكلفة والبنزين)", f"{tot_rev - tot_cost - tot_pbf:,} د.ع")
 
 with tabs[8]:
     str_lit.subheader("📜 سجل النشاطات والعمليات")
