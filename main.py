@@ -163,6 +163,7 @@ def log_audit(action, details):
         "التفاصيل": str(details)
     })
 
+# **دالة توليد فاتورة PDF الرسمية لطلبات التوصيل (تلصق على الطلبية)**
 def generate_pdf_invoice(inv):
     if not REPORTLAB_AVAILABLE:
         return None
@@ -170,23 +171,25 @@ def generate_pdf_invoice(inv):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
+    # رأس الفاتورة
     p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, height - 50, "YASSER WEB - فاتورة مبيعات رسمية")
+    p.drawString(50, height - 50, "YASSER WEB - فاتورة طلبية توصيل رسمية")
     
     p.setFont("Helvetica", 10)
-    p.drawString(width - 200, height - 50, f"Date: {inv['التاريخ']}")
+    p.drawString(width - 220, height - 50, f"Date & Time: {inv['التاريخ']}")
     
     p.setStrokeColorRGB(0.2, 0.2, 0.2)
     p.setLineWidth(1)
     p.line(50, height - 65, width - 50, height - 65)
     
+    # معلومات الفاتورة والزبون
     p.setFont(ARABIC_FONT, 12)
     p.drawString(50, height - 95, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
     p.drawString(50, height - 120, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
     p.drawString(50, height - 145, format_arabic(f"نوع الدفع: {inv['نوع الدفع']}"))
     
     p.line(50, height - 165, width - 50, height - 165)
-    p.drawString(50, height - 195, format_arabic("تفاصيل المنتجات والمواد المباعة:"))
+    p.drawString(50, height - 195, format_arabic("تفاصيل المنتجات والمواد المطلوبة (تلصق على شحنة التوصيل):"))
     
     text_y = height - 225
     items_list_str = inv['المنتجات'].split(" , ")
@@ -207,7 +210,7 @@ def generate_pdf_invoice(inv):
     text_y -= 45
     p.setLineWidth(0.5)
     p.line(50, text_y, width - 50, text_y)
-    p.drawCentredString(width / 2.0, text_y - 35, format_arabic("شكراً لتعاملكم مع نظام Yasser Web لإدارة المبيعات والمخزن!"))
+    p.drawCentredString(width / 2.0, text_y - 35, format_arabic("شكراً لتعاملكم مع نظام Yasser Web - جاهزة للتسليم لشركة التوصيل!"))
     
     p.showPage()
     p.save()
@@ -686,7 +689,7 @@ with tab5:
         st.info("🛒 السلة فارغة حالياً.")
 
 with tab6:
-    st.subheader("📄 سجل الفواتير، تحميل PDF، ومطالبة الديون عبر واتساب و QR Code")
+    st.subheader("📄 سجل الفواتير، تحميل PDF للتوصيل، ومطالبة الديون عبر واتساب و QR Code")
     
     if st.session_state.invoices_list:
         if st.button("🗑️ مسح سجل الفواتير القديم"):
@@ -699,263 +702,104 @@ with tab6:
             with st.container(border=True):
                 col_inv1, col_inv2, col_inv3 = st.columns([2, 2, 2])
                 with col_inv1:
-                    st.markdown(f"#### {inv['رقم الفاتورة']} | {inv['نوع الدفع']}")
+                    st.markdown(f"#### 📄 {inv['رقم الفاتورة']}")
                     st.write(f"👤 **الزبون:** {inv['الزبون']}")
+                    st.write(f"📅 **التاريخ والوقت:** {inv['التاريخ']}")
                 with col_inv2:
-                    st.write(f"📅 **التاريخ:** {inv['التاريخ']}")
-                    st.write(f"🛒 **المواد:** {inv['المنتجات']}")
-                with col_inv3:
+                    st.write(f"🛒 **المنتجات:** {inv['منتجات' if 'منتجات' in inv else 'المنتجات']}")
                     st.write(f"💵 **المبلغ الكلي:** `{inv['المبلغ الكلي']:,}` د.ع")
-                    st.write(f"📥 **الواصل:** `{inv['الواصل']:,}` د.ع")
-                    if inv['المتبقي (الدين)'] > 0:
-                        st.error(f"🔴 **المتبقي (دين):** `{inv['المتبقي (الدين)']:,}` د.ع")
-                    else:
-                        st.success(f"🟢 **المتبقي (دين):** 0 د.ع (مسدد بالكامل)")
-                
-                with st.expander("📱 عرض QR Code الفاتورة السريع"):
-                    qr_text = f"Invoice: {inv['رقم الفاتورة']} | Cust: {inv['الزبون']} | Total: {inv['المبلغ الكلي']} IQD | Remaining: {inv['المتبقي (الدين)']} IQD"
-                    img = qrcode.make(qr_text)
-                    buf_qr = io.BytesIO()
-                    img.save(buf_qr, format="PNG")
-                    st.image(buf_qr.getvalue(), width=150, caption=f"رمز QR لفاتورة {inv['رقم الفاتورة']}")
-
-                pdf_buffer = generate_pdf_invoice(inv)
-                col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                    if REPORTLAB_AVAILABLE and pdf_buffer:
+                    st.write(f"💰 **الواصل:** `{inv['الواصل']:,}` د.ع | **الدين:** `{inv['المتبقي (الدين)']:,}` د.ع")
+                with col_inv3:
+                    # زر تحميل الـ PDF الخاص بالطلبية لتلصق على شحنة التوصيل
+                    pdf_file_obj = generate_pdf_invoice(inv)
+                    if pdf_file_obj:
                         st.download_button(
-                            label=f"📥 تحميل فاتورة PDF ({inv['رقم الفاتورة']})",
-                            data=pdf_buffer,
-                            file_name=f"{inv['رقم الفاتورة']}_{inv['الزبون']}.pdf",
+                            label="📥 تحميل فاتورة التوصيل (PDF)",
+                            data=pdf_file_obj,
+                            file_name=f"Delivery_Invoice_{inv['رقم الفاتورة']}.pdf",
                             mime="application/pdf",
-                            key=f"download_pdf_{inv['رقم الفاتورة']}"
+                            key=f"pdf_down_{inv['رقم الفاتورة']}"
                         )
                     else:
-                        st.info("ميزة PDF متوقفة مؤقتاً لعدم توفر الحزمة.")
-                with col_btn2:
-                    cust_phone_w = ""
+                        st.warning("مكتبة الـ PDF غير متاحة حالياً")
+                
+                # إرسال تذكير بالديون عبر واتساب
+                debt_val = inv.get('المتبقي (الدين)', 0)
+                if debt_val > 0:
+                    cust_phone_found = ""
                     for c_obj in st.session_state.customer_list:
-                        if c_obj["اسم العميل"] == inv["الزبون"]:
-                            cust_phone_w = c_obj["رقم الهاتف"]
+                        if c_obj['اسم العميل'] == inv['الزبون']:
+                            cust_phone_found = c_obj['رقم الهاتف']
                             break
-                    
-                    wa_msg = f"مرحباً {inv['الزبون']}، شكراً لتعاملكم معنا. تفاصيل فاتورتكم ({inv['رقم الفاتورة']}):\nالمواد: {inv['المنتجات']}\nالمبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع\nالواصل: {inv['الواصل']:,} د.ع\nالمتبقي بذمتكم: {inv['المتبقي (الدين)']:,} د.ع"
-                    encoded_msg = urllib.parse.quote(wa_msg)
-                    wa_url = f"https://wa.me/{cust_phone_w}?text={encoded_msg}" if cust_phone_w else "https://wa.me/?text=" + encoded_msg
-                    st.markdown(f'<a href="{wa_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-weight:bold;">💬 إرسال الفاتورة والمطالبة عبر الواتساب</button></a>', unsafe_allow_html=True)
+                    if cust_phone_found:
+                        wa_msg = f"مرحباً بالاستاذ {inv['الزبون']},\nنود تذكيركم بوجود مبلغ دين مستحق بقيمة ({debt_val:,} د.ع) لصالح المحل بناءً على الفاتورة رقم ({inv['رقم الفاتورة']}). شكراً لتعاونكم معنا."
+                        encoded_wa_msg = urllib.parse.quote(wa_msg)
+                        wa_link = f"https://wa.me/{cust_phone_found}?text={encoded_wa_msg}"
+                        st.markdown(f"💬 [مراسلة الزبون بالدين عبر واتساب]({wa_link})", unsafe_allow_html=True)
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 with tab7:
-    st.subheader("💰 إدارة المصروفات النثرية اليومية وصندوق الوردية وحساب صافي الربح")
+    st.subheader("💰 صندوق الوردية اليومي وتسجيل المصاريف")
     
-    col_exp1, col_exp2 = st.columns(2)
-    with col_exp1:
-        with st.form("add_expense_form", clear_on_submit=True):
-            st.write("### 💸 تسجيل مصروف أو سحب نقدي من الصندوق")
-            exp_title = st.text_input("بيان المصروف (مثل: إيجار، إنترنت، سحب شخصي):")
-            exp_amount_str = st.text_input("المبلغ (د.ع):", "0")
-            if st.form_submit_button("تسجيل المصروف"):
-                if exp_title.strip():
-                    try:
-                        exp_amt = float(exp_amount_str.strip())
-                        st.session_state.expenses_list.append({
-                            "البيان": str(exp_title.strip()),
-                            "المبلغ": int(exp_amt),
-                            "الوقت": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
-                        })
-                        log_audit("تسجيل مصروف", f"تم تسجيل مصروف ({exp_title.strip()}) بمبلغ {int(exp_amt):,} د.ع")
-                        st.success("تم تسجيل المصروف بنجاح!")
-                        st.rerun()
-                    except ValueError:
-                        st.error("يرجى إدخال مبلغ صحيح.")
-                else:
-                    st.warning("يرجى كتابة بيان المصروف.")
+    with st.form("expense_form", clear_on_submit=True):
+        exp_title = st.text_input("بيان المصروف (مثلاً: أجور نقل، صيانة، ضيافة):")
+        exp_amount_str = st.text_input("مبلغ المصروف (د.ع):", "0")
+        if st.form_submit_button("تسجيل المصروف في الصندوق"):
+            if exp_title.strip():
+                try:
+                    exp_amt = float(exp_amount_str.strip())
+                    st.session_state.expenses_list.append({
+                        "البيان": str(exp_title.strip()),
+                        "المبلغ": int(exp_amt),
+                        "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
+                    })
+                    log_audit("تسجيل مصروف", f"تم تسجيل مصروف ({exp_title.strip()}) بقيمة {exp_amt}")
+                    st.success("تم تسجيل المصروف بنجاح!")
+                    st.rerun()
+                except ValueError:
+                    st.error("يرجى إدخال مبلغ صحيح.")
+            else:
+                st.warning("يرجى كتابة بيان المصروف.")
 
-    with col_exp2:
-        st.write("### 📊 ملخص سيولة صندوق الوردية وصافي الربح")
-        total_cash_in = sum(int(inv['الواصل']) for inv in st.session_state.invoices_list)
-        total_expenses = sum(int(e['المبلغ']) for e in st.session_state.expenses_list)
-        net_box = total_cash_in - total_expenses
-
-        total_sales_all = sum(int(inv['المبلغ الكلي']) for inv in st.session_state.invoices_list)
-        total_cost_of_goods = sum(int(inv.get('تكلفتها', 0)) for inv in st.session_state.invoices_list)
-        gross_profit = total_sales_all - total_cost_of_goods
-        net_profit = gross_profit - total_expenses
-
-        st.metric(label="إجمالي النقدية الداخلة (المقبوضات)", value=f"{int(total_cash_in):,} د.ع")
-        st.metric(label="إجمالي المصاريف والنثريات", value=f"{int(total_expenses):,} د.ع")
-        st.metric(label="الصافي الفعلي بالصندوق حالياً", value=f"{int(net_box):,} د.ع")
-        st.metric(label="صافي الربح الحقيقي 🌟", value=f"{int(net_profit):,} د.ع")
+    total_sales_all = sum(inv['المبلغ الكلي'] for inv in st.session_state.invoices_list) if st.session_state.invoices_list else 0
+    total_expenses_all = sum(ex['المبلغ'] for ex in st.session_state.expenses_list) if st.session_state.expenses_list else 0
+    net_box_balance = total_sales_all - total_expenses_all
 
     st.divider()
-    st.write("### 📋 سجل المصروفات النثرية")
+    col_b1, col_b2, col_b3 = st.columns(3)
+    with col_b1:
+        st.metric("إجمالي المبيعات", f"{total_sales_all:,} د.ع")
+    with col_b2:
+        st.metric("إجمالي المصاريف", f"{total_expenses_all:,} د.ع")
+    with col_b3:
+        st.metric("صافي صندوق الوردية", f"{net_box_balance:,} د.ع")
+
     if st.session_state.expenses_list:
+        st.subheader("📋 سجل المصاريف المسجلة:")
         st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
-        if st.button("🗑️ تصفية ومسح سجل المصاريف"):
-            st.session_state.expenses_list = []
-            log_audit("مسح المصاريف", "تم تفريغ سجل المصاريف النثرية")
-            st.rerun()
-    else:
-        st.info("لا توجد مصاريف مسجلة للوردية الحالية.")
 
 with tab8:
-    st.subheader("📊 الرسوم البيانية التفاعلية وتقارير الأرباح الصافية")
-    
+    st.subheader("📊 الرسوم البيانية وتقارير المبيعات والأرباح")
     if st.session_state.invoices_list:
-        total_sales_all = sum(int(inv['المبلغ الكلي']) for inv in st.session_state.invoices_list)
-        total_received_all = sum(int(inv['الواصل']) for inv in st.session_state.invoices_list)
-        total_debts_all = sum(int(inv['المتبقي (الدين)']) for inv in st.session_state.invoices_list)
-        
-        total_cost_of_goods = sum(int(inv.get('تكلفتها', 0)) for inv in st.session_state.invoices_list)
-        gross_profit = total_sales_all - total_cost_of_goods
-        total_expenses = sum(int(e['المبلغ']) for e in st.session_state.expenses_list)
-        net_profit = gross_profit - total_expenses
-        
-        m1, m2, m3, m4 = st.columns(4)
-        with m1:
-            st.metric(label="إجمالي المبيعات", value=f"{int(total_sales_all):,} د.ع")
-        with m2:
-            st.metric(label="إجمالي المبالغ الواصلة", value=f"{int(total_received_all):,} د.ع")
-        with m3:
-            st.metric(label="إجمالي الديون المعلقة", value=f"{int(total_debts_all):,} د.ع")
-        with m4:
-            st.metric(label="صافي الربح الحقيقي 🌟", value=f"{int(net_profit):,} د.ع")
-            
-        st.divider()
-        st.write("### 📈 الرسوم البيانية التحليلية لحركة المبيعات")
-        chart_data = pd.DataFrame(
-            [
-                {
-                    "الفاتورة": str(inv["رقم الفاتورة"]),
-                    "المبلغ الكلي": int(inv["المبلغ الكلي"]),
-                    "الواصل": int(inv["الواصل"]),
-                    "الدين المتبقي": int(inv["المتبقي (الدين)"]),
-                }
-                for inv in st.session_state.invoices_list
-            ]
-        )
-        if not chart_data.empty:
-            chart_data.set_index("الفاتورة", inplace=True)
-            st.bar_chart(chart_data)
-        else:
-            st.info("لا توجد بيانات كافية لعرض الرسوم البيانية.")
+        df_inv_charts = pd.DataFrame(st.session_state.invoices_list)
+        st.write("### 📈 حركة المبيعات حسب الفواتير:")
+        st.line_chart(df_inv_charts, x="رقم الفاتورة", y="المبلغ الكلي")
+        st.bar_chart(df_inv_charts, x="رقم الفاتورة", y="الواصل")
     else:
-        st.info("لا توجد فواتير أو مبيعات مسجلة لعرض التقارير الإحصائية والرسوم البيانية.")
+        st.info("لا توجد بيانات كافية لعرض الرسوم البيانية حالياً.")
 
 with tab9:
-    st.subheader("📜 سجل نشاطات المستخدمين (Audit Trail / Logs)")
-    st.write("تتبع كافة العمليات والنشاطات التي قام بها المستخدمون داخل النظام للرقابة والتدقيق:")
-    
-    logs_data = st.session_state.audit_logs
-    is_logs_empty = logs_data.empty if isinstance(logs_data, pd.DataFrame) else (not logs_data)
-    
-    if not is_logs_empty:
-        if st.button("🗑️ مسح سجل النشاطات"):
-            st.session_state.audit_logs = []
-            st.success("تم مسح سجل النشاطات بنجاح.")
-            st.rerun()
-        st.dataframe(pd.DataFrame(logs_data), use_container_width=True)
+    st.subheader("📜 سجل النشاطات والعمليات (Audit Trail)")
+    if st.session_state.audit_logs:
+        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
     else:
-        st.info("لا توجد نشاطات مسجلة حتى الآن.")
+        st.info("لا توجد نشاطات مسجلة بعد.")
 
 with tab10:
-    st.subheader("📖 دليل الاستخدام، مميزات النظام، والأسئلة الشائعة والدعم الفني")
-    
-    # قسم المميزات الواضحة
-    st.markdown("### 🌟 أبرز مميزات نظام Yasser Web")
-    f_col1, f_col2, f_col3 = st.columns(3)
-    with f_col1:
-        st.info("⚡ **سرعة فائقة بالجرد**\nتتبع الألوان، القياسات، وكميات المخزن بلمح البصر دون أخطاء دفترية.")
-    with f_col2:
-        st.success("💵 **حساب الأرباح بدقة**\nمعرفة ربح كل قطعة صافياً وحساب أرباح الصندوق والمصاريف فوراً.")
-    with f_col3:
-        st.warning("📱 **يعمل على كل الأجهزة**\nلا حاجة لأجهزة غالية؛ افتحه مباشرة من موبايلك أو لابتوبك أينما كنت.")
-
-    st.markdown("---")
-    
-    # قسم الدعم الفني وحساب الإنستغرام الجديد (yaser120120120120)
-    st.markdown("### 💬 الدعم الفني المباشر وتواصل المطور")
-    st.write("تواجهك مشكلة تقنية، تريد تفعيل النسخة المدفوعة VIP، أو لديك مقترح لتطوير محلك؟ تواصل معي شخصياً:")
-    
-    instagram_username = "yaser120120120120" 
-    instagram_url = f"https://instagram.com/{instagram_username}"
-    
-    col_sup1, col_sup2 = st.columns(2)
-    with col_sup1:
-        st.markdown(f'<a href="{instagram_url}" target="_blank"><button style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color:white; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:bold; width:100%;">📷 راسلني عبر إنستغرام (@{instagram_username})</button></a>', unsafe_allow_html=True)
-    with col_sup2:
-        st.markdown(f'<a href="https://wa.me/9647700000000" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:bold; width:100%;">💬 التواصل السريع عبر واتساب الدعم</button></a>', unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    # قسم الأسئلة الشائعة (FAQ)
-    st.markdown("### ❓ الأسئلة الشائعة (FAQ)")
-    
-    with st.expander("1. هل أحتاج إلى تنصيب برامج معقدة أو شراء أجهزة حديثة؟"):
-        st.write("أبداً! النظام سحابي بالكامل (Web-based)، يعمل مباشرة من متصفح الإنترنت على هاتفك النقال، التابلت، أو اللابتوب بدون أي تعقيد.")
-    
-    with st.expander("2. هل بياناتي ومبيعاتي آمنة وسرية؟"):
-        st.write("نعم، بياناتك محمية تماماً على قواعد بيانات سحابية مشفرة وخاصة بحسابك فقط، مع إمكانية تحميل نسخة احتياطية (JSON) بضغطة زر متى شئت.")
-    
-    with st.expander("3. ماذا تضمن لي النسخة المجانية والنسخة المدفوعة (VIP)?"):
-        st.write("النسخة المجانية تتيح لك تجربة النظام وإضافة حتى 5 منتجات. أما النسخة المدفوعة (VIP) فتمنحك صلاحيات كاملة وإضافة عدد غير محدود من المنتجات والبيانات.")
-
-    st.markdown("---")
-    st.markdown("### 📚 دليل أقسام النظام التفصيلي")
-    st.write("مرحباً بك في الدليل التعريفي الشامل الخاص بالنظام. يوضح هذا الدليل كافة الأقسام وكيفية التعامل مع المنظومة:")
-
-    st.markdown("---")
-    st.markdown("### 1️⃣ تبويب إضافة مادة جديدة (Add Product)")
-    st.write("""
-    * **الغرض:** إضافة المنتجات والأجهزة الجديدة إلى المخزن السحابي المرتبط بحسابك.
-    * **طريقة الاستخدام:** أدخل اسم المنتج، اللون، القياس، سعر الشراء وسعر البيع، والكمية المتوفرة، بالإضافة إلى رمز الباركود إن وجد.
-    """)
-
-    st.markdown("---")
-    st.markdown("### 2️⃣ تبويب جرد المخزن والباركود (Inventory & Barcode)")
-    st.write("""
-    * **الغرض:** عرض كافة المواد المتوفرة في المخزن مع معرفة ربح القطعة الواحدة ومراقبة مستويات النفاذ وتوليد الباركود.
-    """)
-
-    st.markdown("---")
-    st.markdown("### 3️⃣ تبويب إدارة العملاء والديون (Customers & Debts)")
-    st.write("""
-    * **الغرض:** تسجيل بيانات الزبائن ومحافظاتهم لتسهيل متابعة الحسابات والذمم المالية.
-    """)
-
-    st.markdown("---")
-    st.markdown("### 4️⃣ تبويب إدارة الموردين (Suppliers)")
-    st.write("""
-    * **الغرض:** تنظيم جهات التجهيز وشركات الجملة التي يتم توريد البضائع منها للمحل.
-    """)
-
-    st.markdown("---")
-    st.markdown("### 5️⃣ تبويب سلة المبيعات وإتمام الفاتورة (Checkout)")
-    st.write("""
-    * **الغرض:** النافذة المركزية لإنهاء عمليات البيع للزبائن وخصم المخزن تلقائياً.
-    """)
-
-    st.markdown("---")
-    st.markdown("### 6️⃣ تبويب سجل الفواتير وواتساب (Invoice History)")
-    st.write("""
-    * **الغرض:** مراجعة جميع الفواتير، تحميل ملفات PDF، وإرسال المطالبات عبر واتساب.
-    """)
-
-    st.markdown("---")
-    st.markdown("### 7️⃣ تبويب صندوق الوردية والمصاريف (Shift Box)")
-    st.write("""
-    * **الغرض:** السيطرة المالية على السيولة النقدية وسحب النثريات واحتساب صافي الأرباح الحقيقية.
-    """)
-
-    st.markdown("---")
-    st.markdown("### 8️⃣ تبويب الرسوم البيانية والتقارير (Charts & Reports)")
-    st.write("""
-    * **الغرض:** تقديم مؤشرات أداء مرئية (KPIs) ورسوم بيانية لحركة المبيعات والأرباح.
-    """)
-
-    st.markdown("---")
-    st.markdown("### 9️⃣ تبويب سجل النشاطات (Audit Trail / Logs)")
-    st.write("""
-    * **الغرض:** الرقابة الأمنية والتدقيق الإداري على كافة العمليات التي تتم داخل النظام بدقة.
+    st.subheader("📖 دليل الاستخدام ومميزات النظام والدعم الفني")
+    st.markdown("""
+    * **نظام Yasser Web الشامل لإدارة المحلات والمخازن**
+    * **المطور:** ياسر المبارك - البصرة، العراق.
+    * **المميزات:** إدارة المخزن، الباركود، الفواتير، حساب أرباح القطع، إدارة العملاء والموردين، وتوليد فواتير الـ PDF الرسمية المخصصة لتلصق على طلبيات الزبون وتسلم لشركة التوصيل.
     """)
