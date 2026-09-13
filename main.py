@@ -4,12 +4,7 @@ from supabase import create_client, Client
 import datetime
 import io
 import json
-import qrcode
-import arabic_reshaper
-from bidi.algorithm import get_display
 import urllib.parse
-import barcode
-from barcode.writer import ImageWriter
 
 try:
     from reportlab.lib.pagesizes import letter
@@ -42,11 +37,15 @@ str_lit.markdown("""
 """, unsafe_allow_html=True)
 
 def format_arabic(text):
-    if not text:
-        return ""
-    return get_display(arabic_reshaper.reshape(str(text)))
+    try:
+        import arabic_reshaper
+        from bidi.algorithm import get_display
+        if not text:
+            return ""
+        return get_display(arabic_reshaper.reshape(str(text)))
+    except:
+        return str(text)
 
-# تهيئة الجلسات الافتراضية بشكل قاطع لمنع أي أخطاء
 defaults = {
     "lang": "العربية",
     "logged_in_user": None,
@@ -468,13 +467,15 @@ with tabs[5]:
                         if str_lit.button("تأكيد السداد", key=f"bp_{idx_i}"):
                             try:
                                 val = float(pay_more)
-                                if 0 < val <= inv['المتبقي (الدين)']0:
+                                if 0 < val <= inv['المتبقي (الدين)']:
                                     inv['الواصل'] += val
                                     inv['المتبقي (الدين)'] -= val
-                                    if inv['المتبقي (الدين)'] == 0: inv['حالة الفاتورة واللون'] = "🟢 مسددة"
+                                    if inv['المتبقي (الدين)'] == 0: 
+                                        inv['حالة الفاتورة واللون'] = "🟢 مسددة"
                                     str_lit.success("تم السداد بنجاح!")
                                     str_lit.rerun()
-                            except: pass
+                            except: 
+                                pass
                 with c_i3:
                     pdf_buf = generate_pdf_invoice(inv)
                     if pdf_buf and REPORTLAB_AVAILABLE:
