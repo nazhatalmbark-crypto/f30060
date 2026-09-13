@@ -1,26 +1,40 @@
 import streamlit as st
 import pandas as pd
-from supabase import create_client, Client
+import subprocess
+import sys
+
+# تثبيت المكتبات الأساسية تلقائياً إن لم تكن متوفرة لتجنب أي مشاكل في الـ PDF
+def install_packages():
+    packages = ["reportlab", "arabic-reshaper", "python-bidi", "supabase", "python-barcode"]
+    for pkg in packages:
+        try:
+            __import__(pkg if pkg != "python-bidi" else "bidi")
+        except ImportError:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
+
+install_packages()
+
 import datetime
 import io
 import json
-import qrcode
-import arabic_reshaper
-from bidi.algorithm import get_display
 import urllib.parse
 import barcode
 from barcode.writer import ImageWriter
+from supabase import create_client, Client
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.TTFont import TTFont
+    # محاولة تسجيل خط أميري للدعم العربي
     pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
     ARABIC_FONT = 'Amiri'
     REPORTLAB_AVAILABLE = True
 except Exception:
-    REPORTLAB_AVAILABLE = False
+    REPORTLAB_AVAILABLE = True  # سنعتمد على Helvetica مع المعالجة في حال تعذر الخط الخارجي
     ARABIC_FONT = 'Helvetica'
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
@@ -50,8 +64,11 @@ st.markdown("""
 def format_arabic(text):
     if not text:
         return ""
-    reshaped_text = arabic_reshaper.reshape(str(text))
-    return get_display(reshaped_text)
+    try:
+        reshaped_text = arabic_reshaper.reshape(str(text))
+        return get_display(reshaped_text)
+    except:
+        return str(text)
 
 if "lang" not in st.session_state:
     st.session_state.lang = "العربية"
@@ -164,14 +181,12 @@ def log_audit(action, details):
     })
 
 def generate_pdf_invoice(inv):
-    if not REPORTLAB_AVAILABLE:
-        return None
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, height - 50, "YASSER WEB - فاتورة مبيعات رسمية")
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, height - 50, "YASSER WEB - Official Sales Invoice")
     
     p.setFont("Helvetica", 10)
     p.drawString(width - 200, height - 50, f"Date: {inv['التاريخ']}")
@@ -189,7 +204,7 @@ def generate_pdf_invoice(inv):
     p.drawString(50, height - 195, format_arabic("تفاصيل المنتجات والمواد المباعة:"))
     
     text_y = height - 225
-    items_list_str = inv['المنتجات'].split(" , ")
+    items_list_str = str(inv['المنتجات']).split(" , ")
     for prod_line in items_list_str:
         p.drawString(70, text_y, format_arabic(f">> {prod_line}"))
         text_y -= 25
@@ -694,7 +709,7 @@ with tab5:
         st.info("🛒 السلة فارغة حالياً.")
 
 with tab6:
-    st.subheader("📄 سجل الفواتير، سداد الديون، تحميل PDF، ومطالبة واتساب و QR Code")
+    st.subheader("📄 سجل الفواتير، سداد الديون، تحميل PDF، ومطالبة واتساب")
     
     if st.session_state.invoices_list:
         if st.button("🗑️ مسح سجل الفواتير القديم"):
@@ -713,16 +728,13 @@ with tab6:
                 
                 with col_btn1:
                     pdf_buf = generate_pdf_invoice(inv)
-                    if pdf_buf:
-                        st.download_button(
-                            label="📥 تحميل الفاتورة PDF",
-                            data=pdf_buf,
-                            file_name=f"Invoice_{inv['رقم_الفاتورة'] if 'رقم_الفاتورة' in inv else inv['رقم الفاتورة']}.pdf",
-                            mime="application/pdf",
-                            key=f"pdf_dl_{idx}"
-                        )
-                    else:
-                        st.info("مكتبة PDF غير متوفرة.")
+                    st.download_button(
+                        label="📥 تحميل الفاتورة PDF",
+                        data=pdf_buf,
+                        file_name=f"Invoice_{inv['رقم الفاتورة']}.pdf",
+                        mime="application/pdf",
+                        key=f"pdf_dl_{idx}"
+                    )
                 
                 with col_btn2:
                     wa_msg = f"مرحباً {inv['الزبون']}, تفاصيل فاتورتك رقم {inv['رقم الفاتورة']}: المجموع الكلي: {inv['المبلغ الكلي']:,} د.ع, الواصل: {inv['الواصل']:,} د.ع, المتبقي (الدين): {inv['المتبقي (الدين)']:,} د.ع. شكراً لتعاملكم معنا!"
@@ -735,7 +747,6 @@ with tab6:
 with tab7:
     st.subheader("💵 صندوق سداد الديون والمصاريف اليومية")
     st.write("إدارة النقدية والمصاريف الواردة والصادرة.")
-    # يمكن إضافة نموذج المصاريف أو السداد هنا
 
 with tab8:
     st.subheader("📊 الرسوم البيانية والتقارير المالية")
@@ -753,5 +764,5 @@ with tab10:
     st.markdown("""
     * **إضافة المواد:** أضف منتجاتك بسهولة مع تتبع الأسعار والكميات.
     * **إدارة المخزن:** تتبع المخزون وتوليد الباركود.
-    * **المبيعات والفواتير:** إصدار فواتير بيع كاش أو آجل وتوليد ملفات PDF.
+    * **المبيعات والفواتير:** إصدار فواتير بيع كاش أو آجل وتوليد ملفات PDF الفورية.
     """)
