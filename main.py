@@ -3,7 +3,6 @@ import pandas as pd
 import subprocess
 import sys
 
-# تثبيت المكتبات الأساسية تلقائياً إن لم تكن متوفرة لتجنب أي مشاكل في الـ PDF
 def install_packages():
     packages = ["reportlab", "arabic-reshaper", "python-bidi", "supabase", "python-barcode"]
     for pkg in packages:
@@ -24,18 +23,8 @@ from supabase import create_client, Client
 import arabic_reshaper
 from bidi.algorithm import get_display
 
-try:
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.TTFont import TTFont
-    # محاولة تسجيل خط أميري للدعم العربي
-    pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
-    ARABIC_FONT = 'Amiri'
-    REPORTLAB_AVAILABLE = True
-except Exception:
-    REPORTLAB_AVAILABLE = True  # سنعتمد على Helvetica مع المعالجة في حال تعذر الخط الخارجي
-    ARABIC_FONT = 'Helvetica'
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -185,6 +174,7 @@ def generate_pdf_invoice(inv):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
+    # رأس الفاتورة بالانجليزية لضمان عدم حدوث أي مشاكل في الخطوط الأساسية
     p.setFont("Helvetica-Bold", 14)
     p.drawString(50, height - 50, "YASSER WEB - Official Sales Invoice")
     
@@ -195,34 +185,44 @@ def generate_pdf_invoice(inv):
     p.setLineWidth(1)
     p.line(50, height - 65, width - 50, height - 65)
     
-    p.setFont(ARABIC_FONT, 12)
-    p.drawString(50, height - 95, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
-    p.drawString(50, height - 120, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
-    p.drawString(50, height - 145, format_arabic(f"نوع الدفع: {inv['نوع الدفع']}"))
+    # استخدام خط Helvetica مع معالجة النصوص العربية بـ arabic_reshaper و get_display
+    p.setFont("Helvetica", 11)
+    
+    # رسم النصوص العربية بمحاذاة لليمين بناءً على إحداثيات الصفحة
+    def draw_right_arabic(canvas_obj, text, y_pos):
+        processed = format_arabic(text)
+        canvas_obj.drawRightString(width - 50, y_pos, processed)
+
+    draw_right_arabic(p, f"رقم الفاتورة: {inv['رقم الفاتورة']}", height - 95)
+    draw_right_arabic(p, f"اسم الزبون: {inv['الزبون']}", height - 120)
+    draw_right_arabic(p, f"نوع الدفع: {inv['نوع الدفع']}", height - 145)
     
     p.line(50, height - 165, width - 50, height - 165)
-    p.drawString(50, height - 195, format_arabic("تفاصيل المنتجات والمواد المباعة:"))
+    draw_right_arabic(p, "تفاصيل المنتجات والمواد المباعة:", height - 195)
     
     text_y = height - 225
     items_list_str = str(inv['المنتجات']).split(" , ")
     for prod_line in items_list_str:
-        p.drawString(70, text_y, format_arabic(f">> {prod_line}"))
+        draw_right_arabic(p, f">> {prod_line}", text_y)
         text_y -= 25
         
     text_y -= 10
     p.line(50, text_y, width - 50, text_y)
     
     text_y -= 35
-    p.drawString(50, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
+    draw_right_arabic(p, f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي", text_y)
     text_y -= 25
-    p.drawString(50, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
+    draw_right_arabic(p, f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي", text_y)
     text_y -= 25
-    p.drawString(50, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
+    draw_right_arabic(p, f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي", text_y)
     
     text_y -= 45
     p.setLineWidth(0.5)
     p.line(50, text_y, width - 50, text_y)
-    p.drawCentredString(width / 2.0, text_y - 35, format_arabic("شكراً لتعاملكم مع نظام Yasser Web لإدارة المبيعات والمخزن!"))
+    
+    # التذييل بمنتصف الصفحة
+    footer_text = format_arabic("شكراً لتعاملكم مع نظام Yasser Web لإدارة المبيعات والمخزن!")
+    p.drawCentredString(width / 2.0, text_y - 35, footer_text)
     
     p.showPage()
     p.save()
