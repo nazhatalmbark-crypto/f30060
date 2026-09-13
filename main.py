@@ -79,7 +79,7 @@ lang_dict = {
             "👥 إدارة العملاء والديون", 
             "🏭 إدارة الموردين",
             "🛒 إتمام البيع والفواتير", 
-            "📄 سجل الفواتير وواتساب", 
+            "📄 سجل الفواتير والسداد وواتساب", 
             "💰 صندوق الوردية والمصاريف", 
             "📊 الرسوم البيانية والتقارير",
             "📜 سجل النشاطات (Audit Trail)",
@@ -108,7 +108,7 @@ lang_dict = {
             "👥 Customers & Debts", 
             "🏭 Suppliers",
             "🛒 Checkout & Invoices", 
-            "📄 Invoice History & WhatsApp", 
+            "📄 Invoice History, Payments & WhatsApp", 
             "📊 Shift Box & Expenses", 
             "📈 Charts & Reports",
             "📜 Audit Trail / Logs",
@@ -661,6 +661,12 @@ with tab5:
                     inv_id = len(st.session_state.invoices_list) + 1
                     inv_code = f"INV-{inv_id:03d}"
                     
+                    # تحديد اللون أو الحالة الافتراضية للفاتورة
+                    if remaining_amount == 0:
+                        inv_color_status = "🟢 مسددة بالكامل (كاش)"
+                    else:
+                        inv_color_status = "🟡 تحتوي على دين (آجل)"
+
                     st.session_state.invoices_list.append({
                         "رقم الفاتورة": str(inv_code),
                         "الزبون": str(cust_name),
@@ -670,6 +676,7 @@ with tab5:
                         "الواصل": int(paid_amount),
                         "المتبقي (الدين)": int(remaining_amount),
                         "نوع الدفع": str(pay_type),
+                        "حالة الفاتورة واللون": str(inv_color_status),
                         "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                     })
                     
@@ -683,7 +690,7 @@ with tab5:
         st.info("🛒 السلة فارغة حالياً.")
 
 with tab6:
-    st.subheader("📄 سجل الفواتير، تحميل PDF، ومطالبة الديون عبر واتساب و QR Code")
+    st.subheader("📄 سجل الفواتير، سداد الديون، تحميل PDF، ومطالبة واتساب و QR Code")
     
     if st.session_state.invoices_list:
         if st.button("🗑️ مسح سجل الفواتير القديم"):
@@ -692,17 +699,48 @@ with tab6:
             st.success("تم مسح السجل بنجاح.")
             st.rerun()
             
-        for inv in reversed(st.session_state.invoices_list):
+        for index_inv, inv in enumerate(reversed(st.session_state.invoices_list)):
+            # تلوين الإطار أو التنبيه حسب حالة الدين (أصفر للديون، أخضر للكاش)
+            status_color = inv.get("حالة الفاتورة واللون", "🟢 مسددة بالكامل (كاش)")
+            
             with st.container(border=True):
                 col_inv1, col_inv2, col_inv3 = st.columns([2, 2, 2])
                 with col_inv1:
                     st.markdown(f"#### {inv['رقم الفاتورة']} | العميل: {inv['الزبون']}")
+                    st.write(f"🏷️ **حالة الفاتورة:** {status_color}")
                     st.write(f"📅 التاريخ: {inv['التاريخ']} | نوع الدفع: {inv['نوع الدفع']}")
                     st.write(f"📦 المنتجات: {inv['المنتجات']}")
                 with col_inv2:
                     st.markdown(f"💰 **المبلغ الكلي:** `{inv['المبلغ الكلي']:,}` د.ع")
                     st.markdown(f"💵 **الواصل:** `{inv['الواصل']:,}` د.ع")
                     st.markdown(f"📌 **المتبقي (الدين):** `{inv['المتبقي (الدين)']:,}` د.ع")
+                    
+                    # 🟢 خانة زر سداد الديون الجديدة
+                    if inv['المتبقي (الدين)'] > 0:
+                        with st.expander("💵 تسجيل دفعة سداد للدين"):
+                            pay_off_amount_str = st.text_input(f"المبلغ المراد تسديده للفاتورة {inv['رقم الفاتورة']}:", "0", key=f"pay_in_{index_inv}")
+                            if st.button("تأكيد وتسجيل السداد", key=f"btn_pay_{index_inv}"):
+                                try:
+                                    pay_off_val = float(pay_off_amount_str)
+                                    if pay_off_val <= 0:
+                                        st.warning("يرجى إدخال مبلغ سداد صحيح.")
+                                    elif pay_off_val > inv['المتبقي (الدين)']:
+                                        st.error("❌ مبلغ السداد أكبر من الدين المتبقي!")
+                                    else:
+                                        # تحديث الفاتورة
+                                        inv['الواصل'] += pay_off_val
+                                        inv['المتبقي (الدين)'] -= pay_off_val
+                                        if inv['المتبقي (الدين)'] == 0:
+                                            inv['حالة الفاتورة واللون'] = "🟢 مسددة بالكامل (كاش)"
+                                        
+                                        log_audit("سداد دين", f"تم تسديد مبلغ {pay_off_val:,} د.ع للفاتورة {inv['رقم الفاتورة']}")
+                                        st.success(f"✅ تم سداد المبلغ بنجاح! المتبقي الجديد: {inv['المتبقي (الدين)']:,} د.ع")
+                                        st.rerun()
+                                except ValueError:
+                                    st.error("يرجى إدخال رقم صالح.")
+                    else:
+                        st.success("✨ هذه الفاتورة مسددة بالكامل.")
+
                 with col_inv3:
                     pdf_buffer = generate_pdf_invoice(inv)
                     if pdf_buffer and REPORTLAB_AVAILABLE:
@@ -711,7 +749,7 @@ with tab6:
                             data=pdf_buffer,
                             file_name=f"Invoice_{inv['رقم الفاتورة']}.pdf",
                             mime="application/pdf",
-                            key=f"pdf_{inv['رقم الفاتورة']}"
+                            key=f"pdf_{inv['رقم الفاتورة']}_{index_inv}"
                         )
                     
                     cust_phone_found = ""
@@ -828,9 +866,9 @@ with tab10:
     * **📦 جرد المخزن:** راقب مخزونك بذكاء مع تنبيهات تلقائية للمواد التي وشكت على النفاذ وتوليد باركود لكل منتج.
     * **👥 إدارة العملاء والديون:** سجل أسماء الزبائن، أرقام هواتفهم، ومحافظاتهم لتتبع حساباتهم وذممهم بدقة.
     * **🛒 نظام المبيعات والسلة:** تجميع سريع للمواد مع حساب الخصومات وإصدار الفواتير وطباعتها بصيغة **PDF**.
+    * **📄 سجل الفواتير والسداد:** تتبع الفواتير الملونة (أصفر للديون وأخضر للكاش) مع إمكانية **سداد الديون** وتحديث المبالغ فوراً.
     * **💬 إرسال عبر واتساب:** إرسال كشف الحساب والفاتورة للعميل مباشرة عبر رابط واتساب تفاعلي ومباشر مع **QR Code**.
     * **📊 التقارير وصندوق الوردية:** متابعة النقد في الصندوق، خصم المصاريف، وعرض رسوم بيانية دقيقة للأرباح والمبيعات.
-    * **🔄 النسخ الاحتياطي:** إمكانية تحميل نسخة احتياطية للبيانات بصيغة `JSON` واستعادتها في أي وقت.
     
     > **💡 ملاحظة:** لتفعيل النسخة المدفوعة (VIP) بلا حدود، استخدم كود التفعيل الخاص: `YASSER2026`.
     """)
