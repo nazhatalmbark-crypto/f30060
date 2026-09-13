@@ -2,21 +2,8 @@ import streamlit as str_lit
 import pandas as pd
 from supabase import create_client, Client
 import datetime
-import io
 import json
 import urllib.parse
-
-try:
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.TTFont import TTFont
-    pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
-    ARABIC_FONT = 'Amiri'
-    REPORTLAB_AVAILABLE = True
-except Exception:
-    REPORTLAB_AVAILABLE = False
-    ARABIC_FONT = 'Helvetica'
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -35,17 +22,6 @@ str_lit.markdown("""
     input, select, textarea { direction: rtl; text-align: right; }
     </style>
 """, unsafe_allow_html=True)
-
-def format_arabic(text):
-    try:
-        import arabic_reshaper
-        from bidi.algorithm import get_display
-        if not text:
-            return ""
-        reshaped_text = arabic_reshaper.reshape(str(text))
-        return get_display(reshaped_text)
-    except:
-        return str(text)
 
 defaults = {
     "lang": "العربية",
@@ -79,60 +55,69 @@ def log_audit(action, details):
         "التفاصيل": str(details)
     })
 
-def generate_pdf_invoice(inv):
-    if not REPORTLAB_AVAILABLE:
-        return None
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    
-    # رأس الفاتورة - ترتيب مباشر وواضح
-    p.setFont(ARABIC_FONT, 14)
-    p.drawString(50, height - 40, format_arabic("YASSER WEB - فاتورة طلبية توصيل رسمية"))
-    p.setFont("Helvetica", 10)
-    p.drawString(width - 150, height - 40, f"Date: {inv['التاريخ']}")
-    
-    p.setStrokeColorRGB(0.3, 0.3, 0.3)
-    p.setLineWidth(1)
-    p.line(50, height - 50, width - 50, height - 50)
-    
-    # معلومات الزبون والفاتورة
-    p.setFont(ARABIC_FONT, 11)
-    p.drawString(50, height - 80, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
-    p.drawString(50, height - 105, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
-    p.drawString(50, height - 130, format_arabic(f"نوع وحالة الدفع: {inv['نوع الدفع']} ({inv['حالة الفاتورة واللون']})"))
-    
-    p.line(50, height - 145, width - 50, height - 145)
-    
-    # تفاصيل المنتجات
-    p.drawString(50, height - 170, format_arabic("تفاصيل المنتجات والمواد المطلوبة:"))
-    text_y = height - 195
-    products_list_str = str(inv['المنتجات']).split(" , ")
-    for prod_line in products_list_str:
-        p.drawString(70, text_y, format_arabic(f"- {prod_line}"))
-        text_y -= 22
-        
-    text_y -= 10
-    p.line(50, text_y, width - 50, text_y)
-    text_y -= 30
-    
-    # المجاميع المالية وتكلفة التوصيل
-    p.drawString(50, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"تكلفة البنزين والتوصيل (pbf): {inv.get('pbf', 0):,} دينار عراقي"))
-    
-    text_y -= 40
-    p.line(50, text_y, width - 50, text_y)
-    p.drawCentredString(width / 2.0, text_y - 30, format_arabic("شكراً لتعاملكم مع نظام Yasser Web لإدارة المبيعات والمخزن!"))
-    
-    p.showPage()
-    p.save()
-    buffer.seek(0)
-    return buffer
+# دالة لتوليد كود HTML جاهز للطباعة والحفظ كـ PDF من المتصفح مباشرة (بدون مشاكل اللغة العربية)
+def get_printable_invoice_html(inv):
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <title>فاتورة رقم {inv['رقم الفاتورة']}</title>
+        <style>
+            body {{ font-family: 'Tahoma', Arial, sans-serif; padding: 20px; color: #333; }}
+            .invoice-box {{ max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); border-radius: 8px; }}
+            .header {{ text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }}
+            .info-table {{ width: 100%; margin-bottom: 20px; border-collapse: collapse; }}
+            .info-table td {{ padding: 8px; vertical-align: top; }}
+            .products-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+            .products-table th, .products-table td {{ border: 1px solid #ddd; padding: 10px; text-align: right; }}
+            .products-table th {{ background-color: #f2f2f2; }}
+            .totals {{ float: left; width: 300px; }}
+            .totals table {{ width: 100%; border-collapse: collapse; }}
+            .totals td {{ padding: 6px; border-bottom: 1px solid #eee; }}
+            .footer {{ clear: both; text-align: center; margin-top: 40px; font-size: 14px; color: #777; border-top: 1px solid #eee; padding-top: 15px; }}
+        </style>
+    </head>
+    <body onload="window.print()">
+        <div class="invoice-box">
+            <div class="header">
+                <h2>YASSER WEB - فاتورة طلبية توصيل</h2>
+                <p>التاريخ: {inv['التاريخ']}</p>
+            </div>
+            <table class="info-table">
+                <tr>
+                    <td><strong>رقم الفاتورة:</strong> {inv['رقم الفاتورة']}</td>
+                    <td><strong>اسم الزبون:</strong> {inv['الزبون']}</td>
+                </tr>
+                <tr>
+                    <td><strong>نوع الدفع:</strong> {inv['نوع الدفع']}</td>
+                    <td><strong>الحالة:</strong> {inv['حالة الفاتورة واللون']}</td>
+                </tr>
+            </table>
+            <table class="products-table">
+                <tr>
+                    <th>توصيف المواد والمنتجات المطلوبة</th>
+                </tr>
+                <tr>
+                    <td>{inv['المنتجات'].replace(' , ', '<br>')}</td>
+                </tr>
+            </table>
+            <div class="totals">
+                <table>
+                    <tr><td><strong>المبلغ الكلي:</strong></td><td>{inv['المبلغ الكلي']:,} د.ع</td></tr>
+                    <tr><td><strong>المبلغ الواصل:</strong></td><td>{inv['الواصل']:,} د.ع</td></tr>
+                    <tr><td><strong>المتبقي (الدين):</strong></td><td>{inv['المتبقي (الدين)']:,} د.ع</td></tr>
+                    <tr><td><strong>تكلفة البنزين (pbf):</strong></td><td>{inv.get('pbf', 0):,} د.ع</td></tr>
+                </table>
+            </div>
+            <div class="footer">
+                <p>شكراً لتعاملكم مع نظام Yasser Web لإدارة المبيعات والمخزن!</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
 
 str_lit.title("🛍️ نظام Yasser Web الشامل لإدارة المبيعات والمخزون")
 
@@ -367,24 +352,29 @@ with tabs[2]:
     str_lit.subheader("👥 إدارة العملاء والديون")
     iraq_govs = ["بغداد", "البصرة", "نينوى", "أربيل", "النجف", "كربلاء", "ذي قار", "بابل", "الأنبار", "ديالى", "كركوك", "صلاح الدين", "المثنى", "ميسان", "القادسية", "واسط", "دهوك", "السليمانية"]
     
-    with str_lit.form("add_cust_f_clean", clear_on_submit=True):
+    with str_lit.form("add_cust_f_fixed_final", clear_on_submit=True):
         c1, c2, c3 = str_lit.columns(3)
-        with c1: c_name = str_lit.text_input("اسم العميل:")
-        with c2: c_phone = str_lit.text_input("رقم الهاتف (مع مفتاح الدولة مثلاً 9647...):")
+        with c1: c_name = str_lit.text_input("اسم العميل الجديد:")
+        with c2: c_phone = str_lit.text_input("رقم الهاتف (مثلاً 9647...):")
         with c3: c_gov = str_lit.selectbox("المحافظة:", iraq_govs)
         
-        if str_lit.form_submit_button("تسجيل بيانات العميل"):
-            if c_name and c_phone:
+        if str_lit.form_submit_button("تسجيل وحفظ بيانات العميل", type="primary"):
+            if c_name.strip() and c_phone.strip():
                 str_lit.session_state.customer_list.append({
-                    "اسم العميل": str(c_name), "رقم الهاتف": str(c_phone), "المحافظة": str(c_gov)
+                    "اسم العميل": str(c_name.strip()), 
+                    "رقم الهاتف": str(c_phone.strip()), 
+                    "المحافظة": str(c_gov)
                 })
                 str_lit.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
                 str_lit.rerun()
             else:
-                str_lit.warning("أدخل الاسم ورقم الهاتف.")
+                str_lit.warning("⚠️ يرجى إدخال اسم العميل ورقم الهاتف بصورة صحيحة.")
                 
     if str_lit.session_state.customer_list:
+        str_lit.write("### قائمة العملاء المسجلين حالياً:")
         str_lit.dataframe(pd.DataFrame(str_lit.session_state.customer_list), use_container_width=True)
+    else:
+        str_lit.info("لا يوجد عملاء مسجلون حالياً. استخدم النموذج أعلاه لإضافة عميل.")
 
 with tabs[3]:
     str_lit.subheader("🏭 إدارة الموردين")
@@ -428,7 +418,7 @@ with tabs[4]:
 
         if str_lit.button("💾 إتمام البيع وحفظ الفاتورة", type="primary"):
             if c_opts == ["لا توجد عملاء"] or not str_lit.session_state.customer_list:
-                str_lit.error("❌ اختر عميلاً مسجلاً أولاً!")
+                str_lit.error("❌ اختر عميلاً مسجلاً أولاً من تبويب إدارة العملاء!")
             else:
                 try:
                     p_str_list = []
@@ -463,7 +453,7 @@ with tabs[4]:
         str_lit.info("السلة فارغة.")
 
 with tabs[5]:
-    str_lit.subheader("📄 سجل الفواتير، سداد الديون، PDF، وواتساب")
+    str_lit.subheader("📄 سجل الفواتير، سداد الديون، طباعة الفواتير، وواتساب")
     
     if str_lit.session_state.invoices_list:
         table_display_data = []
@@ -505,9 +495,16 @@ with tabs[5]:
                             except: 
                                 pass
                 with c_i3:
-                    pdf_buf = generate_pdf_invoice(inv)
-                    if pdf_buf and REPORTLAB_AVAILABLE:
-                        str_lit.download_button("📥 تحميل فاتورة PDF", pdf_buf, f"Inv_{inv['رقم الفاتورة']}.pdf", "application/pdf", key=f"pdf_btn_{idx_i}")
+                    # زر طباعة وتصدير PDF دقيق عبر المتصفح بدون مشاكل الحروف المقلوبة
+                    html_code = get_printable_invoice_html(inv)
+                    str_lit.download_button(
+                        label="🖨️ طباعة / حفظ فاتورة PDF",
+                        data=html_code,
+                        file_name=f"Invoice_{inv['رقم الفاتورة']}.html",
+                        mime="text/html",
+                        key=f"print_html_{idx_i}"
+                    )
+                    str_lit.caption("💡 ملاحظة: ملف الـ HTML يفتح بمتصفحك واضغط (Ctrl+P) ثم اختر حفظ كـ PDF ليظهر بشكل عربي مرتب 100%.")
                     
                     matched_cust = next((c for c in str_lit.session_state.customer_list if c['اسم العميل'] == inv['الزبون']), None)
                     default_phone = matched_cust['رقم الهاتف'] if matched_cust and 'رقم الهاتف' in matched_cust else ""
