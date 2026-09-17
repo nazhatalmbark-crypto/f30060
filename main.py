@@ -34,6 +34,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
+# تعديلات CSS متقدمة لإخفاء الخطوط الزائدة وضمان التوافق التام مع الموبايل وتنسيق القوائم العمودية
 st.markdown("""
     <style>
     .stApp {
@@ -44,17 +45,19 @@ st.markdown("""
         direction: rtl;
         text-align: right;
     }
+    hr {
+        border: none;
+        height: 0px;
+        margin: 0px;
+    }
+    /* تحسين شكل الأزرار والقوائم على الهواتف */
+    @media (max-width: 768px) {
+        .stButton button {
+            width: 100%;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
-
-def format_arabic(text):
-    if not text:
-        return ""
-    try:
-        reshaped_text = arabic_reshaper.reshape(str(text))
-        return get_display(reshaped_text)
-    except:
-        return str(text)
 
 if "lang" not in st.session_state:
     st.session_state.lang = "العربية"
@@ -76,6 +79,7 @@ lang_dict = {
         "backup_download": "📥 تحميل نسخة احتياطية (JSON)",
         "backup_upload": "📂 استعادة البيانات من ملف سابق",
         "logout": "تسجيل الخروج",
+        "menu_title": "📑 القوائم الرئيسية للنظام",
         "tabs": [
             "➕ إضافة مادة جديدة", 
             "📦 جرد المخزن والباركود", 
@@ -87,35 +91,6 @@ lang_dict = {
             "📊 الرسوم البيانية والتقارير",
             "📜 سجل النشاطات (Audit Trail)",
             "📖 دليل الاستخدام والمميزات والدعم"
-        ]
-    },
-    "English": {
-        "title": "🛍️ Yasser Web - Comprehensive Sales & Inventory Management System",
-        "login_title": "🔐 Login Portal for Store Accounts & System",
-        "login_tab": "🔑 Login",
-        "signup_tab": "✨ Create New Account",
-        "username_label": "Username or Store Name:",
-        "login_btn": "Login",
-        "signup_btn": "Create Account Now",
-        "settings": "⚙️ Account Settings & Backup",
-        "lang_select": "🌐 Language / اللغة",
-        "role_label": "👤 Role:",
-        "cart_badge": "🛒 Items currently in cart:",
-        "backup_title": "🔄 Instant Data Backup",
-        "backup_download": "📥 Download Backup (JSON)",
-        "backup_upload": "📂 Restore Data from File",
-        "logout": "Logout",
-        "tabs": [
-            "➕ Add New Product", 
-            "📦 Inventory & Barcode", 
-            "👥 Customers & Debts", 
-            "🏭 Suppliers",
-            "🛒 Checkout & Invoices", 
-            "📄 Invoice History, Print & WhatsApp", 
-            "💵 Payment Box", 
-            "📈 Charts & Reports",
-            "📜 Audit Trail / Logs",
-            "📖 Guide, Features & Support"
         ]
     }
 }
@@ -152,6 +127,9 @@ if "audit_logs" not in st.session_state or isinstance(st.session_state.audit_log
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
+if "vip_expiry_date" not in st.session_state:
+    st.session_state.vip_expiry_date = None
+
 def log_audit(action, details):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     user = st.session_state.logged_in_user or "زائر"
@@ -167,7 +145,6 @@ def log_audit(action, details):
     })
 
 def generate_html_invoice(inv, store_name):
-    # إنشاء صفحة HTML احترافية تدعم اللغة العربية والطباعة التلقائية أو الحفظ بصيغة PDF بدون مربعات سوداء
     items_html = ""
     items_list_str = str(inv['المنتجات']).split(" , ")
     for item in items_list_str:
@@ -244,7 +221,10 @@ if not st.session_state.logged_in_user:
                             user_info = res.data[0]
                             st.session_state.logged_in_user = str(user_info["username"])
                             st.session_state.user_role = str(login_role)
-                            st.session_state.is_vip = bool(user_info.get("is_paid", False))
+                            is_paid_db = bool(user_info.get("is_paid", False))
+                            st.session_state.is_vip = is_paid_db
+                            if is_paid_db:
+                                st.session_state.vip_expiry_date = datetime.datetime.now() + datetime.timedelta(days=30)
                             log_audit("تسجيل دخول", f"تم تسجيل الدخول بواسطة {user_info['username']} بصلاحية ({login_role})")
                             st.success("تم تسجيل الدخول بنجاح!")
                             st.rerun()
@@ -301,7 +281,7 @@ st.sidebar.write(f"{t['role_label']} **{user_role}**")
 cart_count_badge = sum(int(item['qty']) for item in st.session_state.cart)
 st.sidebar.info(f"{t['cart_badge']} **{cart_count_badge}**")
 
-st.sidebar.divider()
+st.sidebar.markdown("---")
 st.sidebar.subheader(t["backup_title"])
 
 backup_data = {
@@ -341,25 +321,34 @@ if uploaded_backup is not None:
     except Exception as e:
         st.sidebar.error(f"خطأ في استعادة الملف: {e}")
 
-st.sidebar.divider()
+st.sidebar.markdown("---")
+
+# نظام التحقق من الأيام المتبقية للنسخة المدفوعة VIP
+if st.session_state.is_vip and st.session_state.vip_expiry_date:
+    remaining_days = (st.session_state.vip_expiry_date - datetime.datetime.now()).days
+    if remaining_days < 0:
+        remaining_days = 0
+        st.session_state.is_vip = False
+        st.sidebar.error("⚠️ انتهت صلاحية اشتراكك في النسخة المدفوعة! يرجى تجديد الاشتراك.")
+    else:
+        st.sidebar.success(f"🌟 النسخة المدفوعة مفعلة\n⏳ متبقي من اشتراكك: **{remaining_days} يوم**")
 
 if not st.session_state.is_vip:
     st.sidebar.warning("🔒 حالة النسخة: **مجانية (محدودة)**")
-    vip_code = st.sidebar.text_input("أدخل كود النسخة المدفوعة (VIP):", type="password")
-    if st.sidebar.button("تفعيل النسخة المدفوعة"):
+    vip_code = st.sidebar.text_input("أدخل كود تجديد/تفعيل النسخة المدفوعة (VIP):", type="password")
+    if st.sidebar.button("تفعيل الاشتراك الجديد"):
         if vip_code.strip() == "YASSER2026":
             st.session_state.is_vip = True
+            st.session_state.vip_expiry_date = datetime.datetime.now() + datetime.timedelta(days=30)
             try:
                 supabase.table("users").update({"is_paid": True}).eq("username", username).execute()
             except Exception:
                 pass
-            log_audit("تفعيل النسخة المدفوعة", "تم تفعيل النسخة المدفوعة VIP بنجاح")
-            st.sidebar.success("تم تفعيل النسخة المدفوعة (VIP) بنجاح! 🎉")
+            log_audit("تفعيل النسخة المدفوعة", "تم تفعيل أو تجديد النسخة المدفوعة VIP لمدة 30 يوم بنجاح")
+            st.sidebar.success("🎉 تم تفعيل النسخة المدفوعة لمدة 30 يوم بنجاح!")
             st.rerun()
         else:
             st.sidebar.error("كود التفعيل غير صحيح!")
-else:
-    st.sidebar.success("🌟 النسخة المدفوعة (VIP) مفعلة بالكامل")
 
 if st.sidebar.button(t["logout"]):
     log_audit("تسجيل خروج", f"تم تسجيل الخروج للمستخدم {username}")
@@ -368,11 +357,14 @@ if st.sidebar.button(t["logout"]):
     st.session_state.cart = []
     st.rerun()
 
-st.divider()
+st.markdown("---")
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(t["tabs"])
+# تنظيم الخزانات والقوائم بشكل عمودي (وحدة جوة وحدة) لجميع الأجهزة بدون شريط أفقي متعب
+st.subheader(t["menu_title"])
+selected_tab_name = st.radio("اختر القسم المطلوب:", t["tabs"], label_visibility="collapsed")
 
-with tab1:
+# توزيع الأقسام بناءً على الاختيار العمودي
+if selected_tab_name == t["tabs"][0]:
     st.subheader("➕ واجهة إضافة مادة أو بضاعة جديدة للمخزن")
     if user_role == "كاشير":
         st.warning("⚠️ عذراً، حساب الكاشير لا يمتلك صلاحية إضافة أو تعديل المواد في المخزن.")
@@ -384,7 +376,7 @@ with tab1:
             current_count = 0
             
         if not st.session_state.is_vip and current_count >= 5:
-            st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة لإضافة منتجات بلا حدود!")
+            st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). قم بتجديد أو تفعيل النسخة المدفوعة لإضافة منتجات بلا حدود!")
         else:
             with st.form("add_product_clean_form", clear_on_submit=True):
                 p_name = st.text_input("اسم المادة / المنتج / الجهاز:")
@@ -436,7 +428,7 @@ with tab1:
                     else:
                         st.warning("يرجى كتابة اسم المادة على الأقل.")
 
-with tab2:
+elif selected_tab_name == t["tabs"][1]:
     st.subheader("📦 جرد المخزن الشامل مع ميزة توليد وطباعة الباركود وحساب أرباح القطع")
     
     try:
@@ -532,7 +524,7 @@ with tab2:
     else:
         st.info("المخزن فارغ حالياً. أضف مواد من تبويب (إضافة مادة جديدة).")
 
-with tab3:
+elif selected_tab_name == t["tabs"][2]:
     st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم")
     iraq_govs = ["بغداد", "البصرة", "نينوى", "أربيل", "النجف", "كربلاء", "ذي قار", "بابل", "الأنبار", "ديالى", "كركوك", "صلاح الدين", "المثنى", "ميسان", "القادسية", "واسط", "دهوك", "السليمانية"]
     
@@ -564,7 +556,7 @@ with tab3:
             else:
                 st.warning("يرجى كتابة الاسم ورقم الهاتف.")
 
-    st.divider()
+    st.markdown("---")
     st.subheader("📋 سجل العملاء والذمم المالية المستحقة")
     if st.session_state.customer_list:
         search_cust = st.text_input("🔍 بحث عن عميل بالاسم أو رقم الهاتف:", "")
@@ -573,7 +565,7 @@ with tab3:
     else:
         st.info("لا يوجد عملاء مسجلون حالياً.")
 
-with tab4:
+elif selected_tab_name == t["tabs"][3]:
     st.subheader("🏭 إدارة الموردين وشركات التجهيز والجملة")
     
     with st.form("add_supplier_form", clear_on_submit=True):
@@ -595,14 +587,14 @@ with tab4:
             else:
                 st.warning("يرجى إدخال اسم المورد على الأقل.")
                 
-    st.divider()
+    st.markdown("---")
     st.subheader("📋 قائمة الموردين المسجلين")
     if st.session_state.suppliers_list:
         st.dataframe(pd.DataFrame(st.session_state.suppliers_list), use_container_width=True)
     else:
         st.info("لا توجد جهات موردة مسجلة حالياً.")
 
-with tab5:
+elif selected_tab_name == t["tabs"][4]:
     st.subheader("🛒 سلة المبيعات (تجميع مواد الزبون وإتمام الفاتورة)")
     
     if st.session_state.cart:
@@ -625,7 +617,7 @@ with tab5:
                     st.session_state.cart.pop(idx)
                     st.rerun()
                     
-        st.divider()
+        st.markdown("---")
         st.markdown(f"### 💵 المجموع الكلي لكل المواد: **{int(total_cart_price):,} د.ع**")
         
         if not st.session_state.customer_list:
@@ -702,7 +694,7 @@ with tab5:
     else:
         st.info("🛒 السلة فارغة حالياً.")
 
-with tab6:
+elif selected_tab_name == t["tabs"][5]:
     st.subheader("📄 سجل الفواتير، الطباعة، وحفظ PDF ومطالبة واتساب")
     
     if st.session_state.invoices_list:
@@ -738,25 +730,25 @@ with tab6:
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
-with tab7:
+elif selected_tab_name == t["tabs"][6]:
     st.subheader("💵 صندوق سداد الديون والمصاريف اليومية")
     st.write("إدارة النقدية والمصاريف الواردة والصادرة.")
 
-with tab8:
+elif selected_tab_name == t["tabs"][7]:
     st.subheader("📊 الرسوم البيانية والتقارير المالية")
     st.write("تحليلات المبيعات والأرباح والمخزون.")
 
-with tab9:
+elif selected_tab_name == t["tabs"][8]:
     st.subheader("📜 سجل النشاطات (Audit Trail)")
     if st.session_state.audit_logs:
         st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
     else:
         st.info("لا توجد نشاطات مسجلة حتى الآن.")
 
-with tab10:
+elif selected_tab_name == t["tabs"][9]:
     st.subheader("📖 دليل الاستخدام والمميزات والدعم")
     st.markdown("""
     * **إضافة المواد:** أضف منتجاتك بسهولة مع تتبع الأسعار والكميات.
     * **إدارة المخزن:** تتبع المخزون وتوليد الباركود.
-    * **المبيعات والفواتير:** إصدار فواتير بيع كاش أو آجل وعرضها بتنسيق HTML فائق الوضوح.
+    * **المبيعات والفواتير:** إصدار فواتير بيع كاش أو آجل وعرضها بتنسيق HTML فائق الوضوح للطباعة أو الحفظ كملف PDF.
     """)
