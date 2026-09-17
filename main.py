@@ -491,7 +491,6 @@ with tab4:
     else:
         selected_debt_customer = st.selectbox("اختر اسم العميل لتسديد الديون:", debt_cust_list, key="debt_pay_cust_select")
         
-        # جلب كل الفواتير الخاصة بهذا العميل
         try:
             res_cust_invoices = supabase.table("invoices").select("*").eq("username", username).eq("customer_name", selected_debt_customer).execute()
             customer_invoices = res_cust_invoices.data if res_cust_invoices.data else []
@@ -520,7 +519,6 @@ with tab4:
                     elif payment_val > total_customer_debt:
                         st.error("❌ المبلغ المدخل أكبر من إجمالي الدين المطلوب على العميل!")
                     else:
-                        # توزيع المبلغ المدخل على الفواتير تصاعدياً وتحديثها
                         remaining_payment = payment_val
                         for cinv in customer_invoices:
                             if remaining_payment <= 0:
@@ -528,13 +526,11 @@ with tab4:
                             curr_rem = cinv.get('remaining_amount', 0)
                             if curr_rem > 0:
                                 if remaining_payment >= curr_rem:
-                                    # تسديد الفاتورة بالكامل
                                     new_paid = cinv['total_price']
                                     new_rem = 0
                                     new_type = "🟢 نقد بالكامل (كاش)"
                                     remaining_payment -= curr_rem
                                 else:
-                                    # تسديد جزئي للفاتورة
                                     new_paid = cinv['paid_amount'] + remaining_payment
                                     new_rem = curr_rem - remaining_payment
                                     new_type = "🔵 دفعة جزئية (أقساط)"
@@ -653,7 +649,6 @@ with tab6:
                             new_db_qty = max(0, current_db_qty - c_item['qty'])
                             supabase.table("products").update({"quantity": new_db_qty}).eq("id", c_item["id"]).execute()
                     
-                    # جلب عدد الفواتير الحالي لتوليد رقم تسلسلي فريد
                     try:
                         res_inv_count = supabase.table("invoices").select("id").eq("username", username).execute()
                         inv_id = len(res_inv_count.data) + 1 if res_inv_count.data else 1
@@ -662,7 +657,6 @@ with tab6:
                         
                     inv_code = f"INV-{inv_id:03d}"
                     
-                    # حفظ الفاتورة مباشرة في قاعدة البيانات لضمان عدم اختفائها
                     supabase.table("invoices").insert({
                         "username": str(username),
                         "invoice_code": str(inv_code),
@@ -688,132 +682,114 @@ with tab6:
 with tab7:
     st.subheader("📄 سجل الفواتير، الطباعة المباشرة، وإرسال الفاتورة عبر الواتساب")
     try:
-        res_all_inv = supabase.table("invoices").select("*").eq("username", username).execute()
-        db_invoices_list = res_all_inv.data if res_all_inv.data else []
+        res_all_inv = supabase.table("invoices").select("*").eq("username", username).order("id", desc=True).execute()
+        all_invoices = res_all_inv.data if res_all_inv.data else []
     except:
-        db_invoices_list = []
+        all_invoices = []
 
-    if db_invoices_list:
-        for inv in reversed(db_invoices_list):
+    if all_invoices:
+        for inv in all_invoices:
             with st.container(border=True):
-                col_inv1, col_inv2, col_inv3 = st.columns([2, 2, 2])
-                with col_inv1:
-                    st.markdown(f"#### 📄 {inv['invoice_code']}")
-                    st.write(f"👤 **الزبون:** {inv['customer_name']}")
-                    st.write(f"📅 **الوقت:** {inv['created_date']}")
-                with col_inv2:
-                    st.write(f"🛒 **المنتجات:** {inv['products_text']}")
-                    st.write(f"💵 **المبلغ:** `{inv['total_price']:,}` د.ع")
-                    st.write(f"💰 **الواصل:** `{inv['paid_amount']:,}` | **الدين:** `{inv['remaining_amount']:,}` د.ع")
-                with col_inv3:
-                    # زر تحميل الفاتورة كملف HTML للطباعة
-                    html_code = generate_html_invoice(inv)
-                    st.download_button(
-                        label="🖨️ طباعة الفاتورة",
-                        data=html_code,
-                        file_name=f"Invoice_{inv['invoice_code']}.html",
-                        mime="text/html",
-                        key=f"dl_html_{inv['id']}"
-                    )
-                    
-                    # جلب رقم هاتف الزبون لإرسال الفاتورة عبر الواتساب
+                st.markdown(f"### 🧾 فاتورة رقم: `{inv['invoice_code']}`")
+                st.write(f"👤 **الزبون:** {inv['customer_name']} | 📅 **التاريخ:** {inv['created_date']}")
+                st.write(f"🛍️ **المنتجات:** {inv['products_text']}")
+                st.markdown(f"💰 **المجموع:** `{inv['total_price']:,}` د.ع | **الواصل:** `{inv['paid_amount']:,}` د.ع | **المتبقي:** `{inv['remaining_amount']:,}` د.ع")
+                st.markdown(f"📌 **حالة الدفع:** {inv['payment_type']}")
+
+                col_b1, col_b2 = st.columns(2)
+                with col_b1:
+                    if st.button(f"👁️ عرض وفاتورة HTML للطباعة", key=f"html_inv_{inv['id']}"):
+                        html_code = generate_html_invoice(inv)
+                        st.components.v1.html(html_code, height=500, scrolling=True)
+                with col_b2:
                     try:
-                        p_res = supabase.table("customers").select("phone").eq("customer_name", inv['customer_name']).execute()
-                        c_phone_num = p_res.data[0]['phone'] if p_res.data else ""
+                        res_c_phone = supabase.table("customers").select("phone").eq("username", username).eq("customer_name", inv['customer_name']).execute()
+                        c_ph = res_c_phone.data[0]["phone"] if res_c_phone.data else ""
+                        if c_ph:
+                            clean_ph = ''.join(filter(str.isdigit, c_ph))
+                            if clean_ph.startswith("0"):
+                                clean_ph = "964" + clean_ph[1:]
+                            wa_msg = urllib.parse.quote(f"مرحباً العميل المحترم {inv['customer_name']}\nتجد تفاصيل فاتورتك رقم {inv['invoice_code']}:\nالمبلغ الكلي: {inv['total_price']:,} د.ع\nالواصل: {inv['paid_amount']:,} د.ع\nالمتبقي: {inv['remaining_amount']:,} د.ع\nشكراً لتعاملكم مع Yasser Web 🛍️")
+                            st.markdown(f"📱 [إرسال الفاتورة عبر واتساب](https://wa.me/{clean_ph}?text={wa_msg})", unsafe_allow_html=True)
                     except:
-                        c_phone_num = ""
-                    
-                    if c_phone_num:
-                        invoice_wa_msg = (
-                            f"✨ *مرحباً بالاستاذ المحترم {inv['customer_name']}* ✨\n"
-                            f"يسعدنا إرسال تفاصيل فاتورتكم رقم (*{inv['invoice_code']}*):\n\n"
-                            f"🛒 *المنتجات:* {inv['products_text']}\n"
-                            f"💵 *المبلغ الكلي:* {inv['total_price']:,} د.ع\n"
-                            f"💰 *المبلغ الواصل:* {inv['paid_amount']:,} د.ع\n"
-                            f"📌 *المتبقي (الدين):* {inv['remaining_amount']:,} د.ع\n"
-                            f"🏷️ *الحالة:* {inv['payment_type']}\n\n"
-                            f"شكراً لتعاملكم الراقي معنا! 🙏"
-                        )
-                        encoded_invoice_msg = urllib.parse.quote(invoice_wa_msg)
-                        wa_invoice_link = f"https://wa.me/{c_phone_num}?text={encoded_invoice_msg}"
-                        st.markdown(f"💬 [إرسال الفاتورة عبر واتساب]({wa_invoice_link})", unsafe_allow_html=True)
-                    else:
-                        st.warning("⚠️ رقم هاتف الزبون غير مسجل.")
-                
-                debt_val = inv.get('remaining_amount', 0)
-                if debt_val > 0 and c_phone_num:
-                    reminder_msg = f"مرحباً بالاستاذ {inv['customer_name']},\nنود تذكيركم بوجود مبلغ دين مستحق بقيمة ({debt_val:,} د.ع) بالفاتورة رقم ({inv['invoice_code']}). شكراً لكم."
-                    encoded_rem_msg = urllib.parse.quote(reminder_msg)
-                    rem_link = f"https://wa.me/{c_phone_num}?text={encoded_rem_msg}"
-                    st.markdown(f"🔔 [تنبيه بخصوص الدين عبر واتساب]({rem_link})", unsafe_allow_html=True)
+                        pass
     else:
-        st.info("لا توجد فواتير مسجلة.")
+        st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 with tab8:
-    st.subheader("💰 صندوق الوردية اليومي والمصاريف")
-    with st.form("expense_form", clear_on_submit=True):
-        exp_title = st.text_input("بيان المصروف:")
+    st.subheader("💰 صندوق الوردية وتسجيل المصاريف اليومية")
+    with st.form("add_expense_form", clear_on_submit=True):
+        exp_title = st.text_input("بيان المصروف (مثلاً: إيجار، كهرباء، خط نقل):")
         exp_amount_str = st.text_input("مبلغ المصروف (د.ع):", "0")
         if st.form_submit_button("تسجيل المصروف"):
             if exp_title.strip():
                 try:
                     exp_amt = float(exp_amount_str.strip())
-                    st.session_state.expenses_list.append({
+                    st.session_state.expenses_list.insert(0, {
                         "البيان": str(exp_title.strip()),
-                        "المبلغ": int(exp_amt),
+                        "المبلغ": float(exp_amt),
                         "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                     })
-                    st.success("تم تسجيل المصروف!")
+                    log_audit("تسجيل مصروف", f"تم تسجيل مصروف {exp_title} بمبلغ {exp_amt}")
+                    st.success("تم تسجيل المصروف بنجاح!")
                     st.rerun()
                 except ValueError:
-                    st.error("مبلغ غير صحيح.")
+                    st.error("يرجى إدخال مبلغ صحيح.")
             else:
-                st.warning("أدخل بيان المصروف.")
-
-    try:
-        res_all_inv_box = supabase.table("invoices").select("total_price").eq("username", username).execute()
-        total_sales_all = sum(i['total_price'] for i in res_all_inv_box.data) if res_all_inv_box.data else 0
-    except:
-        total_sales_all = 0
-
-    total_expenses_all = sum(ex['المبلغ'] for ex in st.session_state.expenses_list) if st.session_state.expenses_list else 0
-    net_box_balance = total_sales_all - total_expenses_all
-
-    col_b1, col_b2, col_b3 = st.columns(3)
-    with col_b1:
-        st.metric("إجمالي المبيعات", f"{total_sales_all:,} د.ع")
-    with col_b2:
-        st.metric("إجمالي المصاريف", f"{total_expenses_all:,} د.ع")
-    with col_b3:
-        st.metric("صافي الصندوق", f"{net_box_balance:,} د.ع")
+                st.warning("يرجى إدخال بيان المصروف.")
 
     if st.session_state.expenses_list:
-        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
+        st.write("### قائمة المصاريف المسجلة:")
+        df_exp = pd.DataFrame(st.session_state.expenses_list)
+        st.dataframe(df_exp, use_container_width=True)
+        total_exp = sum(e["المبلغ"] for e in st.session_state.expenses_list)
+        st.markdown(f"### 📉 إجمالي المصاريف: **{total_exp:,.0f} د.ع**")
+    else:
+        st.info("لا توجد مصاريف مسجلة في هذه الوردية.")
 
 with tab9:
-    st.subheader("📊 الرسوم البيانية")
+    st.subheader("📊 الرسوم البيانية وتقارير الأرباح والمبيعات")
     try:
-        res_inv_charts = supabase.table("invoices").select("invoice_code, total_price").eq("username", username).execute()
-        chart_data = res_inv_charts.data if res_inv_charts.data else []
+        res_rep_inv = supabase.table("invoices").select("*").eq("username", username).execute()
+        rep_invoices = res_rep_inv.data if res_rep_inv.data else []
     except:
-        chart_data = []
+        rep_invoices = []
 
-    if chart_data:
-        df_inv_charts = pd.DataFrame(chart_data)
-        st.line_chart(df_inv_charts, x="invoice_code", y="total_price")
+    if rep_invoices:
+        df_rep = pd.DataFrame(rep_invoices)
+        total_sales_sum = df_rep['total_price'].sum()
+        total_cost_sum = df_rep.get('cost_price', pd.Series([0]*len(df_rep))).sum()
+        total_profit_sum = total_sales_sum - total_cost_sum
+
+        col_r1, col_r2, col_r3 = st.columns(3)
+        with col_r1:
+            st.metric("إجمالي المبيعات", f"{total_sales_sum:,.0f} د.ع")
+        with col_r2:
+            st.metric("إجمالي التكلفة", f"{total_cost_sum:,.0f} د.ع")
+        with col_r3:
+            st.metric("صافي الأرباح التقريبي", f"{total_profit_sum:,.0f} د.ع")
+
+        st.divider()
+        st.bar_chart(df_rep, x="invoice_code", y="total_price")
     else:
-        st.info("لا توجد بيانات كافية.")
+        st.info("لا توجد بيانات كافية لعرض الرسوم البيانية.")
 
 with tab10:
-    st.subheader("📜 سجل النشاطات")
+    st.subheader("📜 سجل النشاطات والعمليات (Audit Trail)")
     if st.session_state.audit_logs:
-        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
+        df_audit = pd.DataFrame(st.session_state.audit_logs)
+        st.dataframe(df_audit, use_container_width=True)
     else:
-        st.info("لا توجد نشاطات.")
+        st.info("لا توجد نشاطات مسجلة بعد.")
 
 with tab11:
-    st.subheader("📖 الدليل والمميزات")
+    st.subheader("📖 دليل الاستخدام ومميزات نظام Yasser Web")
     st.markdown("""
-    * **نظام Yasser Web**
-    * تمت إضافة تبويب خاص بسداد الديون ليتم حساب إجمالي ديون العميل من كل فواتيره وتصفيرها بكل سلاسة، مع ربط الفواتير بقاعدة البيانات لمنع ضياعها.
+    ### أهلاً بك في نظام Yasser Web الشامل لإدارة المحلات والشركات 🛍️
+    هذا النظام مصمم خصيصاً لتسهيل عمليات البيع، إدارة المخزون، متابعة العملاء والديون، وتوليد الفواتير والباركود بدقة وسهولة فائقة.
+
+    * **إدارة المخزن:** تتبع المواد، الأسعار، الكميات، والباركود مع حساب ربح القطعة تلقائياً.
+    * **العملاء والديون:** حفظ بيانات الزبائن ومتابعة الديون بدقة وتسديدها بشكل مرن.
+    * **الفواتير والواتساب:** إصدار فواتير رسمية وإرسالها مباشرة للعملاء عبر تطبيق واتساب.
+    * **النسخ الاحتياطي:** إمكانية تصدير كافة بياناتك بملف JSON آمن في أي وقت.
     """)
