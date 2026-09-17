@@ -481,6 +481,7 @@ with tab3:
 with tab4:
     st.subheader("💵 نظام سداد الديون والذمم للعملاء")
     
+    # جلب أسماء العملاء من قاعدة البيانات خارج الفورم لتجنب أي مشاكل بالتعليق
     try:
         res_cust_debt = supabase.table("customers").select("customer_name").eq("username", username).execute()
         debt_cust_list = [c["customer_name"] for c in res_cust_debt.data] if res_cust_debt.data else []
@@ -490,8 +491,10 @@ with tab4:
     if not debt_cust_list:
         st.warning("⚠️ لا توجد عملاء مسجلين حالياً. يرجى إضافة عميل أولاً من تبويب (إدارة العملاء).")
     else:
+        # **خانة اختيار العميل الأساسية والواضحة**
         selected_debt_customer = st.selectbox("📌 اختر اسم العميل (الزبون) لتسديد الديون:", debt_cust_list, key="debt_pay_cust_select")
         
+        # جلب كل الفواتير الخاصة بهذا العميل المحدد
         try:
             res_cust_invoices = supabase.table("invoices").select("*").eq("username", username).eq("customer_name", selected_debt_customer).execute()
             customer_invoices = res_cust_invoices.data if res_cust_invoices.data else []
@@ -511,6 +514,7 @@ with tab4:
         
         st.divider()
         
+        # نموذج سداد الديون خارج القائمة المنسدلة ليعمل بسلاسة تامة
         payment_input_str = st.text_input("أدخل المبلغ المراد تسديده (د.ع):", value="0", key="pay_amount_input_box")
         
         if st.button("💾 إتمام التسديد وتصفير الديون", type="primary"):
@@ -521,6 +525,7 @@ with tab4:
                 elif payment_val > total_customer_debt:
                     st.error("❌ المبلغ المدخل أكبر من إجمالي الدين المطلوب على العميل!")
                 else:
+                    # توزيع المبلغ المدخل على فواتير العميل تصاعدياً وتحديثها في قاعدة البيانات
                     remaining_payment = payment_val
                     for cinv in customer_invoices:
                         if remaining_payment <= 0:
@@ -599,7 +604,6 @@ with tab6:
         st.divider()
         st.markdown(f"### 💵 المجموع الكلي المطلوب: **{int(total_cart_price):,} د.ع**")
         
-        # **جلب أسماء العملاء خارج الفورم وبشكل واضح ومباشر**
         try:
             res_c_box = supabase.table("customers").select("customer_name").eq("username", username).execute()
             cust_names_list = [c["customer_name"] for c in res_c_box.data] if res_c_box.data else []
@@ -610,11 +614,11 @@ with tab6:
             st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (إدارة العملاء) لتتمكن من إتمام الفاتورة!")
             selected_customer_name = ""
         else:
-            selected_customer_name = st.selectbox("📌 اختر اسم الزبون للفاتورة:", cust_names_list, key="sales_customer_selectbox")
+            selected_customer_name = st.selectbox("اختر اسم الزبون للفاتورة:", cust_names_list)
         
         st.write("---")
         st.markdown("#### 💰 طريقة الدفع (أدخل المبلغ الواصل طبيعياً):")
-        paid_input_str = st.text_input("أدخل المبلغ الذي دفعه الزبون (د.ع):", value=str(int(total_cart_price)), key="sales_paid_amount_input")
+        paid_input_str = st.text_input("أدخل المبلغ الذي دفعه الزبون (د.ع):", value=str(int(total_cart_price)))
         
         try:
             paid_amount = float(paid_input_str.strip())
@@ -636,7 +640,7 @@ with tab6:
 
         if st.button("💾 إتمام البيع، خصم المخزن، وحفظ الفاتورة", type="primary"):
             if not selected_customer_name:
-                st.error("❌ خطأ: يرجى اختيار عميل مسجل لإتمام البيع.")
+                st.error("❌ خطأ: اختر عميلاً مسجلاً.")
             else:
                 try:
                     prod_names_str = []
@@ -810,5 +814,5 @@ with tab11:
     st.subheader("📖 الدليل والمميزات")
     st.markdown("""
     * **نظام Yasser Web**
-    * تم إصلاح خانات اختيار العملاء بشكل كامل في تبويبي (سداد الديون) و(إتمام البيع) لتظهر أسماء العملاء بوضوح وتتم عملية البيع والتسديد بسلاسة تامة.
+    * تم إصلاح وإضافة خانة اختيار العملاء بوضوح تام في تبويب سداد الديون لتظهر أسماء العملاء المسجلين وتوزيع المبالغ وتسويتها بدقة.
     """)
