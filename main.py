@@ -2,21 +2,8 @@ import streamlit as str_lit
 import pandas as pd
 from supabase import create_client, Client
 import datetime
-import io
 import json
 import urllib.parse
-
-try:
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.TTFont import TTFont
-    pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
-    ARABIC_FONT = 'Amiri'
-    REPORTLAB_AVAILABLE = True
-except Exception:
-    REPORTLAB_AVAILABLE = False
-    ARABIC_FONT = 'Helvetica'
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -35,17 +22,6 @@ str_lit.markdown("""
     input, select, textarea { direction: rtl; text-align: right; }
     </style>
 """, unsafe_allow_html=True)
-
-def format_arabic(text):
-    try:
-        import arabic_reshaper
-        from bidi.algorithm import get_display
-        if not text:
-            return ""
-        reshaped_text = arabic_reshaper.reshape(str(text))
-        return get_display(reshaped_text)
-    except:
-        return str(text)
 
 defaults = {
     "lang": "العربية",
@@ -79,59 +55,7 @@ def log_audit(action, details):
         "التفاصيل": str(details)
     })
 
-# دالة خزن وتوليد الـ PDF الداخلي
-def generate_pdf_invoice(inv):
-    if not REPORTLAB_AVAILABLE:
-        return None
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    
-    p.setFont(ARABIC_FONT, 14)
-    p.drawString(50, height - 40, format_arabic("YASSER WEB - فاتورة طلبية توصيل رسمية"))
-    p.setFont("Helvetica", 10)
-    p.drawString(width - 150, height - 40, f"Date: {inv['التاريخ']}")
-    
-    p.setStrokeColorRGB(0.3, 0.3, 0.3)
-    p.setLineWidth(1)
-    p.line(50, height - 50, width - 50, height - 50)
-    
-    p.setFont(ARABIC_FONT, 11)
-    p.drawString(50, height - 80, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
-    p.drawString(50, height - 105, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
-    p.drawString(50, height - 130, format_arabic(f"نوع وحالة الدفع: {inv['نوع الدفع']} ({inv['حالة الفاتورة واللون']})"))
-    
-    p.line(50, height - 145, width - 50, height - 145)
-    
-    p.drawString(50, height - 170, format_arabic("تفاصيل المنتجات والمواد المطلوبة:"))
-    text_y = height - 195
-    products_list_str = str(inv['المنتجات']).split(" , ")
-    for prod_line in products_list_str:
-        p.drawString(70, text_y, format_arabic(f"- {prod_line}"))
-        text_y -= 22
-        
-    text_y -= 10
-    p.line(50, text_y, width - 50, text_y)
-    text_y -= 30
-    
-    p.drawString(50, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"تكلفة البنزين والتوصيل (pbf): {inv.get('pbf', 0):,} دينار عراقي"))
-    
-    text_y -= 40
-    p.line(50, text_y, width - 50, text_y)
-    p.drawCentredString(width / 2.0, text_y - 30, format_arabic("شكراً لتعاملكم مع نظام Yasser Web لإدارة المبيعات والمخزن!"))
-    
-    p.showPage()
-    p.save()
-    buffer.seek(0)
-    return buffer
-
-# دالة توليد صفحة الطباعة المنفصلة (HTML/JS للطباعة المباشرة)
+# دالة لتوليد كود HTML جاهز للطباعة والحفظ كـ PDF من المتصفح مباشرة (بدون مشاكل اللغة العربية)
 def get_printable_invoice_html(inv):
     html_content = f"""
     <!DOCTYPE html>
@@ -529,7 +453,7 @@ with tabs[4]:
         str_lit.info("السلة فارغة.")
 
 with tabs[5]:
-    str_lit.subheader("📄 سجل الفواتير، سداد الديون، تحميل PDF، طباعة وواتساب")
+    str_lit.subheader("📄 سجل الفواتير، سداد الديون، طباعة الفواتير، وواتساب")
     
     if str_lit.session_state.invoices_list:
         table_display_data = []
@@ -571,26 +495,16 @@ with tabs[5]:
                             except: 
                                 pass
                 with c_i3:
-                    # 1. زر تحميل ملف الـ PDF المخزون بالنظام
-                    pdf_buf = generate_pdf_invoice(inv)
-                    if pdf_buf and REPORTLAB_AVAILABLE:
-                        str_lit.download_button(
-                            label="📥 تحميل فاتورة PDF",
-                            data=pdf_buf,
-                            file_name=f"Inv_{inv['رقم الفاتورة']}.pdf",
-                            mime="application/pdf",
-                            key=f"pdf_btn_{idx_i}"
-                        )
-                    
-                    # 2. زر منفصل للطباعة المباشرة عبر المتصفح
+                    # زر طباعة وتصدير PDF دقيق عبر المتصفح بدون مشاكل الحروف المقلوبة
                     html_code = get_printable_invoice_html(inv)
                     str_lit.download_button(
-                        label="🖨️ طباعة الفاتورة عبر المتصفح",
+                        label="🖨️ طباعة / حفظ فاتورة PDF",
                         data=html_code,
-                        file_name=f"Print_{inv['رقم الفاتورة']}.html",
+                        file_name=f"Invoice_{inv['رقم الفاتورة']}.html",
                         mime="text/html",
                         key=f"print_html_{idx_i}"
                     )
+                    str_lit.caption("💡 ملاحظة: ملف الـ HTML يفتح بمتصفحك واضغط (Ctrl+P) ثم اختر حفظ كـ PDF ليظهر بشكل عربي مرتب 100%.")
                     
                     matched_cust = next((c for c in str_lit.session_state.customer_list if c['اسم العميل'] == inv['الزبون']), None)
                     default_phone = matched_cust['رقم الهاتف'] if matched_cust and 'رقم الهاتف' in matched_cust else ""
