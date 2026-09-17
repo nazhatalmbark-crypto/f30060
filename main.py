@@ -42,6 +42,7 @@ def format_arabic(text):
         from bidi.algorithm import get_display
         if not text:
             return ""
+        # تصحيح وإعادة تشكيل الحروف العربية والإنجليزية والأرقام لتظهر بصورة صحيحة في الـ PDF
         reshaped_text = arabic_reshaper.reshape(str(text))
         return get_display(reshaped_text)
     except:
@@ -86,48 +87,45 @@ def generate_pdf_invoice(inv):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # رأس الفاتورة - ترتيب مباشر وواضح
-    p.setFont(ARABIC_FONT, 14)
-    p.drawString(50, height - 40, format_arabic("YASSER WEB - فاتورة طلبية توصيل رسمية"))
+    # رأس الفاتورة الاحترافي
+    p.setFont(ARABIC_FONT, 16)
+    p.drawString(width - 250, height - 50, format_arabic("YASSER WEB - فاتورة طلبية توصيل رسمية"))
     p.setFont("Helvetica", 10)
-    p.drawString(width - 150, height - 40, f"Date: {inv['التاريخ']}")
+    p.drawString(50, height - 50, f"Date: {inv['التاريخ']}")
     
-    p.setStrokeColorRGB(0.3, 0.3, 0.3)
+    p.setStrokeColorRGB(0.2, 0.2, 0.2)
     p.setLineWidth(1)
-    p.line(50, height - 50, width - 50, height - 50)
+    p.line(50, height - 65, width - 50, height - 65)
     
-    # معلومات الزبون والفاتورة
-    p.setFont(ARABIC_FONT, 11)
-    p.drawString(50, height - 80, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
-    p.drawString(50, height - 105, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
-    p.drawString(50, height - 130, format_arabic(f"نوع وحالة الدفع: {inv['نوع الدفع']} ({inv['حالة الفاتورة واللون']})"))
+    p.setFont(ARABIC_FONT, 12)
+    p.drawString(width - 200, height - 95, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
+    p.drawString(width - 200, height - 120, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
+    p.drawString(width - 200, height - 145, format_arabic(f"طريقة وحالة الدفع: {inv['نوع الدفع']}"))
     
-    p.line(50, height - 145, width - 50, height - 145)
+    p.line(50, height - 165, width - 50, height - 165)
+    p.drawString(width - 250, height - 195, format_arabic("تفاصيل المنتجات والمواد المطلوبة:"))
     
-    # تفاصيل المنتجات
-    p.drawString(50, height - 170, format_arabic("تفاصيل المنتجات والمواد المطلوبة:"))
-    text_y = height - 195
+    text_y = height - 225
     products_list_str = str(inv['المنتجات']).split(" , ")
     for prod_line in products_list_str:
-        p.drawString(70, text_y, format_arabic(f"- {prod_line}"))
-        text_y -= 22
+        p.drawString(width - 270, text_y, format_arabic(f"- {prod_line}"))
+        text_y -= 25
         
     text_y -= 10
     p.line(50, text_y, width - 50, text_y)
-    text_y -= 30
+    text_y -= 35
     
-    # المجاميع المالية وتكلفة التوصيل
-    p.drawString(50, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
-    text_y -= 22
-    p.drawString(50, text_y, format_arabic(f"تكلفة البنزين والتوصيل (pbf): {inv.get('pbf', 0):,} دينار عراقي"))
+    p.drawString(width - 250, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
+    text_y -= 25
+    p.drawString(width - 250, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
+    text_y -= 25
+    p.drawString(width - 250, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
+    text_y -= 25
+    p.drawString(width - 250, text_y, format_arabic(f"تكلفة البنزين والتوصيل (pbf): {inv.get('pbf', 0):,} دينار عراقي"))
     
-    text_y -= 40
+    text_y -= 45
     p.line(50, text_y, width - 50, text_y)
-    p.drawCentredString(width / 2.0, text_y - 30, format_arabic("شكراً لتعاملكم مع نظام Yasser Web لإدارة المبيعات والمخزن!"))
+    p.drawCentredString(width / 2.0, text_y - 35, format_arabic("شكراً لتعاملكم مع نظام Yasser Web لإدارة المبيعات والمخزن!"))
     
     p.showPage()
     p.save()
