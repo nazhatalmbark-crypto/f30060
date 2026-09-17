@@ -57,14 +57,14 @@ lang_dict = {
             "➕ إضافة مادة جديدة", 
             "📦 جرد المخزن والباركود", 
             "👥 إدارة العملاء والديون", 
-            "💵 سداد الديون",
+            "💸 وصل سداد",
             "🏭 إدارة الموردين",
             "🛒 إتمام البيع والفواتير", 
             "📄 سجل الفواتير وواتساب", 
             "💰 صندوق الوردية والمصاريف", 
             "📊 الرسوم البيانية والتقارير",
             "📜 سجل النشاطات (Audit Trail)",
-            "📖 دليل الاستخدام والمميزات والدعم"
+            "📖 دليل الاستخدام والدعم"
         ]
     }
 }
@@ -479,7 +479,7 @@ with tab3:
         st.info("لا يوجد عملاء مسجلين حالياً.")
 
 with tab4:
-    st.subheader("💵 نظام سداد الديون والذمم للعملاء")
+    st.subheader("💸 وصل سداد (إصدار وصل تسديد وتحديث حساب العميل)")
     try:
         res_cust_debt = supabase.table("customers").select("customer_name").eq("username", username).execute()
         debt_cust_list = [c["customer_name"] for c in res_cust_debt.data] if res_cust_debt.data else []
@@ -487,68 +487,62 @@ with tab4:
         debt_cust_list = []
 
     if not debt_cust_list:
-        st.info("لا توجد عملاء مسجلين لعرض الديون.")
+        st.info("لا توجد عملاء مسجلين حالياً لتسديد الديون. يرجى إضافة عميل من تبويب إدارة العملاء أولاً.")
     else:
-        selected_debt_customer = st.selectbox("اختر اسم العميل لتسديد الديون:", debt_cust_list, key="debt_pay_cust_select")
-        
-        try:
-            res_cust_invoices = supabase.table("invoices").select("*").eq("username", username).eq("customer_name", selected_debt_customer).execute()
-            customer_invoices = res_cust_invoices.data if res_cust_invoices.data else []
-        except:
-            customer_invoices = []
-
-        total_customer_debt = sum(inv.get('remaining_amount', 0) for inv in customer_invoices)
-        
-        st.markdown(f"### 📌 إجمالي الدين الكلي على العميل (`{selected_debt_customer}`): **{int(total_customer_debt):,} د.ع**")
-        
-        if customer_invoices:
-            with st.expander("📄 عرض تفاصيل الفواتير المسجلة على هذا العميل"):
-                for cinv in customer_invoices:
-                    st.write(f"- **رقم الفاتورة:** {cinv['invoice_code']} | **المبلغ الكلي:** {cinv['total_price']:,} د.ع | **الواصل:** {cinv['paid_amount']:,} د.ع | **المتبقي:** `{cinv['remaining_amount']:,}` د.ع | **التاريخ:** {cinv['created_date']}")
-        
-        st.divider()
-        with st.form("pay_debt_form"):
-            payment_input_str = st.text_input("أدخل المبلغ المراد تسديده (د.ع):", "0")
-            pay_submitted = st.form_submit_button("إتمام التسديد وتصفير الديون", type="primary")
+        with st.form("receipt_payment_form"):
+            selected_pay_customer = st.selectbox("اختر اسم الزبون / المحل المسجل:", debt_cust_list)
+            payment_amt_str = st.text_input("أدخل المبلغ المراد تسديده (د.ع):", "0")
+            receipt_submitted = st.form_submit_button("إصدار وصل السداد وخصم المبلغ", type="primary")
             
-            if pay_submitted:
+            if receipt_submitted:
                 try:
-                    payment_val = float(payment_input_str.strip())
-                    if payment_val <= 0:
+                    pay_amount_val = float(payment_amt_str.strip())
+                    if pay_amount_val <= 0:
                         st.warning("يرجى إدخال مبلغ صالح أكبر من الصفر.")
-                    elif payment_val > total_customer_debt:
-                        st.error("❌ المبلغ المدخل أكبر من إجمالي الدين المطلوب على العميل!")
                     else:
-                        remaining_payment = payment_val
-                        for cinv in customer_invoices:
-                            if remaining_payment <= 0:
-                                break
-                            curr_rem = cinv.get('remaining_amount', 0)
-                            if curr_rem > 0:
-                                if remaining_payment >= curr_rem:
-                                    new_paid = cinv['total_price']
-                                    new_rem = 0
-                                    new_type = "🟢 نقد بالكامل (كاش)"
-                                    remaining_payment -= curr_rem
-                                else:
-                                    new_paid = cinv['paid_amount'] + remaining_payment
-                                    new_rem = curr_rem - remaining_payment
-                                    new_type = "🔵 دفعة جزئية (أقساط)"
-                                    remaining_payment = 0
-                                
-                                supabase.table("invoices").update({
-                                    "paid_amount": int(new_paid),
-                                    "remaining_amount": int(new_rem),
-                                    "payment_type": str(new_type)
-                                }).eq("id", cinv["id"]).execute()
+                        try:
+                            res_c_inv = supabase.table("invoices").select("*").eq("username", username).eq("customer_name", selected_pay_customer).execute()
+                            cust_invs = res_c_inv.data if res_c_inv.data else []
+                        except:
+                            cust_invs = []
                         
-                        log_audit("سداد ديون", f"تم تسديد مبلغ {payment_val:,} د.ع للعميل {selected_debt_customer}")
-                        st.success(f"🎉 تم تسديد مبلغ {payment_val:,.0f} دينار بنجاح وتحديث حساب العميل والفواتير!")
-                        st.rerun()
+                        total_curr_debt = sum(inv.get('remaining_amount', 0) for inv in cust_invs)
+                        
+                        if total_curr_debt <= 0:
+                            st.warning(f"⚠️ العميل (`{selected_pay_customer}`) ليس عليه ديون مسجلة حالياً.")
+                        elif pay_amount_val > total_curr_debt:
+                            st.error(f"❌ المبلغ المدخل ({pay_amount_val:,.0f} د.ع) أكبر من إجمالي الدين المطلوب على العميل والمقدر بـ ({total_curr_debt:,.0f} د.ع)!")
+                        else:
+                            rem_to_pay = pay_amount_val
+                            for cinv in cust_invs:
+                                if rem_to_pay <= 0:
+                                    break
+                                curr_rem = cinv.get('remaining_amount', 0)
+                                if curr_rem > 0:
+                                    if rem_to_pay >= curr_rem:
+                                        new_paid = cinv['total_price']
+                                        new_rem = 0
+                                        new_type = "🟢 نقد بالكامل (كاش)"
+                                        rem_to_pay -= curr_rem
+                                    else:
+                                        new_paid = cinv['paid_amount'] + rem_to_pay
+                                        new_rem = curr_rem - rem_to_pay
+                                        new_type = "🔵 دفعة جزئية (أقساط)"
+                                        rem_to_pay = 0
+                                    
+                                    supabase.table("invoices").update({
+                                        "paid_amount": int(new_paid),
+                                        "remaining_amount": int(new_rem),
+                                        "payment_type": str(new_type)
+                                    }).eq("id", cinv["id"]).execute()
+                            
+                            log_audit("إصدار وصل سداد", f"تم إصدار وصل سداد بقيمة {pay_amount_val:,.0f} د.ع للعميل {selected_pay_customer}")
+                            st.success(f"🎉 تم إصدار وصل السداد بنجاح! تم خصم مبلغ {pay_amount_val:,.0f} د.ع من حساب الزبون ({selected_pay_customer}).")
+                            st.balloons()
                 except ValueError:
-                    st.error("❌ يرجى إدخال رقم صحيح للمبلغ.")
+                    st.error("❌ يرجى إدخال أرقام صحيحة للمبلغ.")
                 except Exception as e:
-                    st.error(f"❌ خطأ في عملية التسديد: {e}")
+                    st.error(f"❌ خطأ أثناء معالجة وصل السداد: {e}")
 
 with tab5:
     st.subheader("🏭 إدارة الموردين")
@@ -604,7 +598,7 @@ with tab6:
             cust_names_list = []
             
         if not cust_names_list:
-            st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (إدارة العملاء) لتتمكن من إتمام الفاتورة!")
+            st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (إدارة العملاء والديون) لتتمكن من إتمام الفاتورة!")
             selected_customer_name = ""
         else:
             selected_customer_name = st.selectbox("اختر اسم الزبون:", cust_names_list)
@@ -783,13 +777,56 @@ with tab10:
         st.info("لا توجد نشاطات مسجلة بعد.")
 
 with tab11:
-    st.subheader("📖 دليل الاستخدام ومميزات نظام Yasser Web")
+    st.subheader("📖 دليل الاستخدام الشامل لموقع وطبقات Yasser Web والدعم الفني")
     st.markdown("""
-    ### أهلاً بك في نظام Yasser Web الشامل لإدارة المحلات والشركات 🛍️
-    هذا النظام مصمم خصيصاً لتسهيل عمليات البيع، إدارة المخزون، متابعة العملاء والديون، وتوليد الفواتير والباركود بدقة وسهولة فائقة.
+    أهلاً بك عزيزي المستخدم في الدليل الشامل لنظام **Yasser Web** لإدارة المبيعات والمخازن. تم تصميم هذا النظام خصيصاً ليكون مساعدك الذكي في إدارة محلك أو شركتك بكل احترافية وسهولة. إليك شرحاً تفصيلياً لجميع تبويبات وأقسام النظام من البداية وحتى النهاية:
 
-    * **إدارة المخزن:** تتبع المواد، الأسعار، الكميات، والباركود مع حساب ربح القطعة تلقائياً.
-    * **العملاء والديون:** حفظ بيانات الزبائن ومتابعة الديون بدقة وتسديدها بشكل مرن.
-    * **الفواتير والواتساب:** إصدار فواتير رسمية وإرسالها مباشرة للعملاء عبر تطبيق واتساب.
-    * **النسخ الاحتياطي:** إمكانية تصدير كافة بياناتك بملف JSON آمن في أي وقت.
+    ---
+
+    ### 📑 شرح تفصيلي لتبويبات النظام (من الأول إلى الأخير):
+
+    1. **➕ إضافة مادة جديدة:**
+       * **العمل الوظيفي:** مخصص لإدخال البضائع والمنتجات الجديدة إلى المخزن.
+       * **الحقول المطلوبة:** اسم المادة، اللون أو المواصفات، القياس أو السعة، سعر الشراء، سعر البيع، الكمية المتوفرة، ورمز الباركود. يحسب النظام ربح القطعة الواحدة بشكل تلقائي.
+
+    2. **📦 جرد المخزن والباركود:**
+       * **العمل الوظيفي:** لوحة تحكم كاملة لعرض جميع المواد المخزنة، مع إمكانية البحث السريع بالاسم أو رمز الباركود.
+       * **المميزات:** توليد وتخزين باركود خاص لكل مادة، والتنبيه التلقائي في حال اقتراب نفاد أي مادة من المخزن.
+
+    3. **👥 إدارة العملاء والديون:**
+       * **العمل الوظيفي:** قاعدة بيانات متكاملة لتسجيل وحفظ معلومات الزبائن (الاسم، رقم الهاتف، المحافظة، العنوان، وملاحظات خاصة) مع حفظها بشكل دائم في السحابة.
+
+    4. **💸 وصل سداد:**
+       * **العمل الوظيفي:** مخصص لتسجيل وإصدار وصل سداد مالي للزبائن المدينين.
+       * **طريقة الاستخدام:** اختر اسم الزبون أو المحل من قائمة العملاء المسجلين مسبقاً، ثم أدخل المبلغ المراد تسديده. سيقوم النظام فوراً بخصم هذا المبلغ من إجمالي الديون المترتبة على الزبون وتحديث فواتيره تلقائياً.
+
+    5. **🏭 إدارة الموردين:**
+       * **العمل الوظيفي:** نافذة مخصصة لحفظ وتنسيق بيانات الموردين الذين تتعامل معهم، بما يتضمن أساّء الشركات أو الأشخاص وأرقام هواتفهم وتخصصاتهم.
+
+    6. **🛒 إتمام البيع والفواتير:**
+       * **العمل الوظيفي:** سلة المبيعات الذكية. تتيح لك اختيار المواد المضافة، تعديل الكميات، واختيار اسم الزبون المسجل.
+       * **الذكاء المالي:** يتيح لك إدخال المبلغ الواصل من الزبون، ليحدد النظام تلقائياً ما إذا كانت الفاتورة (نقداً بالكامل، دين كامل، أو دفعة جزئية/أقساط) مع خصم الكميات من المخزن فوراً.
+
+    7. **📄 سجل الفواتير وواتساب:**
+       * **العمل الوظيفي:** أرشيف كامل لكل الفواتير المصدرة.
+       * **المميزات:** عرض الفاتورة بتنسيق HTML احترافي وجاهز للطباعة أو اللصق على شحنات التوصيل، بالإضافة إلى زر تفاعلي لإرسال تفاصيل الفاتورة للزبون مباشرة عبر تطبيق **واتساب**.
+
+    8. **💰 صندوق الوردية والمصاريف:**
+       * **العمل الوظيفي:** لمتابعة النثريات والمصاريف اليومية للمحل (مثل أجور الإيجار، الكهرباء، الخطوط والنقل). يعرض إجمالي المصاريف المسجلة في الوردية بدقة.
+
+    9. **📊 الرسوم البيانية والتقارير:**
+       * **العمل الوظيفي:** لوحة تحليلات مرئية تعرض إجمالي المبيعات، إجمالي التكاليف، صافي الأرباح التقريبي، ورسوماً بيانية توضح حركة المبيعات عبر الفواتير.
+
+    10. **📜 سجل النشاطات (Audit Trail):**
+        * **العمل الوظيفي:** سجل رقابي يسجل كل العمليات التي تمت في النظام (تسجيل دخول، إضافة منتج، إتمام بيع، إصدار وصل سداد) مع توقيتها واسم المستخدم لضمان الأمان والمتابعة.
+
+    11. **📖 دليل الاستخدام والدعم (هذا التبويب):**
+        * **العمل الوظيفي:** مرجعك الشامل لفهم آلية عمل كافة أجزاء وميزات المنظومة.
+
+    ---
+
+    ### 📞 التواصل والدعم الفني:
+    إذا واجهتك أي مشكلة برمجية، خطأ تقني، أو احتجت لتعديل معين داخل النظام، يسعدني جداً تواصلك معي مباشرة عبر حسابي على إنستغرام:
+    
+    👉 **[تواصل معي عبر إنستغرام (Instagram)](https://www.instagram.com/ysr_201_/)** 📱
     """)
