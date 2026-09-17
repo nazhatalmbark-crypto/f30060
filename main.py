@@ -363,7 +363,7 @@ with tabs[2]:
     with str_lit.form("add_cust_f_clean", clear_on_submit=True):
         c1, c2, c3 = str_lit.columns(3)
         with c1: c_name = str_lit.text_input("اسم العميل:")
-        with c2: c_phone = str_lit.text_input("رقم الهاتف (مع مفتاح الدولة مثلاً 9647...):")
+        with c2: c_phone = str_lit.text_input("رقم الهاتف:")
         with c3: c_gov = str_lit.selectbox("المحافظة:", iraq_govs)
         
         if str_lit.form_submit_button("تسجيل بيانات العميل"):
@@ -459,7 +459,7 @@ with tabs[5]:
     str_lit.subheader("📄 سجل الفواتير، سداد الديون، PDF، وواتساب")
     
     if str_lit.session_state.invoices_list:
-        # عرض جدول منسق لجميع الفواتير مع خانة البنزين (pbf) لفتح جدول واضح
+        # عرض جدول منسق أولاً لجميع الفواتير مع خانة البنزين (pbf) لفتح جدول واضح
         table_display_data = []
         for inv in str_lit.session_state.invoices_list:
             table_display_data.append({
@@ -475,15 +475,14 @@ with tabs[5]:
         str_lit.dataframe(pd.DataFrame(table_display_data), use_container_width=True)
         str_lit.divider()
 
-        # تفاصيل الفواتير مع أزرار PDF، وإدخال رقم هاتف واتساب يدوي إذا لم يكن مخزناً، وسداد الديون
+        # تفاصيل الفواتير مع أزرار PDF وواتساب والسداد
         for idx_i, inv in enumerate(reversed(str_lit.session_state.invoices_list)):
             with str_lit.container(border=True):
                 c_i1, c_i2, c_i3 = str_lit.columns([2, 2, 2])
                 with c_i1:
-                    str_lit.markdown(f"#### {inv['رقم الفاتورة']} | الزبون: {inv['الزبون']}")
+                    str_lit.markdown(f"#### {inv['رقم الفاتورة']} | {inv['الزبون']}")
                     str_lit.write(f"الحالة: {inv['حالة الفاتورة واللون']} | المجموع: **{inv['المبلغ الكلي']:,}** د.ع")
                     str_lit.write(f"المتبقي (دين): **{inv['المتبقي (الدين)']:,}** د.ع | بنزين (pbf): **{inv.get('pbf', 0):,}** د.ع")
-                    str_lit.write(f"المنتجات: {inv['المنتجات']}")
                 with c_i2:
                     if inv['المتبقي (الدين)'] > 0:
                         pay_more = str_lit.text_input("سداد مبلغ إضافي:", "0", key=f"pm_{idx_i}")
@@ -504,17 +503,10 @@ with tabs[5]:
                     if pdf_buf and REPORTLAB_AVAILABLE:
                         str_lit.download_button("📥 تحميل فاتورة PDF", pdf_buf, f"Inv_{inv['رقم الفاتورة']}.pdf", "application/pdf", key=f"pdf_btn_{idx_i}")
                     
-                    # البحث عن رقم الهاتف في قائمة العملاء، وإن لم يوجد نطلب إدخاله يدوياً فوراً
-                    matched_cust = next((c for c in str_lit.session_state.customer_list if c['اسم العميل'] == inv['الزبون']), None)
-                    default_phone = matched_cust['رقم الهاتف'] if matched_cust and 'رقم الهاتف' in matched_cust else ""
-                    
-                    w_phone = str_lit.text_input(f"رقم هاتف الواتساب لـ {inv['الزبون']}:", value=default_phone, key=f"wphone_{idx_i}")
-                    
-                    if w_phone.strip():
-                        msg = urllib.parse.quote(f"مرحباً بك يا أستاذ {inv['الزبون']},\n\nإليك تفاصيل فاتورتك ({inv['رقم الفاتورة']}):\n- المنتجات: {inv['المنتجات']}\n- المبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع\n- الواصل: {inv['الواصل']:,} د.ع\n- المتبقي (الدين): {inv['المتبقي (الدين)']:,} د.ع\n- تكلفة النقل/البنزين (pbf): {inv.get('pbf', 0):,} د.ع\n\nشكراً لتعاملكم معنا في نظام Yasser Web!")
-                        str_lit.markdown(f"[💬 اضغط هنا للإرسال عبر واتساب مباشرة](https://wa.me/{w_phone.strip()}?text={msg})", unsafe_allow_html=True)
-                    else:
-                        str_lit.warning("⚠️ أدخل رقم الهاتف لتفعيل رابط واتساب.")
+                    phone_f = next((c['رقم الهاتف'] for c in str_lit.session_state.customer_list if c['اسم العميل'] == inv['الزبون']), "")
+                    if phone_f:
+                        msg = urllib.parse.quote(f"مرحباً {inv['الزبون']},\nتفاصيل فاتورتك ({inv['رقم الفاتورة']}):\nالمبلغ الكلي: {inv['المبلغ الكلي']:,} د.ع\nالمتبقي بذمتك: {inv['المتبقي (الدين)']:,} د.ع\nتكلفة البنزين: {inv.get('pbf', 0):,} د.ع\nشكراً لتعاملكم معنا!")
+                        str_lit.markdown(f"[💬 إرسال واتساب](https://wa.me/{phone_f}?text={msg})", unsafe_allow_html=True)
     else:
         str_lit.info("لا توجد فواتير مسجلة.")
 
