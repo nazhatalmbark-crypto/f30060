@@ -42,9 +42,7 @@ def format_arabic(text):
         from bidi.algorithm import get_display
         if not text:
             return ""
-        # تصحيح وإعادة تشكيل الحروف العربية والإنجليزية والأرقام لتظهر بصورة صحيحة في الـ PDF
-        reshaped_text = arabic_reshaper.reshape(str(text))
-        return get_display(reshaped_text)
+        return get_display(arabic_reshaper.reshape(str(text)))
     except:
         return str(text)
 
@@ -87,41 +85,38 @@ def generate_pdf_invoice(inv):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # رأس الفاتورة الاحترافي
-    p.setFont(ARABIC_FONT, 16)
-    p.drawString(width - 250, height - 50, format_arabic("YASSER WEB - فاتورة طلبية توصيل رسمية"))
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, height - 50, "YASSER WEB - فاتورة مبيعات رسمية مفصلة")
     p.setFont("Helvetica", 10)
-    p.drawString(50, height - 50, f"Date: {inv['التاريخ']}")
+    p.drawString(width - 200, height - 50, f"Date: {inv['التاريخ']}")
     
     p.setStrokeColorRGB(0.2, 0.2, 0.2)
     p.setLineWidth(1)
     p.line(50, height - 65, width - 50, height - 65)
     
     p.setFont(ARABIC_FONT, 12)
-    p.drawString(width - 200, height - 95, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
-    p.drawString(width - 200, height - 120, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
-    p.drawString(width - 200, height - 145, format_arabic(f"طريقة وحالة الدفع: {inv['نوع الدفع']}"))
+    p.drawString(50, height - 95, format_arabic(f"رقم الفاتورة: {inv['رقم الفاتورة']}"))
+    p.drawString(50, height - 120, format_arabic(f"اسم الزبون: {inv['الزبون']}"))
+    p.drawString(50, height - 145, format_arabic(f"نوع الدفع: {inv['نوع الدفع']}"))
     
     p.line(50, height - 165, width - 50, height - 165)
-    p.drawString(width - 250, height - 195, format_arabic("تفاصيل المنتجات والمواد المطلوبة:"))
+    p.drawString(50, height - 195, format_arabic("تفاصيل المنتجات والمواد المباعة:"))
     
     text_y = height - 225
-    products_list_str = str(inv['المنتجات']).split(" , ")
-    for prod_line in products_list_str:
-        p.drawString(width - 270, text_y, format_arabic(f"- {prod_line}"))
+    for prod_line in str(inv['المنتجات']).split(" , "):
+        p.drawString(70, text_y, format_arabic(f">> {prod_line}"))
         text_y -= 25
         
     text_y -= 10
     p.line(50, text_y, width - 50, text_y)
     text_y -= 35
-    
-    p.drawString(width - 250, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
+    p.drawString(50, text_y, format_arabic(f"المبلغ الكلي: {inv['المبلغ الكلي']:,} دينار عراقي"))
     text_y -= 25
-    p.drawString(width - 250, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
+    p.drawString(50, text_y, format_arabic(f"المبلغ الواصل: {inv['الواصل']:,} دينار عراقي"))
     text_y -= 25
-    p.drawString(width - 250, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
+    p.drawString(50, text_y, format_arabic(f"المتبقي (الدين): {inv['المتبقي (الدين)']:,} دينار عراقي"))
     text_y -= 25
-    p.drawString(width - 250, text_y, format_arabic(f"تكلفة البنزين والتوصيل (pbf): {inv.get('pbf', 0):,} دينار عراقي"))
+    p.drawString(50, text_y, format_arabic(f"تكلفة البنزين (pbf): {inv.get('pbf', 0):,} دينار عراقي"))
     
     text_y -= 45
     p.line(50, text_y, width - 50, text_y)
@@ -422,7 +417,7 @@ with tabs[4]:
         
         paid_val = total_price if pay_t == "نقد (كاش)" else (0 if pay_t == "آجل (دين)" else float(str_lit.text_input("المبلغ الواصل:", "0") or 0))
         rem_val = total_price - paid_val
-        pbf_val = float(str_lit.text_input("تكلفة البنزين والتوصيل (pbf):", "0") or 0)
+        pbf_val = float(str_lit.text_input("تكلفة البنزين (pbf):", "0") or 0)
 
         if str_lit.button("💾 إتمام البيع وحفظ الفاتورة", type="primary"):
             if c_opts == ["لا توجد عملاء"] or not str_lit.session_state.customer_list:
@@ -432,7 +427,7 @@ with tabs[4]:
                     p_str_list = []
                     tot_cost = 0
                     for ci in str_lit.session_state.cart:
-                        p_str_list.append(f"{ci['product_name']} - الكمية: {ci['qty']}")
+                        p_str_list.append(f"{ci['product_name']} [Qty: {ci['qty']}]")
                         tot_cost += (ci['buy_price'] * ci['qty'])
                         
                         db_q = supabase.table("products").select("quantity").eq("id", ci["id"]).execute().data[0]["quantity"]
@@ -464,6 +459,7 @@ with tabs[5]:
     str_lit.subheader("📄 سجل الفواتير، سداد الديون، PDF، وواتساب")
     
     if str_lit.session_state.invoices_list:
+        # عرض جدول منسق لجميع الفواتير مع خانة البنزين (pbf) لفتح جدول واضح
         table_display_data = []
         for inv in str_lit.session_state.invoices_list:
             table_display_data.append({
@@ -479,6 +475,7 @@ with tabs[5]:
         str_lit.dataframe(pd.DataFrame(table_display_data), use_container_width=True)
         str_lit.divider()
 
+        # تفاصيل الفواتير مع أزرار PDF، وإدخال رقم هاتف واتساب يدوي إذا لم يكن مخزناً، وسداد الديون
         for idx_i, inv in enumerate(reversed(str_lit.session_state.invoices_list)):
             with str_lit.container(border=True):
                 c_i1, c_i2, c_i3 = str_lit.columns([2, 2, 2])
@@ -507,6 +504,7 @@ with tabs[5]:
                     if pdf_buf and REPORTLAB_AVAILABLE:
                         str_lit.download_button("📥 تحميل فاتورة PDF", pdf_buf, f"Inv_{inv['رقم الفاتورة']}.pdf", "application/pdf", key=f"pdf_btn_{idx_i}")
                     
+                    # البحث عن رقم الهاتف في قائمة العملاء، وإن لم يوجد نطلب إدخاله يدوياً فوراً
                     matched_cust = next((c for c in str_lit.session_state.customer_list if c['اسم العميل'] == inv['الزبون']), None)
                     default_phone = matched_cust['رقم الهاتف'] if matched_cust and 'رقم الهاتف' in matched_cust else ""
                     
