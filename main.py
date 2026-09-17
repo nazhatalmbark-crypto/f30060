@@ -480,8 +480,6 @@ with tab3:
 
 with tab4:
     st.subheader("💵 نظام سداد الديون والذمم للعملاء")
-    
-    # جلب أسماء العملاء من قاعدة البيانات خارج الفورم لتجنب أي مشاكل بالتعليق
     try:
         res_cust_debt = supabase.table("customers").select("customer_name").eq("username", username).execute()
         debt_cust_list = [c["customer_name"] for c in res_cust_debt.data] if res_cust_debt.data else []
@@ -489,12 +487,11 @@ with tab4:
         debt_cust_list = []
 
     if not debt_cust_list:
-        st.warning("⚠️ لا توجد عملاء مسجلين حالياً. يرجى إضافة عميل أولاً من تبويب (إدارة العملاء).")
+        st.info("لا توجد عملاء مسجلين لعرض الديون.")
     else:
-        # **خانة اختيار العميل الأساسية والواضحة**
-        selected_debt_customer = st.selectbox("📌 اختر اسم العميل (الزبون) لتسديد الديون:", debt_cust_list, key="debt_pay_cust_select")
+        selected_debt_customer = st.selectbox("اختر اسم العميل لتسديد الديون:", debt_cust_list, key="debt_pay_cust_select")
         
-        # جلب كل الفواتير الخاصة بهذا العميل المحدد
+        # جلب كل الفواتير الخاصة بهذا العميل
         try:
             res_cust_invoices = supabase.table("invoices").select("*").eq("username", username).eq("customer_name", selected_debt_customer).execute()
             customer_invoices = res_cust_invoices.data if res_cust_invoices.data else []
@@ -503,59 +500,59 @@ with tab4:
 
         total_customer_debt = sum(inv.get('remaining_amount', 0) for inv in customer_invoices)
         
-        st.info(f"📊 إجمالي الدين الكلي المترتب على العميل **{selected_debt_customer}** عبر كافة فواتيره: **{int(total_customer_debt):,} د.ع**")
+        st.markdown(f"### 📌 إجمالي الدين الكلي على العميل (`{selected_debt_customer}`): **{int(total_customer_debt):,} د.ع**")
         
         if customer_invoices:
-            with st.expander("📄 عرض تفاصيل فواتير هذا العميل"):
+            with st.expander("📄 عرض تفاصيل الفواتير المسجلة على هذا العميل"):
                 for cinv in customer_invoices:
-                    st.write(f"- **رقم الفاتورة:** {cinv['invoice_code']} | **المبلغ الكلي:** {cinv['total_price']:,} د.ع | **الواصل:** {cinv['paid_amount']:,} د.ع | **المتبقي (الدين):** `{cinv['remaining_amount']:,}` د.ع | **التاريخ:** {cinv['created_date']}")
-        else:
-            st.info("لا توجد فواتير مسجلة لهذا العميل حالياً.")
+                    st.write(f"- **رقم الفاتورة:** {cinv['invoice_code']} | **المبلغ الكلي:** {cinv['total_price']:,} د.ع | **الواصل:** {cinv['paid_amount']:,} د.ع | **المتبقي:** `{cinv['remaining_amount']:,}` د.ع | **التاريخ:** {cinv['created_date']}")
         
         st.divider()
-        
-        # نموذج سداد الديون خارج القائمة المنسدلة ليعمل بسلاسة تامة
-        payment_input_str = st.text_input("أدخل المبلغ المراد تسديده (د.ع):", value="0", key="pay_amount_input_box")
-        
-        if st.button("💾 إتمام التسديد وتصفير الديون", type="primary"):
-            try:
-                payment_val = float(payment_input_str.strip())
-                if payment_val <= 0:
-                    st.warning("⚠️ يرجى إدخال مبلغ صالح أكبر من الصفر.")
-                elif payment_val > total_customer_debt:
-                    st.error("❌ المبلغ المدخل أكبر من إجمالي الدين المطلوب على العميل!")
-                else:
-                    # توزيع المبلغ المدخل على فواتير العميل تصاعدياً وتحديثها في قاعدة البيانات
-                    remaining_payment = payment_val
-                    for cinv in customer_invoices:
-                        if remaining_payment <= 0:
-                            break
-                        curr_rem = cinv.get('remaining_amount', 0)
-                        if curr_rem > 0:
-                            if remaining_payment >= curr_rem:
-                                new_paid = cinv['total_price']
-                                new_rem = 0
-                                new_type = "🟢 نقد بالكامل (كاش)"
-                                remaining_payment -= curr_rem
-                            else:
-                                new_paid = cinv['paid_amount'] + remaining_payment
-                                new_rem = curr_rem - remaining_payment
-                                new_type = "🔵 دفعة جزئية (أقساط)"
-                                remaining_payment = 0
-                            
-                            supabase.table("invoices").update({
-                                "paid_amount": int(new_paid),
-                                "remaining_amount": int(new_rem),
-                                "payment_type": str(new_type)
-                            }).eq("id", cinv["id"]).execute()
-                    
-                    log_audit("سداد ديون", f"تم تسديد مبلغ {payment_val:,} د.ع للعميل {selected_debt_customer}")
-                    st.success(f"🎉 تم تسديد مبلغ {payment_val:,.0f} دينار بنجاح وتحديث حساب العميل والفواتير!")
-                    st.rerun()
-            except ValueError:
-                st.error("❌ يرجى إدخال رقم صحيح للمبلغ.")
-            except Exception as e:
-                st.error(f"❌ خطأ في عملية التسديد: {e}")
+        with st.form("pay_debt_form"):
+            payment_input_str = st.text_input("أدخل المبلغ المراد تسديده (د.ع):", "0")
+            pay_submitted = st.form_submit_button("إتمام التسديد وتصفير الديون", type="primary")
+            
+            if pay_submitted:
+                try:
+                    payment_val = float(payment_input_str.strip())
+                    if payment_val <= 0:
+                        st.warning("يرجى إدخال مبلغ صالح أكبر من الصفر.")
+                    elif payment_val > total_customer_debt:
+                        st.error("❌ المبلغ المدخل أكبر من إجمالي الدين المطلوب على العميل!")
+                    else:
+                        # توزيع المبلغ المدخل على الفواتير تصاعدياً وتحديثها
+                        remaining_payment = payment_val
+                        for cinv in customer_invoices:
+                            if remaining_payment <= 0:
+                                break
+                            curr_rem = cinv.get('remaining_amount', 0)
+                            if curr_rem > 0:
+                                if remaining_payment >= curr_rem:
+                                    # تسديد الفاتورة بالكامل
+                                    new_paid = cinv['total_price']
+                                    new_rem = 0
+                                    new_type = "🟢 نقد بالكامل (كاش)"
+                                    remaining_payment -= curr_rem
+                                else:
+                                    # تسديد جزئي للفاتورة
+                                    new_paid = cinv['paid_amount'] + remaining_payment
+                                    new_rem = curr_rem - remaining_payment
+                                    new_type = "🔵 دفعة جزئية (أقساط)"
+                                    remaining_payment = 0
+                                
+                                supabase.table("invoices").update({
+                                    "paid_amount": int(new_paid),
+                                    "remaining_amount": int(new_rem),
+                                    "payment_type": str(new_type)
+                                }).eq("id", cinv["id"]).execute()
+                        
+                        log_audit("سداد ديون", f"تم تسديد مبلغ {payment_val:,} د.ع للعميل {selected_debt_customer}")
+                        st.success(f"🎉 تم تسديد مبلغ {payment_val:,.0f} دينار بنجاح وتحديث حساب العميل والفواتير!")
+                        st.rerun()
+                except ValueError:
+                    st.error("❌ يرجى إدخال رقم صحيح للمبلغ.")
+                except Exception as e:
+                    st.error(f"❌ خطأ في عملية التسديد: {e}")
 
 with tab5:
     st.subheader("🏭 إدارة الموردين")
@@ -614,7 +611,7 @@ with tab6:
             st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (إدارة العملاء) لتتمكن من إتمام الفاتورة!")
             selected_customer_name = ""
         else:
-            selected_customer_name = st.selectbox("اختر اسم الزبون للفاتورة:", cust_names_list)
+            selected_customer_name = st.selectbox("اختر اسم الزبون:", cust_names_list)
         
         st.write("---")
         st.markdown("#### 💰 طريقة الدفع (أدخل المبلغ الواصل طبيعياً):")
@@ -656,6 +653,7 @@ with tab6:
                             new_db_qty = max(0, current_db_qty - c_item['qty'])
                             supabase.table("products").update({"quantity": new_db_qty}).eq("id", c_item["id"]).execute()
                     
+                    # جلب عدد الفواتير الحالي لتوليد رقم تسلسلي فريد
                     try:
                         res_inv_count = supabase.table("invoices").select("id").eq("username", username).execute()
                         inv_id = len(res_inv_count.data) + 1 if res_inv_count.data else 1
@@ -664,6 +662,7 @@ with tab6:
                         
                     inv_code = f"INV-{inv_id:03d}"
                     
+                    # حفظ الفاتورة مباشرة في قاعدة البيانات لضمان عدم اختفائها
                     supabase.table("invoices").insert({
                         "username": str(username),
                         "invoice_code": str(inv_code),
@@ -707,6 +706,7 @@ with tab7:
                     st.write(f"💵 **المبلغ:** `{inv['total_price']:,}` د.ع")
                     st.write(f"💰 **الواصل:** `{inv['paid_amount']:,}` | **الدين:** `{inv['remaining_amount']:,}` د.ع")
                 with col_inv3:
+                    # زر تحميل الفاتورة كملف HTML للطباعة
                     html_code = generate_html_invoice(inv)
                     st.download_button(
                         label="🖨️ طباعة الفاتورة",
@@ -716,6 +716,7 @@ with tab7:
                         key=f"dl_html_{inv['id']}"
                     )
                     
+                    # جلب رقم هاتف الزبون لإرسال الفاتورة عبر الواتساب
                     try:
                         p_res = supabase.table("customers").select("phone").eq("customer_name", inv['customer_name']).execute()
                         c_phone_num = p_res.data[0]['phone'] if p_res.data else ""
@@ -814,5 +815,5 @@ with tab11:
     st.subheader("📖 الدليل والمميزات")
     st.markdown("""
     * **نظام Yasser Web**
-    * تم إصلاح وإضافة خانة اختيار العملاء بوضوح تام في تبويب سداد الديون لتظهر أسماء العملاء المسجلين وتوزيع المبالغ وتسويتها بدقة.
+    * تمت إضافة تبويب خاص بسداد الديون ليتم حساب إجمالي ديون العميل من كل فواتيره وتصفيرها بكل سلاسة، مع ربط الفواتير بقاعدة البيانات لمنع ضياعها.
     """)
