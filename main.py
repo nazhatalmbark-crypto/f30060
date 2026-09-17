@@ -674,162 +674,182 @@ elif selected_tab_name == t["tabs"][4]:
                     })
                     
                     log_audit("إصدار فاتورة مبيعات", f"تم إصدار الفاتورة رقم {inv_code} للزبون {cust_name} بمبلغ {total_cart_price}")
-                    st.success(f"🎉 تم حفظ الفاتورة رقم ({inv_code}) بنجاح وخصم الكميات من المخزن!")
+                    st.success(f"🎉 تمت عملية البيع وحفظ الفاتورة رقم {inv_code} بنجاح!")
                     st.session_state.cart = []
                     st.rerun()
-                except Exception as ex:
-                    st.error(f"❌ خطأ أثناء إتمام البيع: {ex}")
+                except Exception as e:
+                    st.error(f"❌ خطأ أثناء إتمام البيع: {e}")
     else:
-        st.info("🛒 سلة المبيعات فارغة. توجه إلى تبويب (جرد المخزن والباركود) لإضافة مواد إلى السلة.")
+        st.info("🛒 السلة فارغة حالياً. أضف منتجات من تبويب (جرد المخزن والباركود).")
 
 elif selected_tab_name == t["tabs"][5]:
-    st.subheader("📄 سجل الفواتير، طباعة الوصل، وإرسال إشعار الواتساب للزبون")
+    st.subheader("📄 سجل الفواتير، طباعة الفواتير الرسمية، ومشاركة روابط الواتساب")
     if st.session_state.invoices_list:
-        for idx, inv in enumerate(st.session_state.invoices_list):
+        search_inv = st.text_input("🔍 بحث عن فاتورة برقم الفاتورة أو اسم الزبون:", "")
+        filtered_invoices = st.session_state.invoices_list
+        if search_inv:
+            filtered_invoices = [i for i in filtered_invoices if search_inv.lower() in i['رقم الفاتورة'].lower() or search_inv.lower() in i['الزبون'].lower()]
+
+        for inv in filtered_invoices:
             with st.container(border=True):
-                col_inv1, col_inv2 = st.columns([3, 1])
-                with col_inv1:
-                    st.markdown(f"### 📄 الفاتورة: `{inv['رقم الفاتورة']}` | الزبون: **{inv['الزبون']}**")
-                    st.markdown(f"🛒 **المنتجات:** {inv['المنتجات']}")
-                    st.markdown(f"💰 **المبلغ الكلي:** `{int(inv['المبلغ الكلي']):,}` د.ع | **الواصل:** `{int(inv['الواصل']):,}` د.ع | **الدين المتبقي:** `{int(inv['المتبقي (الدين)']):,}` د.ع")
-                    st.markdown(f"📌 **طريقة الدفع:** {inv['نوع الدفع']} | 📅 **التاريخ:** {inv['التاريخ']}")
-                with col_inv2:
-                    if st.button("🖨️ عرض الفاتورة للطباعة", key=f"prt_inv_{idx}"):
-                        html_code = generate_html_invoice(inv, username)
-                        st.components.v1.html(html_code, height=500, scrolling=True)
+                col_i1, col_i2 = st.columns([3, 1])
+                with col_i1:
+                    st.markdown(f"### 📄 فاتورة رقم: `{inv['رقم الفاتورة']}`")
+                    st.markdown(f"👤 **الزبون:** {inv['الزبون']} | 📅 **التاريخ:** {inv['التاريخ']}")
+                    st.markdown(f"🛍️ **المنتجات:** {inv['المنتجات']}")
+                    st.markdown(f"💰 **المبلغ الكلي:** `{int(inv['المبلغ الكلي']):,}` د.ع | **الواصل:** `{int(inv['الواصل']):,}` د.ع | **المتبقي (الدين):** `{int(inv['المتبقي (الدين)']):,}` د.ع")
+                    st.markdown(f"💳 **طريقة الدفع:** `{inv['نوع الدفع']}`")
+                with col_i2:
+                    store_title_name = username if username else "متجرك"
+                    html_code = generate_html_invoice(inv, store_title_name)
+                    st.download_button(
+                        label="📥 تحميل الفاتورة HTML/PDF",
+                        data=html_code,
+                        file_name=f"invoice_{inv['رقم الفاتورة']}.html",
+                        mime="text/html",
+                        key=f"dl_inv_{inv['رقم الفاتورة']}"
+                    )
                     
-                    cust_record = next((c for c in st.session_state.customer_list if c["اسم العميل"] == inv["زبون"] or c["اسم العميل"] == inv["الزبون"]), None)
-                    if cust_record and cust_record.get("رقم الهاتف"):
-                        phone_clean = cust_record["رقم الهاتف"].strip()
-                        msg_text = f"مرحباً {inv['الزبون']},\nشكراً لتعاملكم معنا في {username}.\nتفاصيل فاتورتك ({inv['رقم الفاتورة']}):\nالمبلغ الكلي: {int(inv['المبلغ الكلي']):,} د.ع\nالواصل: {int(inv['الواصل']):,} د.ع\nالمتبقي: {int(inv['المتبقي (الدين)']):,} د.ع\nنسعد بخدمتكم دائماً!"
-                        encoded_msg = urllib.parse.quote(msg_text)
-                        whatsapp_url = f"https://wa.me/{phone_clean}?text={encoded_msg}"
-                        st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer; width:100%; margin-top:5px;">💬 إرسال واتساب</button></a>', unsafe_allow_html=True)
+                    cust_phone_val = ""
+                    for c_obj in st.session_state.customer_list:
+                        if c_obj["اسم العميل"] == inv["الزبون"]:
+                            cust_phone_val = c_obj["رقم الهاتف"]
+                            break
+                    
+                    if cust_phone_val:
+                        wa_msg = f"مرحباً عزيزي {inv['الزبون']},\nشكراً لتعاملكم معنا.\nتفاصيل فاتورتك ({inv['رقم الفاتورة']}):\nالمبلغ الكلي: {int(inv['المبلغ الكلي']):,} د.ع\nالواصل: {int(inv['الواصل']):,} د.ع\nالمتبقي: {int(inv['المتبقي (الدين)']):,} د.ع\nمع تحيات {store_title_name}"
+                        encoded_wa = urllib.parse.quote(wa_msg)
+                        wa_url = f"https://wa.me/{cust_phone_val}?text={encoded_wa}"
+                        st.markdown(f'<a href="{wa_url}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; width:100%; margin-top:5px; font-weight:bold;">💬 إرسال عبر واتساب</button></a>', unsafe_allow_html=True)
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 elif selected_tab_name == t["tabs"][6]:
-    st.subheader("💵 صندوق سداد الديون والذمم (تسجيل الدفعات وإصدار وصل سداد)")
+    st.subheader("💵 صندوق سداد (تسجيل المصروفات اليومية وسندات القبض والدفع)")
     
-    # استخراج قائمة الزبائن الذين عليهم ديون بناءً على الفواتير
-    debtors_dict = {}
-    for inv in st.session_state.invoices_list:
-        c_name = inv.get("الزبون", "")
-        rem_debt = float(inv.get("المتبقي (الدين)", 0))
-        if c_name:
-            if c_name not in debtors_dict:
-                debtors_dict[c_name] = 0
-            debtors_dict[c_name] += rem_debt
-
-    # خصم الديون التي تم سدادها مسبقاً من صندوق السداد
-    for p_rec in st.session_state.payments_receipts:
-        c_name = p_rec.get("الزبون", "")
-        paid_val = float(p_rec.get("المبلغ المسدد", 0))
-        if c_name in debtors_dict:
-            debtors_dict[c_name] -= paid_val
-
-    # تصفية الزبائن الذين لديهم دين فعلي أكبر من صفر
-    active_debtors = {k: v for k, v in debtors_dict.items() if v > 0}
-
-    if not active_debtors:
-        st.info("✨ لا توجد ديون مستحقة على أي زبون حالياً. جميع الحسابات مسددة بالكامل!")
-    else:
-        st.markdown("### 📋 قائمة الزبائن وأرصدة الديون الحالية:")
-        debt_df_data = [{"اسم الزبون": k, "إجمالي الدين المتبقي (د.ع)": int(v)} for k, v in active_debtors.items()]
-        st.dataframe(pd.DataFrame(debt_df_data), use_container_width=True)
-
-        st.markdown("---")
-        st.markdown("### ✍️ تسجيل عملية سداد دفعة مالية من الزبون:")
-        
-        with st.form("payment_receipt_form"):
-            selected_debtor = st.selectbox("اختر اسم الزبون / المحل لتسجيل السداد:", list(active_debtors.keys()))
-            max_current_debt = active_debtors.get(selected_debtor, 0)
+    pay_tab1, pay_tab2 = st.tabs(["💸 تسجيل مصروفات المحل اليومية", "💵 سند قبض دين من زبون"])
+    
+    with pay_tab1:
+        with st.form("expense_form", clear_on_submit=True):
+            exp_title = st.text_input("بيان المصروف (إيجار، كهرباء، ضيافة، صيانه...):")
+            exp_amount_str = st.text_input("مبلغ المصروف (د.ع):", "0")
+            exp_notes = st.text_input("ملاحظات إضافية (اختياري):", "")
             
-            st.info(وقت_الدين := f"الدين الحالي على هذا الزبون: **{int(max_current_debt):,} د.ع**")
-            
-            payment_amount_str = st.text_input("المبلغ المدفوع (المسدد حالياً):", "0")
-            payment_notes = st.text_input("ملاحظات إضافية (مثل رقم الوصل الورقي أو طريقة الدفع):", "سداد دين نقداً")
-            
-            submit_payment = st.form_submit_button("تأكيد السداد وإصدار وصل", type="primary")
-            
-            if submit_payment:
-                try:
-                    pay_val = float(payment_amount_str.strip())
-                    if pay_val <= 0:
-                        st.error("❌ يرجى إدخال مبلغ صحيح أكبر من الصفر.")
-                    elif pay_val > max_current_debt:
-                        st.error("❌ المبلغ المدفوع أكبر من إجمالي الدين المتبقي على الزبون!")
-                    else:
-                        receipt_id = len(st.session_state.payments_receipts) + 1
-                        receipt_code = f"REC-{receipt_id:03d}"
-                        
-                        st.session_state.payments_receipts.append({
-                            "رقم السند": str(receipt_code),
-                            "الزبون": str(selected_debtor),
-                            "المبلغ المسدد": float(pay_val),
-                            "الدين المتبقي بعد السداد": float(max_current_debt - pay_val),
-                            "الملاحظات": str(payment_notes),
+            if st.form_submit_button("حفظ وتسجيل المصروف"):
+                if exp_title.strip():
+                    try:
+                        exp_amt = float(exp_amount_str.strip())
+                        st.session_state.expenses_list.append({
+                            "البيان": str(exp_title.strip()),
+                            "المبلغ": float(exp_amt),
+                            "الملاحظات": str(exp_notes.strip() if exp_notes else "لا يوجد"),
                             "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                         })
-                        
-                        log_audit("سداد دين", f"تم تسجيل سداد مبلغ {pay_val} للزبون {selected_debtor}")
-                        st.success(f"✅ تم تسجيل سداد مبلغ {int(pay_val):,} دينار بنجاح وتحديث حساب الزبون!")
+                        log_audit("تسجيل مصروف", f"تم تسجيل مصروف ({exp_title.strip()}) بمبلغ {exp_amt}")
+                        st.success("✅ تم حفظ المصروف بنجاح!")
                         st.rerun()
-                except ValueError:
-                    st.error("❌ يرجى إدخال أرقام صحيحة فقط في خانة المبلغ.")
+                    except ValueError:
+                        st.error("يرجى إدخال مبلغ صحيح.")
+                else:
+                    st.warning("يرجى كتابة بيان المصروف.")
+                    
+        if st.session_state.expenses_list:
+            st.markdown("### 📋 سجل المصروفات المسجلة")
+            st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
+            total_exp = sum(e["المبلغ"] for e in st.session_state.expenses_list)
+            st.info(f"💰 مجموع المصروفات العامة: **{int(total_exp):,} د.ع**")
 
-    if st.session_state.payments_receipts:
-        st.markdown("---")
-        st.subheader("📜 سجل سندات وقبض الديون السابقة:")
-        st.dataframe(pd.DataFrame(st.session_state.payments_receipts), use_container_width=True)
+    with pay_tab2:
+        with st.form("receipt_form", clear_on_submit=True):
+            if st.session_state.customer_list:
+                c_options = [c["اسم العميل"] for c in st.session_state.customer_list]
+                rec_cust = st.selectbox("اختر اسم الزبون المسدد:", c_options)
+            else:
+                rec_cust = st.text_input("اسم الزبون:")
+                
+            rec_amount_str = st.text_input("المبلغ المستلم (الواصل لسداد الديون):", "0")
+            rec_note = st.text_input("ملاحظات / رقم القسيمة:", "")
+            
+            if st.form_submit_button("حفظ سند القبض وتحديث الحساب"):
+                try:
+                    rec_amt = float(rec_amount_str.strip())
+                    st.session_state.payments_receipts.append({
+                        "الزبون": str(rec_cust),
+                        "المبلغ المستلم": float(rec_amt),
+                        "ملاحظات": str(rec_note if rec_note else "تسديد دين سابق"),
+                        "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
+                    })
+                    log_audit("سند قبض", f"تم قبض مبلغ {rec_amt} من الزبون {rec_cust}")
+                    st.success(f"✅ تم قبض المبلغ وتسجيل السند بنجاح للزبون ({rec_cust})!")
+                    st.rerun()
+                except ValueError:
+                    st.error("يرجى إدخال مبلغ صحيح.")
+                    
+        if st.session_state.payments_receipts:
+            st.markdown("### 📋 سجل سندات القبض والواردات")
+            st.dataframe(pd.DataFrame(st.session_state.payments_receipts), use_container_width=True)
 
 elif selected_tab_name == t["tabs"][7]:
     st.subheader("📊 الرسوم البيانية والتقارير المالية التحليلية للمحل")
+    
     try:
-        res_all_p = supabase.table("products").select("*").eq("username", username).execute()
-        all_products = res_all_p.data if res_all_p.data else []
+        res_prod_rep = supabase.table("products").select("*").eq("username", username).execute()
+        repo_products = res_prod_rep.data if res_prod_rep.data else []
     except:
-        all_products = []
+        repo_products = []
 
-    total_inventory_buy_val = sum(float(p.get('buy_price', 0)) * int(p.get('quantity', 0)) for p in all_products)
-    total_inventory_sell_val = sum(float(p.get('sell_price', 0)) * int(p.get('quantity', 0)) for p in all_products)
+    total_inventory_items_count = sum(p['quantity'] for p in repo_products)
+    total_inventory_buy_val = sum(p['buy_price'] * p['quantity'] for p in repo_products)
+    total_inventory_sell_val = sum(p['sell_price'] * p['quantity'] for p in repo_products)
     
-    total_sales_revenue = sum(float(inv.get('المبلغ الكلي', 0)) for inv in st.session_state.invoices_list)
-    total_collected_cash = sum(float(inv.get('الواصل', 0)) for inv in st.session_state.invoices_list)
-    total_remaining_debts = sum(float(inv.get('المتبقي (الدين)', 0)) for inv in st.session_state.invoices_list)
+    total_sales_revenue = sum(inv['المبلغ الكلي'] for inv in st.session_state.invoices_list)
+    total_sales_cash_received = sum(inv['الواصل'] for inv in st.session_state.invoices_list)
+    total_sales_debts = sum(inv['المتبقي (الدين)'] for inv in st.session_state.invoices_list)
+    total_expenses_val = sum(e['المبلغ'] for e in st.session_state.expenses_list)
     
-    # خصم المدفوعات المسددة من الديون الكلية
-    for p_rec in st.session_state.payments_receipts:
-        total_remaining_debts -= float(p_rec.get("المبلغ المسدد", 0))
-    if total_remaining_debts < 0: total_remaining_debts = 0
-
-    col_m1, col_m2, col_m3 = st.columns(3)
+    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     with col_m1:
-        st.metric("📦 إجمالي قيمة المخزن (شراء)", f"{int(total_inventory_buy_val):,} د.ع")
+        st.metric("📦 إجمالي قطع المخزن", f"{int(total_inventory_items_count):,}")
     with col_m2:
-        st.metric("💰 إجمالي مبيعات النظام", f"{int(total_sales_revenue):,} د.ع")
+        st.metric("💰 إجمالي قيمة المخزن (بيع)", f"{int(total_inventory_sell_val):,} د.ع")
     with col_m3:
-        st.metric("🔴 إجمالي الذمم والديون المتبقية", f"{int(total_remaining_debts):,} د.ع")
+        st.metric("📈 إجمالي المبيعات", f"{int(total_sales_revenue):,} د.ع")
+    with col_m4:
+        st.metric("🔴 إجمالي الديون المعلقة", f"{int(total_sales_debts):,} د.ع")
 
-    if all_products:
-        st.markdown("### 📊 مقارنة أسعار الشراء والبيع للمنتجات المتوفرة:")
-        chart_df = pd.DataFrame([{ "المنتج": p["product_name"], "سعر الشراء": p["buy_price"], "سعر البيع": p["sell_price"] } for p in all_products])
-        st.bar_chart(chart_df.set_index("المنتج"))
+    st.markdown("---")
+    if repo_products:
+        st.markdown("### 📊 مقارنة أسعار الشراء والبيع للمواد المتوفرة بالمخزن")
+        df_chart = pd.DataFrame(repo_products)
+        if not df_chart.empty and "product_name" in df_chart.columns:
+            chart_data = df_chart.set_index("product_name")[["buy_price", "sell_price"]]
+            st.bar_chart(chart_data)
+    else:
+        st.info("لا توجد بيانات كافية لعرض الرسوم البيانية للمخزن.")
 
 elif selected_tab_name == t["tabs"][8]:
-    st.subheader("📜 سجل النشاطات والعمليات (Audit Trail)")
+    st.subheader("📜 سجل النشاطات والعمليات (Audit Trail) لتعقب حركة النظام والمستخدمين")
     if st.session_state.audit_logs:
         st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
     else:
-        st.info("لا توجد نشاطات مسجلة حتى الآن.")
+        st.info("لا توجد نشاطات مسجلة حتى الآن في السجل.")
 
 elif selected_tab_name == t["tabs"][9]:
-    st.subheader("📖 دليل الاستخدام والمميزات والدعم الفني")
+    st.subheader("📖 دليل الاستخدام والمميزات والدعم الفني لنظام Yasser Web")
     st.markdown("""
-    ### أهلاً بك في نظام **Yasser Web** الشامل لإدارة المحلات والأجهزة والمخازن! 🛍️
-    * **إضافة المواد:** تمكنك من تسجيل المنتجات مع الأسعار والكميات وتوليد الباركود.
-    * **جرد المخزن:** مراقبة الأرصدة وتنبيهات قرب نفاد البضاعة وإضافة المواد للسلة.
-    * **إدارة العملاء والديون:** تسجيل بيانات الزبائن ومحافظاتهم ومتابعة الذمم.
-    * **صندوق السداد:** تم تفعيله حديثاً ليعرض لك قائمة الزبائن الذين عليهم ديون، وتثبيت سندات القبض بدقة.
-    * **الدعم الفني:** النظام مصمم خصيصاً لتلبية احتياجاتك بكل سهولة ويسر.
-    """)
+    ### أهلاً بك في نظام **Yasser Web** الشامل لإدارة المحلات والشركات 🛍️
+    تم تصميم هذا النظام خصيصاً لتسهيل إدارة المخازن، المبيعات، الفواتير، وحسابات الزبائن والموردين بكل احترافية وسلاسة.
+
+    ---
+    ### 🌟 المميزات الرئيسية للنظام:
+    1. **➕ إضافة وإدارة المواد:** واجهة مرنة وسريعة لإضافة المواد وتحديد أسعار الشراء والبيع والكميات.
+    2. **📦 الجرد والباركود:** عرض المخزون مع إمكانية توليد وطباعة أكواد الباركود (`Code 128`) التلقائية لكل مادة، والتنبيه التلقائي عند قرب نفاد المخزون (`Low Stock Alerts`).
+    3. **👥 إدارة العملاء والديون:** تسجيل بيانات الزبائن ومحافظاتهم ومتابعة الذمم المالية والديون المستحقة.
+    4. **🏭 إدارة الموردين:** حفظ بيانات جهات التجهيز وشركات الجملة.
+    5. **🛒 سلة المبيعات والفواتير:** نظام سلة ذكي يخصم الكميات من المخزن تلقائياً عند إتمام البيع، مع خيارات الدفع (كاش، آجل، دفعة جزئية).
+    6. **📄 الطباعة والواتساب:** إمكانية طباعة أو حفظ الفواتير بصيغة HTML/PDF وإرسال تفاصيل الفاتورة للزبون مباشرة عبر تطبيق واتساب (`WhatsApp`).
+    7. **💵 صندوق سداد:** تسجيل المصروفات اليومية وسندات قبض الديون.
+    8. **📊 التقارير والرسوم البيانية:** لوحة قيادة متكاملة تعرض إحصائيات المخزن والمبيعات والأرباح.
+    9. **📜 سجل النشاطات (Audit Trail):** تجميع كافة العمليات والنشاطات التي قام بها المستخدمون لضمان الأمان والرقابة.
+    10. **🔄 النسخ الاحتياطي الفوري:** إمكانية تصدير واستعادة كافة بيانات النظام عبر ملفات JSON بكل سهولة.
+    """, unsafe_allow_html=True)
