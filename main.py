@@ -79,6 +79,7 @@ def log_audit(action, details):
         "التفاصيل": str(details)
     })
 
+# دالة خزن وتوليد الـ PDF الداخلي الاحترافي
 def generate_pdf_invoice(inv):
     if not REPORTLAB_AVAILABLE:
         return None
@@ -128,6 +129,7 @@ def generate_pdf_invoice(inv):
     buffer.seek(0)
     return buffer
 
+# دالة توليد صفحة الطباعة المنفصلة (HTML نظيف بدون مسار الملف وبدون بنزين)
 def get_printable_invoice_html(inv):
     html_content = f"""
     <!DOCTYPE html>
@@ -564,6 +566,7 @@ with tabs[5]:
                             except: 
                                 pass
                 with c_i3:
+                    # 1. زر تحميل ملف الـ PDF الاحترافي
                     pdf_buf = generate_pdf_invoice(inv)
                     if pdf_buf and REPORTLAB_AVAILABLE:
                         str_lit.download_button(
@@ -574,6 +577,7 @@ with tabs[5]:
                             key=f"pdf_btn_{idx_i}"
                         )
                     
+                    # 2. زر الطباعة المنفصل عبر المتصفح (نظيف وخالي من مسار الملف والبنزين)
                     html_code = get_printable_invoice_html(inv)
                     str_lit.download_button(
                         label="🖨️ طباعة الفاتورة عبر المتصفح",
@@ -628,5 +632,5 @@ with tabs[8]:
         str_lit.info("لا توجد نشاطات مسجلة.")
 
 with tabs[9]:
-    str_lit.subheader("📖 الدعم الفني ودليل الاستخدام")
+    str_lit.subheader("📖 الدعم الفني")
     str_lit.markdown("النظام جاهز ومحدث بالكامل. لتفعيل النسخة الكاملة استخدم الكود: `YASSER2026`")
