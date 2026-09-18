@@ -845,52 +845,10 @@ with tab12:
             </div>
 
             <!-- التبويب 11 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+            <div style="padding-bottom: 0; margin-bottom: 0;">
                 <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">1️⃣1️⃣ خانة (📜 سجل النشاطات)</h2>
                 <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> سجل رقابي دقيق ومفصل لكل حركات المستخدمين.</p>
                 <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> توثيق عمليات الدخول، البيع، والإضافة مع التوقيت واسم المستخدم.</p>
-            </div>
-
-            <!-- التبويب 12: معاينة النماذج -->
-            <div>
-                <h2 style="font-size: 28px; text-align: center; margin-top: 0; margin-bottom: 20px; font-weight: bold;">
-                    🖨️ 1️⃣2️⃣ معاينة نماذج الطباعة الرسمية
-                </h2>
-                <p style="font-size: 20px; text-align: center; margin-bottom: 25px;">
-                    هذه النماذج توضح شكل الفاتورة ووصل السداد تماماً كما يستلمها الزبون:
-                </p>
-                
-                <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
-                    
-                    <!-- نموذج الفاتورة -->
-                    <div style="flex: 1; min-width: 300px; border: 2px solid #000; padding: 20px; background: #fff;">
-                        <h3 style="font-size: 22px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-top: 0; font-weight: bold;">
-                            📄 نموذج فاتورة بيع
-                        </h3>
-                        <p style="font-size: 18px; margin: 6px 0;"><b>اسم المحل:</b> YASSER WEB</p>
-                        <p style="font-size: 18px; margin: 6px 0;"><b>رقم الفاتورة:</b> INV-001</p>
-                        <p style="font-size: 18px; margin: 6px 0;"><b>اسم الزبون:</b> زبون تجريبي</p>
-                        <p style="font-size: 18px; margin: 6px 0;"><b>المنتجات:</b> جهاز أو مادة [العدد: 2]</p>
-                        <hr style="border: 1px dashed #000; margin: 12px 0;">
-                        <p style="font-size: 18px; font-weight: bold; margin: 6px 0;">المبلغ الكلي: 50,000 د.ع</p>
-                        <p style="font-size: 18px; font-weight: bold; margin: 6px 0;">المبلغ الواصل: 50,000 د.ع</p>
-                        <p style="font-size: 18px; font-weight: bold; margin: 6px 0;">المتبقي (الدين): 0 د.ع</p>
-                    </div>
-
-                    <!-- نموذج سند القبض -->
-                    <div style="flex: 1; min-width: 300px; border: 2px dashed #000; padding: 20px; background: #fff;">
-                        <h3 style="font-size: 22px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-top: 0; font-weight: bold;">
-                            🧾 نموذج سند قبض نقدية
-                        </h3>
-                        <p style="font-size: 18px; margin: 6px 0;"><b>مؤسسة:</b> YASSER WEB المالية</p>
-                        <p style="font-size: 18px; margin: 6px 0;"><b>اسم العميل:</b> زبون تسديد ديون</p>
-                        <p style="font-size: 18px; margin: 6px 0;"><b>المبلغ المستلم:</b> 25,000 د.ع</p>
-                        <p style="font-size: 18px; margin: 6px 0;"><b>البيان:</b> دفعة تسديد ذمم مالية.</p>
-                        <hr style="border: 1px solid #000; margin: 20px 0 10px 0;">
-                        <p style="font-size: 18px; margin: 6px 0;"><b>توقيع أمين الصندوق:</b> ........................</p>
-                    </div>
-
-                </div>
             </div>
 
         </div>
