@@ -106,7 +106,6 @@ def log_audit(action, details):
         "التفاصيل": str(details)
     })
 
-# **دالة توليد الفاتورة الاحترافية بصيغة HTML**
 def generate_html_invoice(inv):
     html_content = f"""
     <!DOCTYPE html>
@@ -227,6 +226,31 @@ cart_count_badge = sum(int(item['qty']) for item in st.session_state.cart)
 st.sidebar.info(f"{t['cart_badge']} **{cart_count_badge}**")
 
 st.sidebar.divider()
+
+# **قسم حالة الاشتراك المدفوع والعداد الواضح**
+st.sidebar.subheader("🌟 حالة الاشتراك (VIP Status)")
+if not st.session_state.is_vip:
+    st.sidebar.warning("🔒 حالة النسخة: **مجانية ومحدودة**")
+    vip_code_input = st.sidebar.text_input("أدخل كود النسخة المدفوعة الآمن:", type="password")
+    if st.sidebar.button("تفعيل النسخة المدفوعة"):
+        # كود التفعيل الآمن والخاص بك
+        if vip_code_input.strip() == "Yasser@Web#2026!":
+            st.session_state.is_vip = True
+            try:
+                supabase.table("users").update({"is_paid": True}).eq("username", username).execute()
+            except:
+                pass
+            st.sidebar.success("تم تفعيل النسخة المدفوعة (VIP) بنجاح! 🎉")
+            st.rerun()
+        else:
+            st.sidebar.error("❌ كود التفعيل غير صحيح!")
+else:
+    # عداد وواجهة تفصيلية واضحة للمشترك تظهر أمامه مباشرة
+    st.sidebar.success("🌟 **النسخة المدفوعة (VIP) مفعلة بالكامل**")
+    st.sidebar.info("⏳ **عداد الأيام:** متبقي **365** يوماً (اشتراك سنوي نشط ودائم).")
+    st.sidebar.write("✅ جميع قيود المنتجات والمخزن ملغاة وتمتع بكامل الصلاحيات المفتوحة.")
+
+st.sidebar.divider()
 st.sidebar.subheader(t["backup_title"])
 
 try:
@@ -258,23 +282,6 @@ st.sidebar.download_button(
     mime="application/json"
 )
 
-if not st.session_state.is_vip:
-    st.sidebar.warning("🔒 حالة النسخة: **مجانية (محدودة)**")
-    vip_code = st.sidebar.text_input("أدخل كود النسخة المدفوعة (VIP):", type="password")
-    if st.sidebar.button("تفعيل النسخة المدفوعة"):
-        if vip_code.strip() == "YASSER2026":
-            st.session_state.is_vip = True
-            try:
-                supabase.table("users").update({"is_paid": True}).eq("username", username).execute()
-            except:
-                pass
-            st.sidebar.success("تم تفعيل النسخة المدفوعة (VIP) بنجاح! 🎉")
-            st.rerun()
-        else:
-            st.sidebar.error("كود التفعيل غير صحيح!")
-else:
-    st.sidebar.success("🌟 النسخة المدفوعة (VIP) مفعلة بالكامل")
-
 if st.sidebar.button(t["logout"]):
     log_audit("تسجيل خروج", f"تم تسجيل الخروج للمستخدم {username}")
     st.session_state.logged_in_user = None
@@ -298,7 +305,7 @@ with tab1:
             current_count = 0
             
         if not st.session_state.is_vip and current_count >= 5:
-            st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات).")
+            st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). قم بتفعيل النسخة المدفوعة لإضافة عدد لا محدود.")
         else:
             with st.form("add_product_clean_form", clear_on_submit=True):
                 p_name = st.text_input("اسم المادة / المنتج / الجهاز:")
@@ -801,7 +808,7 @@ with tab11:
        * **طريقة الاستخدام:** اختر اسم الزبون أو المحل من قائمة العملاء المسجلين مسبقاً، ثم أدخل المبلغ المراد تسديده. سيقوم النظام فوراً بخصم هذا المبلغ من إجمالي الديون المترتبة على الزبون وتحديث فواتيره تلقائياً.
 
     5. **🏭 إدارة الموردين:**
-       * **العمل الوظيفي:** نافذة مخصصة لحفظ وتنسيق بيانات الموردين الذين تتعامل معهم، بما يتضمن أساّء الشركات أو الأشخاص وأرقام هواتفهم وتخصصاتهم.
+       * **العمل الوظيفي:** نافذة مخصصة لحفظ وتنسيق بيانات الموردين الذين تتعامل معهم، بما يتضمن أسماء الشركات أو الأشخاص وأرقام هواتفهم وتخصصاتهم.
 
     6. **🛒 إتمام البيع والفواتير:**
        * **العمل الوظيفي:** سلة المبيعات الذكية. تتيح لك اختيار المواد المضافة، تعديل الكميات، واختيار اسم الزبون المسجل.
