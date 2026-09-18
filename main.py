@@ -92,6 +92,9 @@ if "audit_logs" not in st.session_state or isinstance(st.session_state.audit_log
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
+if "vip_days_left" not in st.session_state:
+    st.session_state.vip_days_left = 30  # اشتراك شهري (30 يوم)
+
 def log_audit(action, details):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     user = st.session_state.logged_in_user or "زائر"
@@ -227,28 +230,27 @@ st.sidebar.info(f"{t['cart_badge']} **{cart_count_badge}**")
 
 st.sidebar.divider()
 
-# **قسم حالة الاشتراك المدفوع والعداد الواضح**
-st.sidebar.subheader("🌟 حالة الاشتراك (VIP Status)")
-if not st.session_state.is_vip:
-    st.sidebar.warning("🔒 حالة النسخة: **مجانية ومحدودة**")
-    vip_code_input = st.sidebar.text_input("أدخل كود النسخة المدفوعة الآمن:", type="password")
-    if st.sidebar.button("تفعيل النسخة المدفوعة"):
-        # كود التفعيل الآمن والخاص بك
+# **قسم حالة الاشتراك الشهري (VIP) مع اللطشة التلقائية**
+st.sidebar.subheader("🌟 حالة الاشتراك الشهري (VIP)")
+if not st.session_state.is_vip or st.session_state.vip_days_left <= 0:
+    st.sidebar.error("🚨 **انتهى اشتراكك الشهري! تم قفل النظام.**")
+    vip_code_input = st.sidebar.text_input("أدخل كود التجديد الشهري الآمن (100$):", type="password")
+    if st.sidebar.button("تجديد الاشتراك الآن"):
         if vip_code_input.strip() == "Yasser@Web#2026!":
             st.session_state.is_vip = True
+            st.session_state.vip_days_left = 30  # تجديد شهر كامل (30 يوم)
             try:
                 supabase.table("users").update({"is_paid": True}).eq("username", username).execute()
             except:
                 pass
-            st.sidebar.success("تم تفعيل النسخة المدفوعة (VIP) بنجاح! 🎉")
+            st.sidebar.success("تم تجديد الاشتراك الشهري بنجاح! 🎉")
             st.rerun()
         else:
-            st.sidebar.error("❌ كود التفعيل غير صحيح!")
+            st.sidebar.error("❌ كود التجديد غير صحيح! يرجى مراجعة الدعم.")
 else:
-    # عداد وواجهة تفصيلية واضحة للمشترك تظهر أمامه مباشرة
-    st.sidebar.success("🌟 **النسخة المدفوعة (VIP) مفعلة بالكامل**")
-    st.sidebar.info("⏳ **عداد الأيام:** متبقي **365** يوماً (اشتراك سنوي نشط ودائم).")
-    st.sidebar.write("✅ جميع قيود المنتجات والمخزن ملغاة وتمتع بكامل الصلاحيات المفتوحة.")
+    st.sidebar.success("🌟 **النسخة المدفوعة مفعلة (شهرية)**")
+    st.sidebar.info(f"⏳ **عداد الأيام المتبقية:** متبقي **{st.session_state.vip_days_left}** يوماً من اشتراكك الشهري.")
+    st.sidebar.write("✅ جميع ميزات النظام مفتوحة لك بالكامل.")
 
 st.sidebar.divider()
 st.sidebar.subheader(t["backup_title"])
@@ -291,6 +293,12 @@ if st.sidebar.button(t["logout"]):
 
 st.divider()
 
+# **قاعدة اللطشة البرمجية: إذا انتهى الاشتراك، النظام يلطش بالشاشة وما يفتح أي تبويب**
+if not st.session_state.is_vip or st.session_state.vip_days_left <= 0:
+    st.error("🚨 **تنبيه هام جداً: انتهت فترة اشتراكك الشهري في نظام Yasser Web!**")
+    st.warning("⚠️ **لقد تم قفل الشاشة مؤقتاً لحين إدخال كود التجديد الجديد من القائمة الجانبية.** يرجى إدخال الكود لتفعيل البرنامج واستئناف العمل فوراً.")
+    st.stop()  # يلطش بالشاشة ويوقف تشغيل أي تبويب نهائياً!
+
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(t["tabs"])
 
 with tab1:
@@ -298,60 +306,51 @@ with tab1:
     if user_role == "كاشير":
         st.warning("⚠️ عذراً، حساب الكاشير لا يمتلك صلاحية إضافة أو تعديل المواد في المخزن.")
     else:
-        try:
-            res_prod_count = supabase.table("products").select("id").eq("username", username).execute()
-            current_count = len(res_prod_count.data) if res_prod_count.data else 0
-        except:
-            current_count = 0
+        with st.form("add_product_clean_form", clear_on_submit=True):
+            p_name = st.text_input("اسم المادة / المنتج / الجهاز:")
+            c_col, c_sz = st.columns(2)
+            with c_col:
+                p_color = st.text_input("اللون / المواصفات الإضافية:", "عام")
+            with c_sz:
+                p_size = st.text_input("القياس / السعة / الحجم:", "عام")
             
-        if not st.session_state.is_vip and current_count >= 5:
-            st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). قم بتفعيل النسخة المدفوعة لإضافة عدد لا محدود.")
-        else:
-            with st.form("add_product_clean_form", clear_on_submit=True):
-                p_name = st.text_input("اسم المادة / المنتج / الجهاز:")
-                c_col, c_sz = st.columns(2)
-                with c_col:
-                    p_color = st.text_input("اللون / المواصفات الإضافية:", "عام")
-                with c_sz:
-                    p_size = st.text_input("القياس / السعة / الحجم:", "عام")
-                
-                c1, c2, c3, c4 = st.columns(4)
-                with c1:
-                    p_buy_str = st.text_input("سعر الشراء (د.ع):", "0")
-                with c2:
-                    p_sell_str = st.text_input("سعر البيع (د.ع):", "0")
-                with c3:
-                    p_qty_str = st.text_input("الكمية المتوفرة:", "1")
-                with c4:
-                    p_barcode = st.text_input("رمز الباركود:", "")
-                
-                submitted = st.form_submit_button("حفظ المادة في المخزن", type="primary")
-                if submitted:
-                    if p_name.strip():
-                        try:
-                            p_buy = float(p_buy_str.strip())
-                            p_sell = float(p_sell_str.strip())
-                            p_qty = int(p_qty_str.strip())
-                            
-                            supabase.table("products").insert({
-                                "username": str(username),
-                                "product_name": str(p_name.strip()),
-                                "color": str(p_color.strip() if p_color else "عام"),
-                                "size": str(p_size.strip() if p_size else "عام"),
-                                "buy_price": float(p_buy),
-                                "sell_price": float(p_sell),
-                                "quantity": int(p_qty),
-                                "barcode": str(p_barcode.strip() if p_barcode else "بدون")
-                            }).execute()
-                            log_audit("إضافة منتج", f"تمت إضافة المنتج ({p_name.strip()})")
-                            st.success(f"تمت إضافة المادة ({p_name}) بنجاح!")
-                            st.rerun()
-                        except ValueError:
-                            st.error("❌ خطأ: يرجى إدخال أرقام صحيحة.")
-                        except Exception as e:
-                            st.error(f"❌ خطأ: {e}")
-                    else:
-                        st.warning("يرجى كتابة اسم المادة.")
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                p_buy_str = st.text_input("سعر الشراء (د.ع):", "0")
+            with c2:
+                p_sell_str = st.text_input("سعر البيع (د.ع):", "0")
+            with c3:
+                p_qty_str = st.text_input("الكمية المتوفرة:", "1")
+            with c4:
+                p_barcode = st.text_input("رمز الباركود:", "")
+            
+            submitted = st.form_submit_button("حفظ المادة في المخزن", type="primary")
+            if submitted:
+                if p_name.strip():
+                    try:
+                        p_buy = float(p_buy_str.strip())
+                        p_sell = float(p_sell_str.strip())
+                        p_qty = int(p_qty_str.strip())
+                        
+                        supabase.table("products").insert({
+                            "username": str(username),
+                            "product_name": str(p_name.strip()),
+                            "color": str(p_color.strip() if p_color else "عام"),
+                            "size": str(p_size.strip() if p_size else "عام"),
+                            "buy_price": float(p_buy),
+                            "sell_price": float(p_sell),
+                            "quantity": int(p_qty),
+                            "barcode": str(p_barcode.strip() if p_barcode else "بدون")
+                        }).execute()
+                        log_audit("إضافة منتج", f"تمت إضافة المنتج ({p_name.strip()})")
+                        st.success(f"تمت إضافة المادة ({p_name}) بنجاح!")
+                        st.rerun()
+                    except ValueError:
+                        st.error("❌ خطأ: يرجى إدخال أرقام صحيحة.")
+                    except Exception as e:
+                        st.error(f"❌ خطأ: {e}")
+                else:
+                    st.warning("يرجى كتابة اسم المادة.")
 
 with tab2:
     st.subheader("📦 جرد المخزن الشامل مع الباركود وحساب أرباح القطع")
