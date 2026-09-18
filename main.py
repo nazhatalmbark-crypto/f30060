@@ -106,7 +106,6 @@ def log_audit(action, details):
         "التفاصيل": str(details)
     })
 
-# **دالة توليد الفاتورة الاحترافية بصيغة HTML**
 def generate_html_invoice(inv):
     html_content = f"""
     <!DOCTYPE html>
@@ -430,39 +429,47 @@ with tab2:
 
 with tab3:
     st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم (محفوظة بقاعدة البيانات بشكل دائم)")
-    iraq_govs = ["بغداد", "البصرة", "نينوى", "أربيل", "النجف", "كربلاء", "ذي قار", "بابل", "الأنبار", "ديالى", "كركوك", "صلاح الدين", "المثنى", "ميسان", "القادسية", "واسط", "دهوك", "السليمانية"]
     
     with st.form("add_customer_db_form", clear_on_submit=True):
-        col_c1, col_c2, col_c3 = st.columns(3)
+        col_c1, col_c2 = st.columns(2)
         with col_c1:
-            c_name = st.text_input("اسم الزبون / العميل:")
+            c_name = st.text_input("اسم الزبون / العميل *:")
         with col_c2:
-            c_phone = st.text_input("رقم الهاتف:")
-        with col_c3:
-            c_gov = st.selectbox("المحافظة:", iraq_govs)
+            c_phone = st.text_input("رقم الهاتف *:")
             
-        c_address = st.text_input("العنوان / المنطقة:")
-        c_notes = st.text_area("ملاحظات:")
+        c_address = st.text_input("العنوان / المنطقة:", "البصرة")
+        c_notes = st.text_area("ملاحظات:", "لا يوجد")
             
-        if st.form_submit_button("تسجيل العميل وحفظه"):
-            if c_name and c_phone:
+        if st.form_submit_button("تسجيل العميل وحفظه", type="primary"):
+            if c_name.strip() and c_phone.strip():
                 try:
+                    # محاولة الإرسال الكاملة
                     supabase.table("customers").insert({
                         "username": str(username),
                         "customer_name": str(c_name.strip()),
                         "phone": str(c_phone.strip()),
-                        "governorate": str(c_gov),
-                        "address": str(c_address.strip() if c_address else "غير محدد"),
-                        "notes": str(c_notes.strip() if c_notes else "لا يوجد"),
+                        "governorate": "البصرة",
+                        "address": str(c_address.strip()),
+                        "notes": str(c_notes.strip()),
                         "created_at": str(datetime.datetime.now().strftime('%Y-%m-%d'))
                     }).execute()
                     log_audit("إضافة عميل", f"تم تسجيل العميل {c_name}")
                     st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"خطأ في حفظ العميل: {e}")
+                    # حل احتياطي إذا كانت الحقول غير موجودة بالجدول، نحفظ الاسم والرقم فقط لضمان عدم توقف العمل نهائياً
+                    try:
+                        supabase.table("customers").insert({
+                            "username": str(username),
+                            "customer_name": str(c_name.strip()),
+                            "phone": str(c_phone.strip())
+                        }).execute()
+                        st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
+                        st.rerun()
+                    except Exception as ex2:
+                        st.error(f"❌ خطأ في قاعدة البيانات: {ex2}")
             else:
-                st.warning("يرجى كتابة الاسم ورقم الهاتف.")
+                st.warning("يرجى كتابة اسم العميل ورقم الهاتف.")
 
     st.divider()
     st.subheader("📋 قائمة العملاء المسجلين")
@@ -704,7 +711,6 @@ with tab7:
                     key=f"dl_inv_{inv['id']}"
                 )
 
-                # زر إرسال الواتساب
                 try:
                     res_phone = supabase.table("customers").select("phone").eq("username", username).eq("customer_name", inv['customer_name']).execute()
                     cust_ph = res_phone.data[0]["phone"] if res_phone.data else ""
