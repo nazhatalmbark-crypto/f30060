@@ -133,7 +133,7 @@ def generate_html_invoice(inv):
             </div>
             <div class="info">
                 <p><strong>رقم الفاتورة:</strong> {inv['invoice_code']}</p>
-                <p><strong>اسم الزبون:</strong> {inv['customer_name']}</p>
+                <p><strong>اسم الزبون / المحل:</strong> {inv['customer_name']}</p>
                 <p><strong>طريقة وحالة الدفع:</strong> {inv['payment_type']}</p>
             </div>
             <table>
@@ -427,13 +427,13 @@ with tab2:
         st.info("المخزن فارغ حالياً.")
 
 with tab3:
-    st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم (مع كامل الحقول الأصلية)")
+    st.subheader("👥 إدارة العملاء (اسم الشخص/المحل، رقم الهاتف، المحافظة، والملاحظات)")
     
     with st.form("add_customer_db_form", clear_on_submit=True):
         col_c1, col_c2 = st.columns(2)
         with col_c1:
-            c_name = st.text_input("اسم الزبون / العميل *:")
-            c_address = st.text_input("العنوان / المنطقة:")
+            c_name = st.text_input("اسم الشخص أو اسم المحل *:")
+            c_address = st.text_input("المحافظة / العنوان:")
         with col_c2:
             c_phone = st.text_input("رقم الهاتف *:")
             c_notes = st.text_input("ملاحظات إضافية:")
@@ -441,12 +441,12 @@ with tab3:
         if st.form_submit_button("تسجيل العميل وحفظه", type="primary"):
             if c_name.strip() and c_phone.strip():
                 try:
-                    # إرسال الحقول الكاملة مع الأمان التام لقاعدة البيانات
+                    # حفظ البيانات بالأعمدة المطابقة تماماً لجدول العملاء (customers)
                     supabase.table("customers").insert({
                         "username": str(username),
                         "customer_name": str(c_name.strip()),
                         "phone": str(c_phone.strip()),
-                        "address": str(c_address.strip() if c_address else "غير محدد"),
+                        "address": str(c_address.strip() if c_address else "بغداد"),
                         "notes": str(c_notes.strip() if c_notes else "")
                     }).execute()
                     
@@ -454,9 +454,9 @@ with tab3:
                     st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"❌ خطأ في قاعدة البيانات: {e}")
+                    st.error(f"❌ خطأ في قاعدة البيانات (تأكد من إنشاء جدول customers): {e}")
             else:
-                st.warning("يرجى كتابة اسم العميل ورقم الهاتف على الأقل.")
+                st.warning("يرجى كتابة اسم الشخص/المحل ورقم الهاتف على الأقل.")
 
     st.divider()
     st.subheader("📋 قائمة العملاء المسجلين")
@@ -470,7 +470,7 @@ with tab3:
         df_cust = pd.DataFrame(db_customers)
         st.dataframe(df_cust, use_container_width=True)
     else:
-        st.info("لا يوجد عملاء مسجلين حالياً.")
+        st.info("لا يوجد عملاء مسجلين حالياً. قم بإضافة عميل ليظهر هنا وفي الفواتير فوراً.")
 
 with tab4:
     st.subheader("💵 نظام سداد الديون والذمم للعملاء")
@@ -568,7 +568,7 @@ with tab5:
         st.info("لا يوجد موردين.")
 
 with tab6:
-    st.subheader("🛒 سلة المبيعات وإتمام الفاتورة (النظام الذكي للمبالغ)")
+    st.subheader("🛒 سلة المبيعات وإتمام الفاتورة بربط العملاء مباشرة")
     
     if st.session_state.cart:
         total_cart_price = 0
@@ -591,6 +591,7 @@ with tab6:
         st.divider()
         st.markdown(f"### 💵 المجموع الكلي المطلوب: **{int(total_cart_price):,} د.ع**")
         
+        # جلب قائمة العملاء المسجلين في قاعدة البيانات بدقة
         try:
             res_c_box = supabase.table("customers").select("customer_name").eq("username", username).execute()
             cust_names_list = [c["customer_name"] for c in res_c_box.data] if res_c_box.data else []
@@ -598,13 +599,13 @@ with tab6:
             cust_names_list = []
             
         if not cust_names_list:
-            st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (إدارة العملاء) لتتمكن من إتمام الفاتورة!")
+            st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (إدارة العملاء) لتتمكن من اختيار اسمه هنا وإتمام الفاتورة!")
             selected_customer_name = ""
         else:
-            selected_customer_name = st.selectbox("اختر اسم الزبون:", cust_names_list)
+            selected_customer_name = st.selectbox("اختر اسم الزبون / المحل المسجل:", cust_names_list)
         
         st.write("---")
-        st.markdown("#### 💰 طريقة الدفع (أدخل المبلغ الواصل طبيعياً):")
+        st.markdown("#### 💰 طريقة الدفع:")
         paid_input_str = st.text_input("أدخل المبلغ الذي دفعه الزبون (د.ع):", value=str(int(total_cart_price)))
         
         try:
@@ -625,9 +626,9 @@ with tab6:
 
         st.info(f"💡 **تحليل النظام التلقائي للفاتورة:** {auto_pay_type} | الواصل: **{int(paid_amount):,} د.ع** | المتبقي (الدين): **{int(remaining_amount):,} د.ع**")
 
-        if st.button("💾 إتمام البيع، خصم المخزن، وحفظ الفاتورة", type="primary"):
+        if st.button("💾 إتمام البيع، خصم المخزن، وحفظ الفاتورة مع اسم العميل", type="primary"):
             if not selected_customer_name:
-                st.error("❌ خطأ: اختر عميلاً مسجلاً.")
+                st.error("❌ خطأ: يرجى اختيار عميل مسجل من القائمة أو إضافته أولاً.")
             else:
                 try:
                     prod_names_str = []
@@ -666,10 +667,10 @@ with tab6:
                     
                     log_audit("إتمام بيع", f"فاتورة {inv_code} للزبون {selected_customer_name}")
                     st.session_state.cart = []
-                    st.success("✅ تمت عملية البيع وتحديث المخزن وحفظ الفاتورة بنجاح!")
+                    st.success("✅ تمت عملية البيع، حفظ اسم العميل في الفاتورة، وتحديث المخزن بنجاح!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"❌ خطأ: {e}")
+                    st.error(f"❌ خطأ أثناء حفظ الفاتورة: {e}")
     else:
         st.info("🛒 السلة فارغة.")
 
@@ -775,8 +776,7 @@ with tab11:
     st.markdown("""
     ### أهلاً بك في نظام **Yasser Web** الشامل لإدارة المبيعات والمخزون 🛍️
     * **إدارة المخزن:** إضافة المنتجات، متابعة الكميات، وتوليد الباركود تلقائياً.
-    * **إدارة العملاء والديون:** تسجيل العملاء مع عناوينهم وملاحظاتهم ومتابعة الحسابات بدقة عالية.
-    * **سداد الديون:** واجهة ذكية لتوزيع المبالغ المسددة على فواتير العميل وتحديث حالتها.
-    * **السلة والفواتير:** نظام مبيعات متكامل يحسب المبالغ والديون والأقساط تلقائياً ويصدر روابط واتساب مباشرة.
+    * **إدارة العملاء:** تسجيل اسم الشخص أو اسم المحل، رقم الهاتف، المحافظة، والملاحظات بكل سهولة.
+    * **السلة والفواتير:** ربط الفواتير بأسماء العملاء المسجلين وحساب الديون والأقساط تلقائياً.
     * **الأمان والنسخ الاحتياطي:** دعم كامل لتسجيل الدخول، صلاحيات المستخدمين، والنسخ الاحتياطي الفوري بصيغة JSON.
     """)
