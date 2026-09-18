@@ -101,6 +101,9 @@ if "memory_products" not in st.session_state:
 if "memory_invoices" not in st.session_state:
     st.session_state.memory_invoices = []
 
+if "last_receipt" not in st.session_state:
+    st.session_state.last_receipt = None
+
 def log_audit(action, details):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     user = st.session_state.logged_in_user or "زائر"
@@ -160,6 +163,41 @@ def generate_html_invoice(inv):
             </div>
             <div class="footer">
                 <p>شكراً لتعاملكم معنا - جاهزة للصقها على شحنة التوصيل وتسليمها لشركة النقل</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
+
+def generate_html_receipt(rec):
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <title>سند قبض - {rec['customer_name']}</title>
+        <style>
+            body {{ font-family: 'Tahoma', Arial, sans-serif; padding: 20px; color: #333; }}
+            .receipt-box {{ max-width: 600px; margin: auto; padding: 30px; border: 2px dashed #333; background: #fff; }}
+            .header {{ text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }}
+            .info {{ font-size: 16px; line-height: 2.0; }}
+            .footer {{ text-align: center; margin-top: 40px; font-size: 14px; border-top: 1px solid #ddd; padding-top: 15px; }}
+        </style>
+    </head>
+    <body>
+        <div class="receipt-box">
+            <div class="header">
+                <h2>YASSER WEB - سند قبض نقدية</h2>
+                <p>التاريخ والوقت: {rec['date']}</p>
+            </div>
+            <div class="info">
+                <p><strong>اسم العميل / المكلف:</strong> {rec['customer_name']}</p>
+                <p><strong>المبلغ المستلم:</strong> {int(rec['amount']):,} دينار عراقي</p>
+                <p><strong>البيان:</strong> استلمت من السيد المذكور أعلاه المبلغ و ثبت في سجل الذمم كدفعة تسديد حساب.</p>
+            </div>
+            <div class="footer">
+                <p>توقيع أمين الصندوق / المحل: ........................</p>
             </div>
         </div>
     </body>
@@ -414,7 +452,7 @@ with tab3:
         st.info("لا يوجد عملاء مسجلين حالياً. قم بإضافة عميل ليظهر هنا وفي الفواتير فوراً.")
 
 with tab4:
-    st.subheader("💵 نظام سداد الديون والذمم للعملاء")
+    st.subheader("💵 نظام سداد الديون والذمم وإصدار سندات القبض")
     debt_cust_list = [c["customer_name"] for c in st.session_state.memory_customers]
 
     if not debt_cust_list:
@@ -467,11 +505,37 @@ with tab4:
                                 cinv['remaining_amount'] = float(new_rem)
                                 cinv['payment_type'] = str(new_type)
                         
-                        log_audit("سداد ديون", f"تم تسديد مبلغ {payment_val:,} د.ع للعميل {selected_debt_customer}")
-                        st.success(f"🎉 تم تسديد مبلغ {payment_val:,.0f} دينار بنجاح وتحديث حساب العميل والفواتير!")
+                        # تخزين سند القبض لعرضه فوراً
+                        st.session_state.last_receipt = {
+                            "customer_name": str(selected_debt_customer),
+                            "amount": float(payment_val),
+                            "date": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
+                        }
+
+                        log_audit("سداد ديون وسند قبض", f"تم تسديد مبلغ {payment_val:,} د.ع للعميل {selected_debt_customer}")
+                        st.success(f"🎉 تم تسديد مبلغ {payment_val:,.0f} دينار بنجاح وتحديث حساب العميل وإصدار سند القبض!")
                         st.rerun()
                 except ValueError:
                     st.error("❌ يرجى إدخال رقم صحيح للمبلغ.")
+
+        # عرض سند القبض وإمكانية طباعته إذا تم إجراؤه
+        if st.session_state.get('last_receipt'):
+            rec = st.session_state.last_receipt
+            st.divider()
+            st.markdown("### 🧾 سند القبض (إيصال استلام النقدية) الأخير:")
+            with st.container(border=True):
+                st.write(f"👤 **العميل:** {rec['customer_name']}")
+                st.write(f"💵 **المبلغ المستلم:** **{int(rec['amount']):,} د.ع**")
+                st.write(f"📅 **وقت الاستلام:** {rec['date']}")
+                st.info("💡 تم استلام المبلغ المذكور أعلاه كدفعة تسديد حساب وإطفاء للذمم.")
+                
+                html_rec_data = generate_html_receipt(rec)
+                st.download_button(
+                    label="🖨️ تحميل سند القبض وطباعته (HTML)",
+                    data=html_rec_data,
+                    file_name=f"receipt_{rec['customer_name']}.html",
+                    mime="text/html"
+                )
 
 with tab5:
     st.subheader("🏭 إدارة الموردين")
@@ -687,5 +751,5 @@ with tab11:
     st.subheader("📖 دليل الاستخدام والمميزات والدعم الفني")
     st.markdown("""
     ### أهلاً بك في نظام **Yasser Web** الشامل لإدارة المبيعات والمخزون 🛍️
-    * تم تحويل النظام للعمل بذاكرة الآمان المطلقة لتجنب أي أخطاء جداول مفقودة في قاعدة البيانات.
+    * تم ربط نظام **سندات القبض وإيصالات استلام النقدية** بشكل كامل مع واجهة تسديد الديون.
     """)
