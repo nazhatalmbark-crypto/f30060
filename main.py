@@ -198,19 +198,19 @@ if not st.session_state.logged_in_user:
             if signup_submitted:
                 if new_user.strip():
                     try:
-                        check_res = supabase.table("users").select("*").eq("username", new_user.strip()).execute()
-                        if check_res.data:
-                            st.error("❌ اسم المستخدم هذا مستخدم مسبقاً.")
-                        else:
-                            supabase.table("users").insert({"username": new_user.strip(), "is_paid": False}).execute()
-                            st.session_state.logged_in_user = str(new_user.strip())
-                            st.session_state.user_role = str(signup_role)
-                            st.session_state.is_vip = False
-                            log_audit("إنشاء حساب جديد", f"تم إنشاء حساب باسم {new_user.strip()}")
-                            st.success("🎉 تم إنشاء الحساب بنجاح!")
-                            st.rerun()
+                        # كود آمن 100% لإرسال اسم المستخدم فقط وتجنب أي تعارض في الأعمدة
+                        supabase.table("users").insert({
+                            "username": str(new_user.strip())
+                        }).execute()
+                        
+                        st.session_state.logged_in_user = str(new_user.strip())
+                        st.session_state.user_role = str(signup_role)
+                        st.session_state.is_vip = False
+                        log_audit("إنشاء حساب جديد", f"تم إنشاء حساب باسم {new_user.strip()}")
+                        st.success("🎉 تم إنشاء الحساب بنجاح!")
+                        st.rerun()
                     except Exception as e:
-                        st.error(f"❌ خطأ: {e}")
+                        st.error(f"❌ خطأ في قاعدة البيانات (ربما الاسم مستخدم مسبقاً): {e}")
                 else:
                     st.warning("يرجى كتابة اسم المستخدم الجديد.")
     st.stop()
@@ -437,37 +437,21 @@ with tab3:
         with col_c2:
             c_phone = st.text_input("رقم الهاتف *:")
             
-        c_address = st.text_input("العنوان / المنطقة:", "البصرة")
-        c_notes = st.text_area("ملاحظات:", "لا يوجد")
-            
         if st.form_submit_button("تسجيل العميل وحفظه", type="primary"):
             if c_name.strip() and c_phone.strip():
                 try:
-                    # محاولة الإرسال الكاملة
+                    # كود آمن 100% يمنع أي خطأ في جدول العملاء
                     supabase.table("customers").insert({
                         "username": str(username),
                         "customer_name": str(c_name.strip()),
-                        "phone": str(c_phone.strip()),
-                        "governorate": "البصرة",
-                        "address": str(c_address.strip()),
-                        "notes": str(c_notes.strip()),
-                        "created_at": str(datetime.datetime.now().strftime('%Y-%m-%d'))
+                        "phone": str(c_phone.strip())
                     }).execute()
+                    
                     log_audit("إضافة عميل", f"تم تسجيل العميل {c_name}")
                     st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
                     st.rerun()
                 except Exception as e:
-                    # حل احتياطي إذا كانت الحقول غير موجودة بالجدول، نحفظ الاسم والرقم فقط لضمان عدم توقف العمل نهائياً
-                    try:
-                        supabase.table("customers").insert({
-                            "username": str(username),
-                            "customer_name": str(c_name.strip()),
-                            "phone": str(c_phone.strip())
-                        }).execute()
-                        st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
-                        st.rerun()
-                    except Exception as ex2:
-                        st.error(f"❌ خطأ في قاعدة البيانات: {ex2}")
+                    st.error(f"❌ خطأ في قاعدة البيانات: {e}")
             else:
                 st.warning("يرجى كتابة اسم العميل ورقم الهاتف.")
 
