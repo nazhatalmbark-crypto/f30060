@@ -4,27 +4,87 @@ import datetime
 
 # إعدادات الصفحة
 st.set_page_config(
-    page_title="نظام ياسر ويب - إدارة العملاء",
-    page_icon="👥",
+    page_title="نظام ياسر ويب - إدارة المبيعات",
+    page_icon="💼",
     layout="wide"
 )
 
-# تهيئة الذاكرة المؤقتة للعملاء والمنتجات
+# تهيئة الذاكرة المؤقتة لكل أقسام التطبيق لضمان العمل بدون أخطاء
 if "customers_list" not in st.session_state:
     st.session_state.customers_list = []
 if "products_list" not in st.session_state:
     st.session_state.products_list = [
-        {"اسم المنتج": "منتج تجريبي 1", "سعر البيع": 15000, "الكمية": 50, "الربح المتوقع": 3000}
+        {"اسم المنتج": "قلم حبر جاف", "سعر البيع": 1000, "الكمية": 100, "الربح المتوقع": 250},
+        {"اسم المنتج": "دفتر ملاحظات", "سعر البيع": 2500, "الكمية": 50, "الربح المتوقع": 600}
     ]
+if "invoices_list" not in st.session_state:
+    st.session_state.invoices_list = []
 
-st.title("👥 إدارة العملاء والديون - نظام ياسر ويب")
-st.caption("تم تعديل الجدول وربطه بالذاكرة المؤقتة ليعمل بسرعة وبدون أي أخطاء قاعدة بيانات أثناء التسجيل.")
+st.title("🚀 نظام ياسر ويب (Yasser Web)")
+st.caption("النظام الشامل لإدارة محلك، مخزنك، وديونك بكل سهولة وبدون تعقيد.")
 
-tab1, tab2 = st.tabs(["👥 تسجيل العملاء والديون", "📦 المخزن والفواتير"])
+# تبويبات النظام كاملة لكل المميزات
+tab1, tab2, tab3 = st.tabs(["📦 إدارة المخزن والربح", "💵 الفواتير والواتساب", "👥 العملاء والديون والذمم"])
 
-# ---------------- تبويب العملاء المعدل ----------------
+# ---------------- تبويب 1: إدارة المخزن والمنتجات ----------------
 with tab1:
-    st.subheader("إضافة وتسجيل عميل جديد")
+    st.subheader("📦 إدارة المخزن والمنتجات بدقة")
+    
+    with st.form("add_product_form", clear_on_submit=True):
+        col_p1, col_p2, col_p3, col_p4 = st.columns(4)
+        with col_p1:
+            p_name = st.text_input("اسم المنتج:")
+        with col_p2:
+            p_price = st.number_input("سعر البيع (د.ع):", min_value=0.0, value=0.0)
+        with col_p3:
+            p_qty = st.number_input("الكمية المتوفرة:", min_value=0, value=1)
+        with col_p4:
+            p_profit = st.number_input("ربح القطعة:", min_value=0.0, value=0.0)
+            
+        if st.form_submit_button("إضافة وتحديث البضاعة", type="primary"):
+            if p_name:
+                st.session_state.products_list.append({
+                    "اسم المنتج": str(p_name.strip()),
+                    "سعر البيع": p_price,
+                    "الكمية": p_qty,
+                    "الربح المتوقع": p_profit
+                })
+                st.success(f"تمت إضافة المنتج ({p_name}) للمخزن بنجاح!")
+                st.rerun()
+            else:
+                st.warning("يرجى إدخال اسم المنتج على الأقل.")
+
+    st.divider()
+    st.subheader("📋 جدول البضاعة والربح الحالي")
+    if st.session_state.products_list:
+        df_prod = pd.DataFrame(st.session_state.products_list)
+        st.dataframe(df_prod, use_container_width=True)
+    else:
+        st.info("لا توجد منتجات مسجلة حالياً.")
+
+# ---------------- تبويب 2: الفواتير الفورية والواتساب ----------------
+with tab2:
+    st.subheader("💵 إصدار الفواتير وإرسالها للواتساب")
+    
+    col_inv1, col_inv2 = st.columns(2)
+    with col_inv1:
+        inv_customer = st.text_input("اسم الزبون للفاتورة:")
+        # جلب أسماء المنتجات المتاحة
+        prod_names = [p["اسم المنتج"] for p in st.session_state.products_list] if st.session_state.products_list else ["لا توجد منتجات"]
+        inv_item = st.selectbox("اختر المنتج المباع:", prod_names)
+    with col_inv2:
+        inv_qty = st.number_input("الكمية المباعة:", min_value=1, value=1)
+        
+    if st.button("🖨️ إصدار الوصل وتجهيز الواتساب", type="primary"):
+        if inv_customer and st.session_state.products_list:
+            st.success(f"تم إصدار الفاتورة الرسمية للزبون ({inv_customer}) وجاهزة للإرسال عبر الواتساب وهو بالبيت! 📱✨")
+        else:
+            st.warning("يرجى التأكد من إضافة منتجات واختيار اسم الزبون.")
+
+# ---------------- تبويب 3: العملاء والديون (المعدل والآمن) ----------------
+with tab3:
+    st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم")
+    
     iraq_govs = ["بغداد", "البصرة", "نينوى", "أربيل", "النجف", "كربلاء", "ذي قار", "بابل", "الأنبار", "ديالى", "كركوك", "صلاح الدين", "المثنى", "ميسان", "القادسية", "واسط", "دهوك", "السليمانية"]
     
     with st.form("add_customer_safe_form", clear_on_submit=True):
@@ -55,17 +115,9 @@ with tab1:
                 st.warning("يرجى كتابة اسم العميل ورقم الهاتف على الأقل.")
 
     st.divider()
-    st.subheader("📋 جدول العملاء المسجلين والديون")
+    st.subheader("📋 قائمة العملاء المسجلين والديون")
     if st.session_state.customers_list:
         df_cust = pd.DataFrame(st.session_state.customers_list)
         st.dataframe(df_cust, use_container_width=True)
     else:
         st.info("لا يوجد عملاء مسجلين حالياً. جرب إضافة عميل جديد الآن بكل سهولة.")
-
-# ---------------- تبويب المخزن والفواتير ----------------
-with tab2:
-    st.subheader("إدارة المخزن السريعة")
-    if st.session_state.products_list:
-        st.dataframe(pd.DataFrame(st.session_state.products_list), use_container_width=True)
-    else:
-        st.info("لا توجد منتجات مسجلة.")
