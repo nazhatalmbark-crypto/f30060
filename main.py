@@ -89,7 +89,6 @@ if "audit_logs" not in st.session_state or isinstance(st.session_state.audit_log
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
-# قائمة عملاء احتياطية بذاكرة التطبيق لتجنب أي توقف بقاعدة البيانات
 if "memory_customers" not in st.session_state:
     st.session_state.memory_customers = []
 
@@ -146,9 +145,9 @@ def generate_html_invoice(inv):
                 </tr>
             </table>
             <div class="totals">
-                <p>المبلغ الكلي: {inv['total_price']:,} دينار عراقي</p>
-                <p>المبلغ الواصل: {inv['paid_amount']:,} دينار عراقي</p>
-                <p>المتبقي (الدين): {inv['remaining_amount']:,} دينار عراقي</p>
+                <p>المبلغ الكلي: {int(inv['total_price']):,} دينار عراقي</p>
+                <p>المبلغ الواصل: {int(inv['paid_amount']):,} دينار عراقي</p>
+                <p>المتبقي (الدين): {int(inv['remaining_amount']):,} دينار عراقي</p>
             </div>
             <div class="footer">
                 <p>شكراً لتعاملكم معنا - جاهزة للصقها على شحنة التوصيل وتسليمها لشركة النقل</p>
@@ -435,7 +434,6 @@ with tab3:
             
         if st.form_submit_button("تسجيل العميل وحفظه", type="primary"):
             if c_name.strip() and c_phone.strip():
-                # حفظ آمن بالذاكرة الداخلية وبدون أخطاء قاعدة البيانات
                 st.session_state.memory_customers.append({
                     "customer_name": str(c_name.strip()),
                     "phone": str(c_phone.strip()),
@@ -471,14 +469,14 @@ with tab4:
         except:
             customer_invoices = []
 
-        total_customer_debt = sum(inv.get('remaining_amount', 0) for inv in customer_invoices)
+        total_customer_debt = sum(float(inv.get('remaining_amount', 0)) for inv in customer_invoices)
         
         st.markdown(f"### 📌 إجمالي الدين الكلي على العميل (`{selected_debt_customer}`): **{int(total_customer_debt):,} د.ع**")
         
         if customer_invoices:
             with st.expander("📄 عرض تفاصيل الفواتير المسجلة على هذا العميل"):
                 for cinv in customer_invoices:
-                    st.write(f"- **رقم الفاتورة:** {cinv['invoice_code']} | **المبلغ الكلي:** {cinv['total_price']:,} د.ع | **الواصل:** {cinv['paid_amount']:,} د.ع | **المتبقي:** `{cinv['remaining_amount']:,}` د.ع | **التاريخ:** {cinv['created_date']}")
+                    st.write(f"- **رقم الفاتورة:** {cinv['invoice_code']} | **المبلغ الكلي:** {int(cinv['total_price']):,} د.ع | **الواصل:** {int(cinv['paid_amount']):,} د.ع | **المتبقي:** `{int(cinv['remaining_amount']):,}` د.ع | **التاريخ:** {cinv['created_date']}")
         
         st.divider()
         with st.form("pay_debt_form"):
@@ -487,9 +485,9 @@ with tab4:
             
             if pay_submitted:
                 try:
-                    payment_val = float(payment_input_str.strip())
-                    if payment_val <= 0:
-                        st.warning("يرجى إدخال مبلغ صالح أكبر من الصفر.")
+                    payment_val = float(payment_input_str.strip() if payment_input_str.strip() else "0")
+                    if payment_val < 0:
+                        st.warning("يرجى إدخال مبلغ صالح.")
                     elif payment_val > total_customer_debt:
                         st.error("❌ المبلغ المدخل أكبر من إجمالي الدين المطلوب على العميل!")
                     else:
@@ -497,22 +495,22 @@ with tab4:
                         for cinv in customer_invoices:
                             if remaining_payment <= 0:
                                 break
-                            curr_rem = cinv.get('remaining_amount', 0)
+                            curr_rem = float(cinv.get('remaining_amount', 0))
                             if curr_rem > 0:
                                 if remaining_payment >= curr_rem:
-                                    new_paid = cinv['total_price']
-                                    new_rem = 0
+                                    new_paid = float(cinv['total_price'])
+                                    new_rem = 0.0
                                     new_type = "🟢 نقد بالكامل (كاش)"
                                     remaining_payment -= curr_rem
                                 else:
-                                    new_paid = cinv['paid_amount'] + remaining_payment
+                                    new_paid = float(cinv['paid_amount']) + remaining_payment
                                     new_rem = curr_rem - remaining_payment
                                     new_type = "🔵 دفعة جزئية (أقساط)"
-                                    remaining_payment = 0
+                                    remaining_payment = 0.0
                                 
                                 supabase.table("invoices").update({
-                                    "paid_amount": int(new_paid),
-                                    "remaining_amount": int(new_rem),
+                                    "paid_amount": float(new_paid),
+                                    "remaining_amount": float(new_rem),
                                     "payment_type": str(new_type)
                                 }).eq("id", cinv["id"]).execute()
                         
@@ -551,7 +549,7 @@ with tab6:
     st.subheader("🛒 سلة المبيعات وإتمام الفاتورة بربط العملاء مباشرة")
     
     if st.session_state.cart:
-        total_cart_price = 0
+        total_cart_price = 0.0
         for idx, c_item in enumerate(st.session_state.cart):
             cols_cart = st.columns([3, 2, 2, 1])
             with cols_cart[0]:
@@ -560,7 +558,7 @@ with tab6:
                 new_q = st.number_input(f"الكمية", min_value=1, max_value=int(c_item['max_qty']), value=int(c_item['qty']), key=f"cart_q_{c_item['id']}")
                 c_item['qty'] = new_q
             with cols_cart[2]:
-                item_total = c_item['sell_price'] * c_item['qty']
+                item_total = float(c_item['sell_price']) * float(c_item['qty'])
                 total_cart_price += item_total
                 st.write(f"المجموع: **{int(item_total):,}** د.ع")
             with cols_cart[3]:
@@ -581,20 +579,22 @@ with tab6:
         
         st.write("---")
         st.markdown("#### 💰 طريقة الدفع:")
-        paid_input_str = st.text_input("أدخل المبلغ الذي دفعه الزبون (د.ع):", value=str(int(total_cart_price)))
+        paid_input_str = st.text_input("أدخل المبلغ الذي دفعه الزبون (د.ع - اكتب 0 إذا كان آجل بالكامل):", value=str(int(total_cart_price)))
         
         try:
-            paid_amount = float(paid_input_str.strip())
-            if paid_amount < 0: paid_amount = 0
-            if paid_amount > total_cart_price: paid_amount = total_cart_price
+            paid_amount = float(paid_input_str.strip() if paid_input_str.strip() else "0")
+            if paid_amount < 0: 
+                paid_amount = 0.0
+            if paid_amount > total_cart_price: 
+                paid_amount = float(total_cart_price)
         except ValueError:
-            paid_amount = 0
+            paid_amount = 0.0
             
-        remaining_amount = total_cart_price - paid_amount
+        remaining_amount = float(total_cart_price) - float(paid_amount)
 
         if paid_amount >= total_cart_price:
             auto_pay_type = "🟢 نقد بالكامل (كاش)"
-        elif paid_amount == 0:
+        elif paid_amount == 0.0:
             auto_pay_type = "🔴 دين كامل (آجل)"
         else:
             auto_pay_type = "🔵 دفعة جزئية (أقساط)"
@@ -607,17 +607,17 @@ with tab6:
             else:
                 try:
                     prod_names_str = []
-                    total_buy_cost_of_invoice = 0
+                    total_buy_cost_of_invoice = 0.0
                     
                     for c_item in st.session_state.cart:
                         prod_names_str.append(f"{c_item['product_name']} ({c_item['color']}) [العدد: {c_item['qty']}]")
-                        total_buy_cost_of_invoice += (c_item['buy_price'] * c_item['qty'])
+                        total_buy_cost_of_invoice += (float(c_item['buy_price']) * float(c_item['qty']))
                         
                         res_p = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
                         if res_p.data:
                             current_db_qty = res_p.data[0]["quantity"]
-                            new_db_qty = max(0, current_db_qty - c_item['qty'])
-                            supabase.table("products").update({"quantity": new_db_qty}).eq("id", c_item["id"]).execute()
+                            new_db_qty = max(0, int(current_db_qty) - int(c_item['qty']))
+                            supabase.table("products").update({"quantity": int(new_db_qty)}).eq("id", c_item["id"]).execute()
                     
                     try:
                         res_inv_count = supabase.table("invoices").select("id").eq("username", username).execute()
@@ -632,10 +632,10 @@ with tab6:
                         "invoice_code": str(inv_code),
                         "customer_name": str(selected_customer_name),
                         "products_text": str(" ، ".join(prod_names_str)),
-                        "total_price": int(total_cart_price),
-                        "cost_price": int(total_buy_cost_of_invoice),
-                        "paid_amount": int(paid_amount),
-                        "remaining_amount": int(remaining_amount),
+                        "total_price": float(total_cart_price),
+                        "cost_price": float(total_buy_cost_of_invoice),
+                        "paid_amount": float(paid_amount),
+                        "remaining_amount": float(remaining_amount),
                         "payment_type": str(auto_pay_type),
                         "created_date": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                     }).execute()
@@ -659,10 +659,10 @@ with tab7:
 
     if invoices_list:
         for inv in invoices_list:
-            with st.expander(f"📄 فاتورة: {inv['invoice_code']} | الزبون: {inv['customer_name']} | المجموع: {inv['total_price']:,} د.ع"):
+            with st.expander(f"📄 فاتورة: {inv['invoice_code']} | الزبون: {inv['customer_name']} | المجموع: {int(inv['total_price']):,} د.ع"):
                 st.write(f"📅 **التاريخ:** {inv['created_date']}")
                 st.write(f"🛍️ **المنتجات:** {inv['products_text']}")
-                st.write(f"💵 **المبلغ الكلي:** {inv['total_price']:,} د.ع | **الواصل:** {inv['paid_amount']:,} د.ع | **المتبقي:** `{inv['remaining_amount']:,}` د.ع")
+                st.write(f"💵 **المبلغ الكلي:** {int(inv['total_price']):,} د.ع | **الواصل:** {int(inv['paid_amount']):,} د.ع | **المتبقي:** `{int(inv['remaining_amount']):,}` د.ع")
                 st.write(f"📌 **الحالة:** {inv['payment_type']}")
 
                 html_inv = generate_html_invoice(inv)
@@ -681,7 +681,7 @@ with tab7:
                         break
 
                 if cust_ph:
-                    wa_msg = f"مرحباً بك أستاذ {inv['customer_name']}\nتفاصيل فاتورتك رقم {inv['invoice_code']}:\nالمجموع: {inv['total_price']:,} د.ع\nالواصل: {inv['paid_amount']:,} د.ع\nالمتبقي: {inv['remaining_amount']:,} د.ع\nشكراً لتعاملكم مع Yasser Web!"
+                    wa_msg = f"مرحباً بك أستاذ {inv['customer_name']}\nتفاصيل فاتورتك رقم {inv['invoice_code']}:\nالمجموع: {int(inv['total_price']):,} د.ع\nالواصل: {int(inv['paid_amount']):,} د.ع\nالمتبقي: {int(inv['remaining_amount']):,} د.ع\nشكراً لتعاملكم مع Yasser Web!"
                     encoded_msg = urllib.parse.quote(wa_msg)
                     wa_url = f"https://wa.me/{cust_ph}?text={encoded_msg}"
                     st.markdown(f"📱 [إرسال الفاتورة عبر واتساب للزبون]({wa_url})", unsafe_allow_html=True)
@@ -696,7 +696,7 @@ with tab8:
         if st.form_submit_button("تسجيل المصروف"):
             if exp_desc.strip():
                 try:
-                    exp_amt = float(exp_amount_str.strip())
+                    exp_amt = float(exp_amount_str.strip() if exp_amount_str.strip() else "0")
                     st.session_state.expenses_list.append({
                         "البيان": str(exp_desc.strip()),
                         "المبلغ": int(exp_amt),
@@ -727,7 +727,7 @@ with tab9:
         df_rep = pd.DataFrame(rep_invoices)
         total_sales = df_rep['total_price'].sum()
         total_costs = df_rep['cost_price'].sum()
-        net_profit = total_sales - total_costs
+        net_profit = float(total_sales) - float(total_costs)
 
         col_r1, col_r2, col_r3 = st.columns(3)
         col_r1.metric("إجمالي المبيعات", f"{int(total_sales):,} د.ع")
@@ -750,6 +750,5 @@ with tab11:
     st.subheader("📖 دليل الاستخدام والمميزات والدعم الفني")
     st.markdown("""
     ### أهلاً بك في نظام **Yasser Web** الشامل لإدارة المبيعات والمخزون 🛍️
-    * تم تجاوز أخطاء جداول قاعدة البيانات الخارجية وجعل النظام يعمل بسلاسة تامة.
-    * إدارة العملاء، الفواتير، السلة، والتقارير تعمل بكفاءة عالية وبدون أي توقف.
+    * تم معالجة قيم الصفر (`0`) للواصل والديون لتعمل الفواتير الآجلة والنقدية بسلاسة تامة.
     """)
