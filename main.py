@@ -198,7 +198,6 @@ if not st.session_state.logged_in_user:
             if signup_submitted:
                 if new_user.strip():
                     try:
-                        # كود آمن 100% لإرسال اسم المستخدم فقط وتجنب أي تعارض في الأعمدة
                         supabase.table("users").insert({
                             "username": str(new_user.strip())
                         }).execute()
@@ -428,23 +427,27 @@ with tab2:
         st.info("المخزن فارغ حالياً.")
 
 with tab3:
-    st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم (محفوظة بقاعدة البيانات بشكل دائم)")
+    st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم (مع كامل الحقول الأصلية)")
     
     with st.form("add_customer_db_form", clear_on_submit=True):
         col_c1, col_c2 = st.columns(2)
         with col_c1:
             c_name = st.text_input("اسم الزبون / العميل *:")
+            c_address = st.text_input("العنوان / المنطقة:")
         with col_c2:
             c_phone = st.text_input("رقم الهاتف *:")
+            c_notes = st.text_input("ملاحظات إضافية:")
             
         if st.form_submit_button("تسجيل العميل وحفظه", type="primary"):
             if c_name.strip() and c_phone.strip():
                 try:
-                    # كود آمن 100% يمنع أي خطأ في جدول العملاء
+                    # إرسال الحقول الكاملة مع الأمان التام لقاعدة البيانات
                     supabase.table("customers").insert({
                         "username": str(username),
                         "customer_name": str(c_name.strip()),
-                        "phone": str(c_phone.strip())
+                        "phone": str(c_phone.strip()),
+                        "address": str(c_address.strip() if c_address else "غير محدد"),
+                        "notes": str(c_notes.strip() if c_notes else "")
                     }).execute()
                     
                     log_audit("إضافة عميل", f"تم تسجيل العميل {c_name}")
@@ -453,7 +456,7 @@ with tab3:
                 except Exception as e:
                     st.error(f"❌ خطأ في قاعدة البيانات: {e}")
             else:
-                st.warning("يرجى كتابة اسم العميل ورقم الهاتف.")
+                st.warning("يرجى كتابة اسم العميل ورقم الهاتف على الأقل.")
 
     st.divider()
     st.subheader("📋 قائمة العملاء المسجلين")
@@ -772,7 +775,7 @@ with tab11:
     st.markdown("""
     ### أهلاً بك في نظام **Yasser Web** الشامل لإدارة المبيعات والمخزون 🛍️
     * **إدارة المخزن:** إضافة المنتجات، متابعة الكميات، وتوليد الباركود تلقائياً.
-    * **إدارة العملاء والديون:** تسجيل العملاء ومتابعة الحسابات والذمم بدقة عالية.
+    * **إدارة العملاء والديون:** تسجيل العملاء مع عناوينهم وملاحظاتهم ومتابعة الحسابات بدقة عالية.
     * **سداد الديون:** واجهة ذكية لتوزيع المبالغ المسددة على فواتير العميل وتحديث حالتها.
     * **السلة والفواتير:** نظام مبيعات متكامل يحسب المبالغ والديون والأقساط تلقائياً ويصدر روابط واتساب مباشرة.
     * **الأمان والنسخ الاحتياطي:** دعم كامل لتسجيل الدخول، صلاحيات المستخدمين، والنسخ الاحتياطي الفوري بصيغة JSON.
