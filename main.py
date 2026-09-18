@@ -230,7 +230,7 @@ st.sidebar.info(f"{t['cart_badge']} **{cart_count_badge}**")
 
 st.sidebar.divider()
 
-# **قسم حالة الاشتراك الشهري (VIP) - يتيح النسخة المجانية أولاً مع خيار التجديد بـ 20$**
+# **قسم حالة الاشتراك الشهري (VIP)**
 st.sidebar.subheader("🌟 نظام الاشتراكات والنسخة التجريبية")
 if not st.session_state.is_vip:
     st.sidebar.info("💡 **أنت تستخدم النسخة التجريبية المجانية حالياً.** يمكنك تجربة ميزات البرنامج بالكامل.")
@@ -239,7 +239,7 @@ if not st.session_state.is_vip:
     if st.sidebar.button("تفعيل النسخة المدفوعة"):
         if vip_code_input.strip() == "Yasser@Web#2026!":
             st.session_state.is_vip = True
-            st.session_state.vip_days_left = 30  # 30 يوم
+            st.session_state.vip_days_left = 30 
             try:
                 supabase.table("users").update({"is_paid": True}).eq("username", username).execute()
             except:
@@ -252,7 +252,6 @@ else:
     st.sidebar.success("🌟 **النسخة المدفوعة مفعلة (شهرية)**")
     st.sidebar.info(f"⏳ **الأيام المتبقية:** متبقي **{st.session_state.vip_days_left}** يوماً.")
     
-    # خيار إدخال كود جديد لتمديد الاشتراك إذا انتهى أو اقترب من الانتهاء
     ext_code = st.sidebar.text_input("كود تمديد اشتراك جديد (20$):", type="password", key="ext_code_input")
     if st.sidebar.button("تمديد الاشتراك شهر إضافي"):
         if ext_code.strip() == "Yasser@Web#2026!":
@@ -303,7 +302,6 @@ if st.sidebar.button(t["logout"]):
 
 st.divider()
 
-# **ملاحظة ترحيبية بالنسخة المجانية في حال لم يشترك بعد (بدون قفل قسري)**
 if not st.session_state.is_vip:
     st.info("👋 **أهلاً بك في النسخة المجانية لـ Yasser Web!** تصفح الأقسام وجرّب النظام براحتك، وعند رغبتك بالترقية للنسخة الكاملة، يمكنك تفعيلها عبر كود الاشتراك الشهري بـ 20$ من القائمة الجانبية.")
 
@@ -474,7 +472,7 @@ with tab3:
                     st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"خطأ في حفظ العميل: {e}")
+                    st.error(f"خطأ في حفظ العميل: تأكد من إنشاء جدول العملاء (customers) في Supabase أو تفقد الخطأ التالي: {e}")
             else:
                 st.warning("يرجى كتابة الاسم ورقم الهاتف.")
 
@@ -683,164 +681,103 @@ with tab6:
                     st.success("✅ تمت عملية البيع وتحديث المخزن وحفظ الفاتورة بنجاح!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"❌ خطأ: {e}")
+                    st.error(f"❌ خطأ أثناء إتمام الفاتورة: {e}")
     else:
-        st.info("🛒 السلة فارغة.")
+        st.info("🛒 السلة فارغة حالياً. أضف مواد من تبويب (جرد المخزن).")
 
 with tab7:
-    st.subheader("📄 سجل الفواتير، الطباعة المباشرة، وإرسال الفاتورة عبر الواتساب")
+    st.subheader("📄 سجل الفواتير، الطباعة، وواتساب")
     try:
-        res_all_inv = supabase.table("invoices").select("*").eq("username", username).order("id", desc=True).execute()
-        all_invoices = res_all_inv.data if res_all_inv.data else []
+        res_inv_table = supabase.table("invoices").select("*").eq("username", username).execute()
+        db_invoices = res_inv_table.data if res_inv_table.data else []
     except:
-        all_invoices = []
+        db_invoices = []
 
-    if all_invoices:
-        for inv in all_invoices:
-            with st.container(border=True):
-                st.markdown(f"### 🧾 فاتورة رقم: `{inv['invoice_code']}`")
-                st.write(f"👤 **الزبون:** {inv['customer_name']} | 📅 **التاريخ:** {inv['created_date']}")
-                st.write(f"🛍️ **المنتجات:** {inv['products_text']}")
-                st.markdown(f"💰 **المجموع:** `{inv['total_price']:,}` د.ع | **الواصل:** `{inv['paid_amount']:,}` د.ع | **المتبقي:** `{inv['remaining_amount']:,}` د.ع")
-                st.markdown(f"📌 **حالة الدفع:** {inv['payment_type']}")
-
-                col_b1, col_b2 = st.columns(2)
-                with col_b1:
-                    if st.button(f"👁️ عرض وفاتورة HTML للطباعة", key=f"html_inv_{inv['id']}"):
-                        html_code = generate_html_invoice(inv)
-                        st.components.v1.html(html_code, height=500, scrolling=True)
-                with col_b2:
-                    try:
-                        res_c_phone = supabase.table("customers").select("phone").eq("username", username).eq("customer_name", inv['customer_name']).execute()
-                        c_ph = res_c_phone.data[0]["phone"] if res_c_phone.data else ""
-                        if c_ph:
-                            clean_ph = ''.join(filter(str.isdigit, c_ph))
-                            if clean_ph.startswith("0"):
-                                clean_ph = "964" + clean_ph[1:]
-                            wa_msg = urllib.parse.quote(f"مرحباً العميل المحترم {inv['customer_name']}\nتجد تفاصيل فاتورتك رقم {inv['invoice_code']}:\nالمبلغ الكلي: {inv['total_price']:,} د.ع\nالواصل: {inv['paid_amount']:,} د.ع\nالمتبقي: {inv['remaining_amount']:,} د.ع\nشكراً لتعاملكم مع Yasser Web 🛍️")
-                            st.markdown(f"📱 [إرسال الفاتورة عبر واتساب](https://wa.me/{clean_ph}?text={wa_msg})", unsafe_allow_html=True)
-                    except:
-                        pass
+    if db_invoices:
+        for inv in db_invoices:
+            with st.expander(f"📄 فاتورة: {inv['invoice_code']} | الزبون: {inv['customer_name']} | المجموع: {inv['total_price']:,} د.ع"):
+                st.markdown(f"**تاريخ الفاتورة:** {inv['created_date']}")
+                st.markdown(f"**الحالة:** {inv['payment_type']}")
+                st.markdown(f"**المنتجات:** {inv['products_text']}")
+                st.markdown(f"**المبلغ الكلي:** {inv['total_price']:,} د.ع | **الواصل:** {inv['paid_amount']:,} د.ع | **المتبقي:** {inv['remaining_amount']:,} د.ع")
+                
+                html_code = generate_html_invoice(inv)
+                st.download_button(
+                    label="📥 تحميل الفاتورة (HTML)",
+                    data=html_code,
+                    file_name=f"invoice_{inv['invoice_code']}.html",
+                    mime="text/html",
+                    key=f"dl_inv_{inv['id']}"
+                )
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 with tab8:
-    st.subheader("💰 صندوق الوردية وتسجيل المصاريف اليومية")
+    st.subheader("💰 صندوق الوردية والمصاريف اليومية")
     with st.form("add_expense_form", clear_on_submit=True):
-        exp_title = st.text_input("بيان المصروف (مثلاً: إيجار، كهرباء، خط نقل):")
-        exp_amount_str = st.text_input("مبلغ المصروف (د.ع):", "0")
+        exp_title = st.text_input("بيان المصروف (مثلاً: أجور نقل، خط إنترنت):")
+        exp_amt_str = st.text_input("المبلغ (د.ع):", "0")
         if st.form_submit_button("تسجيل المصروف"):
             if exp_title.strip():
                 try:
-                    exp_amt = float(exp_amount_str.strip())
-                    st.session_state.expenses_list.insert(0, {
+                    exp_amt = float(exp_amt_str.strip())
+                    st.session_state.expenses_list.append({
                         "البيان": str(exp_title.strip()),
                         "المبلغ": float(exp_amt),
                         "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                     })
-                    log_audit("تسجيل مصروف", f"تم تسجيل مصروف {exp_title} بمبلغ {exp_amt}")
                     st.success("تم تسجيل المصروف بنجاح!")
                     st.rerun()
                 except ValueError:
                     st.error("يرجى إدخال مبلغ صحيح.")
             else:
-                st.warning("يرجى إدخال بيان المصروف.")
+                st.warning("يرجى كتابة بيان المصروف.")
 
     if st.session_state.expenses_list:
-        st.write("### قائمة المصاريف المسجلة:")
-        df_exp = pd.DataFrame(st.session_state.expenses_list)
-        st.dataframe(df_exp, use_container_width=True)
-        total_exp = sum(e["المبلغ"] for e in st.session_state.expenses_list)
-        st.markdown(f"### 📉 إجمالي المصاريف: **{total_exp:,.0f} د.ع**")
+        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
+        total_exp = sum(e['المبلغ'] for e in st.session_state.expenses_list)
+        st.markdown(f"### إجمالي المصاريف: **{total_exp:,.0f} د.ع**")
     else:
         st.info("لا توجد مصاريف مسجلة في هذه الوردية.")
 
 with tab9:
-    st.subheader("📊 الرسوم البيانية وتقارير الأرباح والمبيعات")
+    st.subheader("📊 الرسوم البيانية وتقارير الأرباح")
     try:
-        res_rep_inv = supabase.table("invoices").select("*").eq("username", username).execute()
-        rep_invoices = res_rep_inv.data if res_rep_inv.data else []
+        res_rep = supabase.table("invoices").select("*").eq("username", username).execute()
+        rep_data = res_rep.data if res_rep.data else []
     except:
-        rep_invoices = []
+        rep_data = []
 
-    if rep_invoices:
-        df_rep = pd.DataFrame(rep_invoices)
-        total_sales_sum = df_rep['total_price'].sum()
-        total_cost_sum = df_rep.get('cost_price', pd.Series([0]*len(df_rep))).sum()
-        total_profit_sum = total_sales_sum - total_cost_sum
+    if rep_data:
+        df_rep = pd.DataFrame(rep_data)
+        total_sales = df_rep['total_price'].sum()
+        total_costs = df_rep['cost_price'].sum() if 'cost_price' in df_rep.columns else 0
+        net_profits = total_sales - total_costs
 
-        col_r1, col_r2, col_r3 = st.columns(3)
-        with col_r1:
-            st.metric("إجمالي المبيعات", f"{total_sales_sum:,.0f} د.ع")
-        with col_r2:
-            st.metric("إجمالي التكلفة", f"{total_cost_sum:,.0f} د.ع")
-        with col_r3:
-            st.metric("صافي الأرباح التقريبي", f"{total_profit_sum:,.0f} د.ع")
+        c_rep1, c_rep2, c_rep3 = st.columns(3)
+        with c_rep1:
+            st.metric("إجمالي المبيعات", f"{total_sales:,.0f} د.ع")
+        with c_rep2:
+            st.metric("إجمالي التكلفة", f"{total_costs:,.0f} د.ع")
+        with c_rep3:
+            st.metric("صافي الأرباح", f"{net_profits:,.0f} د.ع", delta="ممتاز")
 
         st.divider()
         st.bar_chart(df_rep, x="invoice_code", y="total_price")
     else:
-        st.info("لا توجد بيانات كافية لعرض الرسوم البيانية.")
+        st.info("لا توجد بيانات كافية لعرض الرسوم البيانية حتى الآن.")
 
 with tab10:
     st.subheader("📜 سجل النشاطات والعمليات (Audit Trail)")
     if st.session_state.audit_logs:
-        df_audit = pd.DataFrame(st.session_state.audit_logs)
-        st.dataframe(df_audit, use_container_width=True)
+        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
     else:
         st.info("لا توجد نشاطات مسجلة بعد.")
 
 with tab11:
-    st.subheader("📖 دليل الاستخدام الشامل لموقع وطبقات Yasser Web والدعم الفني")
+    st.subheader("📖 دليل الاستخدام والدعم الفني")
     st.markdown("""
-    أهلاً بك عزيزي المستخدم في الدليل الشامل لنظام **Yasser Web** لإدارة المبيعات والمخازن. تم تصميم هذا النظام خصيصاً ليكون مساعدك الذكي في إدارة محلك أو شركتك بكل احترافية وسهولة. إليك شرحاً تفصيلياً لجميع تبويبات وأقسام النظام من البداية وحتى النهاية:
-
-    ---
-
-    ### 📑 شرح تفصيلي لتبويبات النظام (من الأول إلى الأخير):
-
-    1. **➕ إضافة مادة جديدة:**
-       * **العمل الوظيفي:** مخصص لإدخال البضائع والمنتجات الجديدة إلى المخزن.
-       * **الحقول المطلوبة:** اسم المادة، اللون أو المواصفات، القياس أو السعة، سعر الشراء، سعر البيع، الكمية المتوفرة، ورمز الباركود. يحسب النظام ربح القطعة الواحدة بشكل تلقائي.
-
-    2. **📦 جرد المخزن والباركود:**
-       * **العمل الوظيفي:** لوحة تحكم كاملة لعرض جميع المواد المخزنة، مع إمكانية البحث السريع بالاسم أو رمز الباركود.
-       * **المميزات:** توليد وتخزين باركود خاص لكل مادة، والتنبيه التلقائي في حال اقتراب نفاد أي مادة من المخزن.
-
-    3. **👥 إدارة العملاء والديون:**
-       * **العمل الوظيفي:** قاعدة بيانات متكاملة لتسجيل وحفظ معلومات الزبائن (الاسم، رقم الهاتف، المحافظة، العنوان، وملاحظات خاصة) مع حفظها بشكل دائم في السحابة.
-
-    4. **💸 وصل سداد:**
-       * **العمل الوظيفي:** مخصص لتسجيل وإصدار وصل سداد مالي للزبائن المدينين.
-       * **طريقة الاستخدام:** اختر اسم الزبون أو المحل من قائمة العملاء المسجلين مسبقاً، ثم أدخل المبلغ المراد تسديده. سيقوم النظام فوراً بخصم هذا المبلغ من إجمالي الديون المترتبة على الزبون وتحديث فواتيره تلقائياً.
-
-    5. **🏭 إدارة الموردين:**
-       * **العمل الوظيفي:** نافذة مخصصة لحفظ وتنسيق بيانات الموردين الذين تتعامل معهم، بما يتضمن أسماء الشركات أو الأشخاص وأرقام هواتفهم وتخصصاتهم.
-
-    6. **🛒 إتمام البيع والفواتير:**
-       * **العمل الوظيفي:** سلة المبيعات الذكية. تتيح لك اختيار المواد المضافة، تعديل الكميات، واختيار اسم الزبون المسجل.
-       * **الذكاء المالي:** يتيح لك إدخال المبلغ الواصل من الزبون، ليحدد النظام تلقائياً ما إذا كانت الفاتورة (نقداً بالكامل، دين كامل، أو دفعة جزئية/أقساط) مع خصم الكميات من المخزن فوراً.
-
-    7. **📄 سجل الفواتير وواتساب:**
-       * **العمل الوظيفي:** أرشيف كامل لكل الفواتير المصدرة.
-       * **المميزات:** عرض الفاتورة بتنسيق HTML احترافي وجاهز للطباعة أو اللصق على شحنات التوصيل، بالإضافة إلى زر تفاعلي لإرسال تفاصيل الفاتورة للزبون مباشرة عبر تطبيق **واتساب**.
-
-    8. **💰 صندوق الوردية والمصاريف:**
-       * **العمل الوظيفي:** لمتابعة النثريات والمصاريف اليومية للمحل (مثل أجور الإيجار، الكهرباء، الخطوط والنقل). يعرض إجمالي المصاريف المسجلة في الوردية بدقة.
-
-    9. **📊 الرسوم البيانية والتقارير:**
-       * **العمل الوظيفي:** لوحة تحليلات مرئية تعرض إجمالي المبيعات، إجمالي التكاليف، صافي الأرباح التقريبي، ورسوماً بيانية توضح حركة المبيعات عبر الفواتير.
-
-    10. **📜 سجل النشاطات (Audit Trail):**
-        * **العمل الوظيفي:** سجل رقابي يسجل كل العمليات التي تمت في النظام (تسجيل دخول، إضافة منتج، إتمام بيع، إصدار وصل سداد) مع توقيتها واسم المستخدم لضمان الأمان والمتابعة.
-
-    11. **📖 دليل الاستخدام والدعم (هذا التبويب):**
-        * **العمل الوظيفي:** مرجعك الشامل لفهم آلية عمل كافة أجزاء وميزات المنظومة.
-
-    ---
-
-    ### 📞 التواصل والدعم الفني:
-    إذا واجهتك أي مشكلة برمجية، خطأ تقني، أو احتجت لتعديل معين داخل النظام، يسعدني جداً تواصلك معي مباشرة عبر حسابي على إنستغرام:
-    
-    👉 **[تواصل معي عبر إنستغرام (Instagram)](https://www.instagram.com/ysr_201_/)** 📱
+    * **رحلة الاستخدام:** ابدأ بإضافة بضاعة للمخزن (تبويب 1)، ثم سجل عميل جديد (تبويب 3)، وبعدها توجه لسلة المبيعات (تبويب 6) لإتمام أول فاتورة.
+    * **وصل السداد:** يستخدم لخصم الدفعات والأقساط التي يسددها العملاء من إجمالي ديونهم (تبويب 4).
+    * **الدعم الفني:** نظام Yasser Web مصمم خصيصاً لتسهيل إدارة المحلات بدقة وسرعة.
     """)
