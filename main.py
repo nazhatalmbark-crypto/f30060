@@ -531,7 +531,7 @@ with tab5:
         if st.session_state.get('last_receipt'):
             rec = st.session_state.last_receipt
             st.divider()
-            st.markdown("### 🧾 سند القبض (إيصال استلام النقدية) الأخير:")
+            st.markdown("### 🧾 سند القبض (إيصال استلاستلم النقدية) الأخير:")
             with st.container(border=True):
                 st.write(f"👤 **العميل:** {rec['customer_name']}")
                 st.write(f"💵 **المبلغ المستلم:** **{int(rec['amount']):,} د.ع**")
@@ -757,100 +757,76 @@ with tab11:
         st.info("لا توجد نشاطات مسجلة بعد.")
 
 with tab12:
-    st.markdown("""
-    <div style="font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; color: #000; background: #ffffff;">
-
-        <!-- صندوق الدعم والتواصل الفني البسيط -->
-        <div style="border: 2px solid #000; padding: 20px; margin-bottom: 30px; background: #fff;">
-            <h2 style="font-size: 28px; color: #000; margin-top: 0; font-weight: bold;">📞 معلومات التواصل والدعم الفني:</h2>
-            <p style="font-size: 22px; margin: 8px 0;"><b>اسم المسؤول:</b> """ + str(username) + """</p>
-            <p style="font-size: 22px; margin: 8px 0;"><b>حساب انستغرام:</b> <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #0000EE; font-weight: bold;">@yaser120120120120</a></p>
-            <p style="font-size: 20px; margin: 8px 0;">نحن في الخدمة دائماً لدعمكم عبر نظام ياسر ويب.</p>
+    st.markdown(
+        """
+        <div style="font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; color: #000; background: #ffffff;">
+            <div style="border: 2px solid #000; padding: 20px; margin-bottom: 30px; background: #fff;">
+                <h2 style="font-size: 28px; color: #000; margin-top: 0; font-weight: bold;">📞 معلومات التواصل والدعم الفني:</h2>
+                <p style="font-size: 22px; margin: 8px 0;"><b>اسم المسؤول:</b> """ + str(username) + """</p>
+                <p style="font-size: 22px; margin: 8px 0;"><b>حساب انستغرام:</b> <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #0000EE; font-weight: bold;">@yaser120120120120</a></p>
+                <p style="font-size: 20px; margin: 8px 0;">نحن في الخدمة دائماً لدعمكم عبر نظام ياسر ويب.</p>
+            </div>
+            <div style="border: 3px solid #000; padding: 30px; background: #ffffff;">
+                <h1 style="font-size: 36px; text-align: center; margin-top: 0; margin-bottom: 30px; font-weight: bold; border-bottom: 3px solid #000; padding-bottom: 15px;">
+                    📖 الدليل الشامل لنظام ياسر ويب
+                </h1>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">1️⃣ خانة (➕ إضافة مادة)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> تتيح إدخال أي بضاعة أو منتج جديد للمخزن.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> إدخال اسم المادة، اللون، القياس، سعر الشراء، سعر البيع، الكمية، والباركود، ثم الضغط على حفظ.</p>
+                </div>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">2️⃣ خانة (📦 جرد المخزن)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> عرض كافة مواد المخزن مع خاصية البحث السريع.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> يحسب النظام ربح القطعة تلقائياً، ينبهك بحالة نفاد المخزون، ويتيح إضافة المواد للسلة.</p>
+                </div>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">3️⃣ خانة (🏷️ الباركود)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> توليد رموز باركود واضحة ورسمية (Code 128) لكل منتج.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> طباعة الباركود ولصقه على السلع والمنتجات بالمحل.</p>
+                </div>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">4️⃣ خانة (👥 إدارة العملاء)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> تسجيل وإدارة بيانات الزبائن والمحلات المتعاملة معك.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> حفظ الاسم، رقم الهاتف الأساسي، المحافظة، والملاحظات بجدول منظم.</p>
+                </div>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">5️⃣ خانة (💵 سداد الديون)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> إدارة الذمم المالية وديون العملاء بدقة.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> اختيار العميل، إدخال المبلغ المدفوع ليقوم النظام بتحديث الحساب وإصدار سند قبض.</p>
+                </div>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">6️⃣ خانة (🏭 إدارة الموردين)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> حفظ أسماء وأرقام وتخصصات الموردين الأساسيين.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> لضمان بقاء جهات تجهيز البضائع حاضرة ومتاحة دائماً.</p>
+                </div>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">7️⃣ خانة (🛒 سلة المبيعات)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> المحطة الرئيسية للبيع وإصدار الفواتير.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> حساب المجموع، تحديد العميل، تحليل الدفع (كاش/آجل)، والخصم التلقائي من المخزن.</p>
+                </div>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">8️⃣ خانة (📄 سجل الفواتير)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> أرشيف شامل لجميع الفواتير والعمليات السابقة.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> إمكانية تحميل الفاتورة HTML للطباعة، أو إرسال تفاصيلها مباشرة عبر واتساب للزبون.</p>
+                </div>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">9️⃣ خانة (💰 صندوق الوردية)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> تسجيل المصاريف النثرية والتشغيلية اليومية.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> إدخال بيان المصروف والمبلغ لضبط الصندوق اليومي بدقة.</p>
+                </div>
+                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">🔟 خانة (📊 الرسوم والتقارير)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> اللوحة المالية العليا لنشاطك التجاري.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> عرض إجمالي المبيعات، التكاليف، وصافي الأرباح الحقيقية مع رسوم بيانية.</p>
+                </div>
+                <div style="padding-bottom: 0; margin-bottom: 0;">
+                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">1️⃣1️⃣ خانة (📜 سجل النشاطات)</h2>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> سجل رقابي دقيق ومفصل لكل حركات المستخدمين.</p>
+                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> توثيق عمليات الدخول، البيع، والإضافة مع التوقيت واسم المستخدم.</p>
+                </div>
+            </div>
         </div>
-
-        <!-- الصندوق الرئيسي للدليل -->
-        <div style="border: 3px solid #000; padding: 30px; background: #ffffff;">
-            <h1 style="font-size: 36px; text-align: center; margin-top: 0; margin-bottom: 30px; font-weight: bold; border-bottom: 3px solid #000; padding-bottom: 15px;">
-                📖 الدليل الشامل لنظام ياسر ويب
-            </h1>
-
-            <!-- التبويب 1 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">1️⃣ خانة (➕ إضافة مادة)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> تتيح إدخال أي بضاعة أو منتج جديد للمخزن.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> إدخال اسم المادة، اللون، القياس، سعر الشراء، سعر البيع، الكمية، والباركود، ثم الضغط على حفظ.</p>
-            </div>
-
-            <!-- التبويب 2 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">2️⃣ خانة (📦 جرد المخزن)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> عرض كافة مواد المخزن مع خاصية البحث السريع.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> يحسب النظام ربح القطعة تلقائياً، ينبهك بحالة نفاد المخزون، ويتيح إضافة المواد للسلة.</p>
-            </div>
-
-            <!-- التبويب 3 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">3️⃣ خانة (🏷️ الباركود)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> توليد رموز باركود واضحة ورسمية (Code 128) لكل منتج.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> طباعة الباركود ولصقه على السلع والمنتجات بالمحل.</p>
-            </div>
-
-            <!-- التبويب 4 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">4️⃣ خانة (👥 إدارة العملاء)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> تسجيل وإدارة بيانات الزبائن والمحلات المتعاملة معك.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> حفظ الاسم، رقم الهاتف الأساسي، المحافظة، والملاحظات بجدول منظم.</p>
-            </div>
-
-            <!-- التبويب 5 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">5️⃣ خانة (💵 سداد الديون)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> إدارة الذمم المالية وديون العملاء بدقة.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> اختيار العميل، إدخال المبلغ المدفوع ليقوم النظام بتحديث الحساب وإصدار سند قبض.</p>
-            </div>
-
-            <!-- التبويب 6 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">6️⃣ خانة (🏭 إدارة الموردين)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> حفظ أسماء وأرقام وتخصصات الموردين الأساسيين.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> لضمان بقاء جهات تجهيز البضائع حاضرة ومتاحة دائماً.</p>
-            </div>
-
-            <!-- التبويب 7 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">7️⃣ خانة (🛒 سلة المبيعات)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> المحطة الرئيسية للبيع وإصدار الفواتير.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> حساب المجموع، تحديد العميل، تحليل الدفع (كاش/آجل)، والخصم التلقائي من المخزن.</p>
-            </div>
-
-            <!-- التبويب 8 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">8️⃣ خانة (📄 سجل الفواتير)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> أرشيف شامل لجميع الفواتير والعمليات السابقة.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> إمكانية تحميل الفاتورة HTML للطباعة، أو إرسال تفاصيلها مباشرة عبر واتساب للزبون.</p>
-            </div>
-
-            <!-- التبويب 9 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">9️⃣ خانة (💰 صندوق الوردية)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> تسجيل المصاريف النثرية والتشغيلية اليومية.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> إدخال بيان المصروف والمبلغ لضبط الصندوق اليومي بدقة.</p>
-            </div>
-
-            <!-- التبويب 10 -->
-            <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">🔟 خانة (📊 الرسوم والتقارير)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> اللوحة المالية العليا لنشاطك التجاري.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> عرض إجمالي المبيعات، التكاليف، وصافي الأرباح الحقيقية مع رسوم بيانية.</p>
-            </div>
-
-            <!-- التبويب 11 -->
-            <div style="padding-bottom: 0; margin-bottom: 0;">
-                <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">1️⃣1️⃣ خانة (📜 سجل النشاطات)</h2>
-                <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> سجل رقابي دقيق ومفصل لكل حركات المستخدمين.</p>
-                <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> توثيق عمليات الدخول، البيع، والإضافة مع التوقيت واسم المستخدم.</p>
-            </div>
-
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True
+    )
