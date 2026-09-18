@@ -505,7 +505,6 @@ with tab4:
                                 cinv['remaining_amount'] = float(new_rem)
                                 cinv['payment_type'] = str(new_type)
                         
-                        # تخزين سند القبض لعرضه فوراً
                         st.session_state.last_receipt = {
                             "customer_name": str(selected_debt_customer),
                             "amount": float(payment_val),
@@ -518,11 +517,10 @@ with tab4:
                 except ValueError:
                     st.error("❌ يرجى إدخال رقم صحيح للمبلغ.")
 
-        # عرض سند القبض وإمكانية طباعته إذا تم إجراؤه
         if st.session_state.get('last_receipt'):
             rec = st.session_state.last_receipt
             st.divider()
-            st.markdown("### 🧾 سند القبض (إيصال استلام النقدية) الأخير:")
+            st.markdown("### 🧾 سند القبض (إيصال استلاست النقدية) الأخير:")
             with st.container(border=True):
                 st.write(f"👤 **العميل:** {rec['customer_name']}")
                 st.write(f"💵 **المبلغ المستلم:** **{int(rec['amount']):,} د.ع**")
@@ -748,7 +746,6 @@ with tab10:
         st.info("لا توجد نشاطات مسجلة بعد.")
 
 with tab11:
-with tab11:
     st.subheader("📖 دليل الاستخدام والمميزات والدعم الفني")
     st.markdown("""
     ### أهلاً بك في نظام **Yasser Web** الشامل لإدارة المبيعات والمخزون 🛍️
@@ -786,4 +783,4 @@ with tab11:
     ### 📞 الدعم الفني والتواصل:
     * **المطور / الإدارة:** ياسر
     * **إنستغرام للتواصل والدعم الفني:** [yaser120120120120](https://instagram.com/yaser120120120120)
-    """)    
+    """)
