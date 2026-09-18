@@ -54,17 +54,18 @@ lang_dict = {
         "backup_download": "📥 تحميل نسخة احتياطية (JSON)",
         "logout": "تسجيل الخروج",
         "tabs": [
-            "➕ إضافة مادة جديدة", 
-            "📦 جرد المخزن والباركود", 
-            "👥 إدارة العملاء والديون", 
+            "➕ إضافة مادة", 
+            "📦 جرد المخزن", 
+            "🏷️ الباركود",
+            "👥 إدارة العملاء", 
             "💵 سداد الديون",
             "🏭 إدارة الموردين",
-            "🛒 إتمام البيع والفواتير", 
-            "📄 سجل الفواتير وواتساب", 
-            "💰 صندوق الوردية والمصاريف", 
-            "📊 الرسوم البيانية والتقارير",
+            "🛒 سلة المبيعات", 
+            "📄 سجل الفواتير", 
+            "💰 صندوق الوردية", 
+            "📊 الرسوم والتقارير",
             "📜 سجل النشاطات",
-            "📖 دليل الاستخدام والمميزات والدعم"
+            "📖 الدعم الفني"
         ]
     }
 }
@@ -289,7 +290,7 @@ if st.sidebar.button(t["logout"]):
 
 st.divider()
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(t["tabs"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12 = st.tabs(t["tabs"])
 
 with tab1:
     st.subheader("➕ واجهة إضافة مادة أو بضاعة جديدة للمخزن")
@@ -340,7 +341,7 @@ with tab1:
                 st.warning("يرجى كتابة اسم المادة.")
 
 with tab2:
-    st.subheader("📦 جرد المخزن الشامل مع الباركود وحساب أرباح القطع")
+    st.subheader("📦 جرد المخزن الشامل وحساب أرباح القطع")
     all_products = st.session_state.memory_products
 
     low_stock_items = [p for p in all_products if p['quantity'] <= 2]
@@ -348,18 +349,12 @@ with tab2:
         low_names = " ، ".join([f"**{i['product_name']}**" for i in low_stock_items])
         st.error(f"🚨 **تنبيه قرب نفاد المخزون:** المواد التالية وشيكة النفاذ أو نفدت: {low_names}")
 
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        search_prod_term = st.text_input("🔍 بحث عن مادة:", "")
-    with col_s2:
-        search_barcode_term = st.text_input("📷 بحث بالباركود:", "")
+    search_prod_term = st.text_input("🔍 بحث عن مادة في المخزن:", "")
 
     if all_products:
         filtered_products = all_products
         if search_prod_term:
             filtered_products = [p for p in filtered_products if search_prod_term.lower() in p['product_name'].lower()]
-        if search_barcode_term:
-            filtered_products = [p for p in filtered_products if search_barcode_term.lower() in p.get('barcode','').lower()]
 
         cols = st.columns(3)
         for idx, item in enumerate(filtered_products):
@@ -377,18 +372,6 @@ with tab2:
                         st.success(f"📈 ربح القطعة: +{profit_per_unit:,} د.ع")
                     
                     st.markdown(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة")
-                    
-                    with st.expander("🏷️ باركود المادة"):
-                        b_code_val = item.get('barcode', '')
-                        if not b_code_val or b_code_val == "بدون":
-                            b_code_val = f"PRD{item['id']}"
-                        try:
-                            rv = barcode.get('code128', str(b_code_val), writer=ImageWriter())
-                            buffer_bc = io.BytesIO()
-                            rv.write(buffer_bc)
-                            st.image(buffer_bc.getvalue(), caption=f"باركود: {b_code_val}", width=200)
-                        except Exception as ex:
-                            st.error(f"تعذر توليد الباركود: {ex}")
 
                     if item['quantity'] > 0:
                         if st.button(f"🛒 إضافة للسلة", key=f"add_cart_{item['id']}"):
@@ -415,10 +398,39 @@ with tab2:
                     else:
                         st.warning("⚠️ نفذت الكمية")
     else:
-        st.info("المخزن فارغ حالياً. قم بإضافة مواد من تبويب (إضافة مادة جديدة).")
+        st.info("المخزن فارغ حالياً. قم بإضافة مواد من تبويب (إضافة مادة).")
 
 with tab3:
-    st.subheader("👥 إدارة العملاء (اسم الشخص/المحل، رقم الهاتف، المحافظة، والملاحظات)")
+    st.subheader("🏷️ توليد وعرض باركود المواد")
+    all_products_bc = st.session_state.memory_products
+    search_barcode_term = st.text_input("🔍 بحث عن مادة لطباعة الباركود الخاص بها:", "")
+
+    if all_products_bc:
+        filtered_bc_products = all_products_bc
+        if search_barcode_term:
+            filtered_bc_products = [p for p in filtered_bc_products if search_barcode_term.lower() in p['product_name'].lower() or search_barcode_term.lower() in p.get('barcode','').lower()]
+
+        for item in filtered_bc_products:
+            with st.container(border=True):
+                st.markdown(f"### 📦 المادة: {item['product_name']}")
+                st.markdown(f"🏷️ **الباركود المسجل:** `{item.get('barcode', 'بدون')}`")
+                
+                b_code_val = item.get('barcode', '')
+                if not b_code_val or b_code_val == "بدون":
+                    b_code_val = f"PRD{item['id']}"
+                
+                try:
+                    rv = barcode.get('code128', str(b_code_val), writer=ImageWriter())
+                    buffer_bc = io.BytesIO()
+                    rv.write(buffer_bc)
+                    st.image(buffer_bc.getvalue(), caption=f"باركود المادة: {b_code_val}", width=250)
+                except Exception as ex:
+                    st.error(f"تعذر توليد الباركود: {ex}")
+    else:
+        st.info("لا توجد مواد مسجلة لتوليد الباركود لها.")
+
+with tab4:
+    st.subheader("👥 إدارة العملاء (اسم الشخص/المحل، رقم الهاتف، والمحافظة)")
     
     with st.form("add_customer_db_form", clear_on_submit=True):
         col_c1, col_c2 = st.columns(2)
@@ -438,7 +450,7 @@ with tab3:
                     "notes": str(c_notes.strip() if c_notes else "")
                 })
                 log_audit("إضافة عميل", f"تم تسجيل العميل {c_name}")
-                st.success(f"تم تسجيل العميل ({c_name}) بنجاح وبدون أي أخطاء!")
+                st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
                 st.rerun()
             else:
                 st.warning("يرجى كتابة اسم الشخص/المحل ورقم الهاتف على الأقل.")
@@ -449,10 +461,10 @@ with tab3:
         df_cust = pd.DataFrame(st.session_state.memory_customers)
         st.dataframe(df_cust, use_container_width=True)
     else:
-        st.info("لا يوجد عملاء مسجلين حالياً. قم بإضافة عميل ليظهر هنا وفي الفواتير فوراً.")
+        st.info("لا يوجد عملاء مسجلين حالياً.")
 
-with tab4:
-    st.subheader("💵 نظام سداد الديون والذمم وإصدار سندات القبض")
+with tab5:
+    st.subheader("💵 نظام سداد الديون وإصدار سندات القبض")
     debt_cust_list = [c["customer_name"] for c in st.session_state.memory_customers]
 
     if not debt_cust_list:
@@ -461,7 +473,6 @@ with tab4:
         selected_debt_customer = st.selectbox("اختر اسم العميل لتسديد الديون:", debt_cust_list, key="debt_pay_cust_select")
         
         customer_invoices = [inv for inv in st.session_state.memory_invoices if inv['customer_name'] == selected_debt_customer]
-
         total_customer_debt = sum(float(inv.get('remaining_amount', 0)) for inv in customer_invoices)
         
         st.markdown(f"### 📌 إجمالي الدين الكلي على العميل (`{selected_debt_customer}`): **{int(total_customer_debt):,} د.ع**")
@@ -520,7 +531,7 @@ with tab4:
         if st.session_state.get('last_receipt'):
             rec = st.session_state.last_receipt
             st.divider()
-            st.markdown("### 🧾 سند القبض (إيصال استلاست النقدية) الأخير:")
+            st.markdown("### 🧾 سند القبض (إيصال استلام النقدية) الأخير:")
             with st.container(border=True):
                 st.write(f"👤 **العميل:** {rec['customer_name']}")
                 st.write(f"💵 **المبلغ المستلم:** **{int(rec['amount']):,} د.ع**")
@@ -535,7 +546,7 @@ with tab4:
                     mime="text/html"
                 )
 
-with tab5:
+with tab6:
     st.subheader("🏭 إدارة الموردين")
     with st.form("add_supplier_form", clear_on_submit=True):
         sup_name = st.text_input("اسم المورد:")
@@ -556,10 +567,10 @@ with tab5:
     if st.session_state.suppliers_list:
         st.dataframe(pd.DataFrame(st.session_state.suppliers_list), use_container_width=True)
     else:
-        st.info("لا يوجد موردين.")
+        st.info("لا يوجد موردين مسجلين.")
 
-with tab6:
-    st.subheader("🛒 سلة المبيعات وإتمام الفاتورة بربط العملاء مباشرة")
+with tab7:
+    st.subheader("🛒 سلة المبيعات وإتمام الفاتورة")
     
     if st.session_state.cart:
         total_cart_price = 0.0
@@ -614,7 +625,7 @@ with tab6:
 
         st.info(f"💡 **تحليل النظام التلقائي للفاتورة:** {auto_pay_type} | الواصل: **{int(paid_amount):,} د.ع** | المتبقي (الدين): **{int(remaining_amount):,} د.ع**")
 
-        if st.button("💾 إتمام البيع، خصم المخزن، وحفظ الفاتورة مع اسم العميل", type="primary"):
+        if st.button("💾 إتمام البيع، خصم المخزن، وحفظ الفاتورة", type="primary"):
             if not selected_customer_name:
                 st.error("❌ خطأ: يرجى اختيار عميل مسجل من القائمة أو إضافته أولاً.")
             else:
@@ -649,15 +660,15 @@ with tab6:
                     
                     log_audit("إتمام بيع", f"فاتورة {inv_code} للزبون {selected_customer_name}")
                     st.session_state.cart = []
-                    st.success("✅ تمت عملية البيع، حفظ الفاتورة بالذاكرة، وتحديث المخزن بنجاح وتلقائي!")
+                    st.success("✅ تمت عملية البيع، حفظ الفاتورة، وتحديث المخزن بنجاح وتلقائي!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ خطأ أثناء حفظ الفاتورة: {e}")
     else:
         st.info("🛒 السلة فارغة.")
 
-with tab7:
-    st.subheader("📄 سجل الفواتير، الطباعة المباشرة، وإرسال الفاتورة عبر الواتساب")
+with tab8:
+    st.subheader("📄 سجل الفواتير وإرسالها عبر الواتساب")
     invoices_list = st.session_state.memory_invoices
 
     if invoices_list:
@@ -691,7 +702,7 @@ with tab7:
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
-with tab8:
+with tab9:
     st.subheader("💰 صندوق الوردية والمصاريف اليومية")
     with st.form("expenses_form", clear_on_submit=True):
         exp_desc = st.text_input("بيان المصروف (مثال: أجور نقل، صيانة، ضيافة):")
@@ -718,7 +729,7 @@ with tab8:
     else:
         st.info("لا توجد مصاريف مسجلة في هذه الوردية.")
 
-with tab9:
+with tab10:
     st.subheader("📊 الرسوم البيانية والتقارير المالية")
     rep_invoices = st.session_state.memory_invoices
 
@@ -738,14 +749,14 @@ with tab9:
     else:
         st.info("لا توجد بيانات كافية لعرض التقارير والرسوم البيانية.")
 
-with tab10:
+with tab11:
     st.subheader("📜 سجل النشاطات والعمليات")
     if st.session_state.audit_logs:
         st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
     else:
         st.info("لا توجد نشاطات مسجلة بعد.")
 
-with tab11:
+with tab12:
     st.subheader("📖 دليل الاستخدام والمميزات والدعم الفني")
     st.markdown("""
     ### أهلاً بك في نظام **Yasser Web** الشامل لإدارة المبيعات والمخزون 🛍️
@@ -755,28 +766,13 @@ with tab11:
     
     ### 🌟 المميزات والخصائص الرئيسية:
 
-    1. **إدارة المخزن والباركود (Tab 1 & 2):**
-       - إضافة المواد والمنتجات مع تحديد أسعار الشراء والبيع، الألوان، القياسات، والكميات.
-       - توليد رموز باركود (Barcode) تلقائية لكل مادة قابلة للطباعة والمسح.
-       - تنبيهات فورية في حال اقتراب نفاذ أي مادة من المخزن (أقل أو يساوي 2 قطعة).
-
-    2. **إدارة العملاء والديون (Tab 3 & 4):**
-       - تسجيل العملاء مع أرقام هواتفهم ومحافظاتهم لتسهيل المتابعة.
-       - نظام متكامل لسداد الديون والذمم مع **إصدار سند قبض (إيصال استلام نقدية)** لكل عملية سداد يوضح المبلغ المستلم والبيان وتاريخ الاستلام مع خيار التحميل والطباعة الفورية.
-
-    3. **إدارة الموردين والمصاريف (Tab 5 & 8):**
-       - تتبع الموردين وتخصصاتهم التجارية وأرقام التواصل.
-       - صندوق الوردية لتسجيل المصاريف اليومية (أجور، صيانة، ضيافة) لحساب صافي الصندوق بدقة.
-
-    4. **سلة المبيعات والفواتير (Tab 6 & 7):**
-       - اختيار العميل وخصم الكميات تلقائياً من المخزن عند اتمام البيع.
-       - تحليل تلقائي لطريقة الدفع (كاش بالكامل، دين آجل، أو دفعة جزئية).
-       - إصدار فواتير رسمية قابلة للتحميل والطباعة، وإمكانية إرسالها للزبون مباشرة عبر تطبيق **واتساب (WhatsApp)** بنقرة زر واحدة.
-
-    5. **التقارير والأمان (Tab 9 & 10):**
-       - تقارير مالية ورسوم بيانية توضح إجمالي المبيعات، التكاليف، وصافي الأرباح بدقة.
-       - سجل كامل للنشاطات والعمليات (Audit Logs) لتعقب حركة المستخدمين والنظام.
-       - إمكانية أخذ **نسخة احتياطية فورية (Backup)** بصيغة JSON لضمان عدم ضياع أي بيانات وتحت أي ظرف.
+    1. **إدارة المخزن وجرد المواد:** إضافة المواد والمنتجات مع أسعار الشراء والبيع والكميات مع تنبيهات نفاذ المخزون.
+    2. **توليد الباركود:** إنشاء رموز باركود تلقائية خاصة بكل مادة لسهولة البحث والتعقب.
+    3. **إدارة العملاء والديون:** تسجيل العملاء ومتابعة الحسابات والذمم المالية وإصدار سندات قبض رسمية.
+    4. **إدارة الموردين:** حفظ بيانات الموردين وتخصصاتهم التجارية.
+    5. **سلة المبيعات والفواتير:** اختيار المنتجات والعملاء، خصم المخزن تلقائياً، وإرسال الفواتير عبر الواتساب.
+    6. **صندوق الوردية والمصاريف:** تتبع المصاريف اليومية وصافي الصندوق بدقة.
+    7. **التقارير والأمان:** رسوم بيانية للأرباح، وسجل نشاطات، ونسخ احتياطي فوري للبيانات.
 
     ---
     
