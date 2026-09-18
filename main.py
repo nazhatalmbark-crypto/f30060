@@ -65,7 +65,7 @@ lang_dict = {
             "💰 صندوق الوردية", 
             "📊 الرسوم والتقارير",
             "📜 سجل النشاطات",
-            "📖 الدليل الشامل"
+            "📖 الدليل الشامل ومعاينة الطباعة"
         ]
     }
 }
@@ -759,82 +759,134 @@ with tab11:
 with tab12:
     st.markdown("""
     <div style="direction: rtl; text-align: right;">
-        <h1 style="font-size: 42px; color: #1E3A8A; font-weight: bold; border-bottom: 3px solid #1E3A8A; padding-bottom: 10px;">
-            📖 الدليل الشامل لنظام Yasser Web لإدارة المحلات
+        <h1 style="font-size: 44px; color: #1E3A8A; font-weight: bold; border-bottom: 4px solid #1E3A8A; padding-bottom: 15px;">
+            📖 الدليل الشامل لنظام Yasser Web لإدارة المحلات ومعاينة الطباعة
         </h1>
-        <p style="font-size: 22px; margin-top: 15px; line-height: 1.8;">
-            أهلاً بك يا أخي العزيز في الدليل التفصيلي والعملاق لنظامك <b>Yasser Web</b>. تم تصميم هذا الكتالوج خصيصاً ليكون واضحاً بخط كبير جداً ليشرح لك وظيفة كل خانة وكل قسم بالتفصيل الدقيق وبحساباتك الكاملة:
+        <p style="font-size: 24px; margin-top: 20px; line-height: 1.9; font-weight: bold; color: #374151;">
+            أهلاً بك يا أخي العزيز في الكتالوج العملاق لنظامك <b>Yasser Web</b>. تم تكبير الخطوط والعناوين بالكامل لتكون واضحة جداً، ووضعنا لك حسابك للتواصل المباشر، بالإضافة إلى معاينة حية لشكل الفواتير وسندات القبض عند الطباعة!
         </p>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">1️⃣ خانة (➕ إضافة مادة):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
+        <div style="background-color: #EFF6FF; padding: 25px; border-radius: 12px; margin-top: 25px; border: 3px solid #3B82F6;">
+            <h2 style="font-size: 32px; color: #1E40AF; margin-top: 0;">📞 حسابك ومعلومات التواصل والاستفسار:</h2>
+            <p style="font-size: 22px; color: #1F2937; line-height: 1.8; margin-bottom: 5px;">
+                اسم المستخدم / المسؤول الحالي: <b>""" + str(username) + """</b>
+            </p>
+            <p style="font-size: 22px; color: #1F2937; line-height: 1.8; margin-bottom: 0;">
+                لأي مشكلة، استفسار، أو دعم فني يرجى التواصل مباشرة عبر حساب النظام أو البريد المعتمد للمطور <b>Yasser Web</b>. نحن في الخدمة دائماً!
+            </p>
+        </div>
+
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">1️⃣ شرح تفصيلي لخانة (➕ إضافة مادة):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
             <li><b>ماذا تسوي؟</b> تسمح لك بإدخال أي بضاعة أو منتج جديد إلى المخزن.</li>
             <li><b>الحقول الموجودة:</b> تكتب اسم المادة، اللون، القياس أو الحجم، سعر الشراء، سعر البيع، الكمية المتوفرة، ورمز الباركود الخاص بها، ثم تضغط على زر الحفظ لتنزل فوراً في النظام.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">2️⃣ خانة (📦 جرد المخزن):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">2️⃣ شرح تفصيلي لخانة (📦 جرد المخزن):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
             <li><b>ماذا تسوي؟</b> تعرض لك كل المواد الموجودة في المخزن مع بحث سريع.</li>
-            <li><b>الحسابات والفوائد:</b> يحسب لك النظام تلقائياً <b>ربح القطعة الواحدة</b> (سعر البيع ناقص سعر الشراء)، ويحذرك فوراً وبشكل أحمر إذا كانت المادة على وشك النفاد (الكمية أقل أو تساوي قطعتين). ومن هنا تقدر تضيف المواد مباشرة إلى سلة المبيعات بضغطة زر.</li>
+            <li><b>الحسابات والفوائد:</b> يحسب لك النظام تلقائياً <b>ربح القطعة الواحدة</b> (سعر البيع ناقص سعر الشراء)، ويحذرك فوراً وبشكل أحمر إذا كانت المادة على وشك النفاد. ومن هنا تقدر تضيف المواد مباشرة إلى سلة المبيعات بضغطة زر.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">3️⃣ خانة (🏷️ الباركود):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">3️⃣ شرح تفصيلي لخانة (🏷️ الباركود):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
             <li><b>ماذا تسوي؟</b> تولد لك رموز الباركود الرسمية (Code 128) لكل منتج في مخزنك بصورة مرئية وواضحة، لتتمكن من طباعتها ولصقها على السلع والبضائع.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">4️⃣ خانة (👥 إدارة العملاء):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">4️⃣ شرح تفصيلي لخانة (👥 إدارة العملاء):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
             <li><b>ماذا تسوي؟</b> تسجل من خلالها الزبائن أو المحلات المتعاملة معك.</li>
             <li><b>الحقول:</b> اسم الشخص أو المحل، رقم الهاتف (الأساسي لإرسال الفواتير)، المحافظة، وأي ملاحظات إضافية، وتظهر لك جدولاً منظماً بكل عملائك المسجلين.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">5️⃣ خانة (💵 سداد الديون):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">5️⃣ شرح تفصيلي لخانة (💵 سداد الديون):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
             <li><b>ماذا تسوي؟</b> مخصصة لإدارة حسابات الديون والذمم المالية للعملاء.</li>
-            <li><b>الحسابات:</b> تختار اسم العميل فيظهر لك فوراً <b>إجمالي الدين الكلي المترتب عليه</b> بناءً على فواتيره السابقة. تدخل المبلغ الذي سدده العميل، فيقوم النظام بخصم المبلغ من أقدم فاتورة وتحديث الحساب وتوليد <b>سند قبض رسمي (إيصال نقدية)</b> جاهز للتحميل والطباعة.</li>
+            <li><b>الحسابات:</b> تختار اسم العميل فيظهر لك فوراً <b>إجمالي الدين الكلي المترتب عليه</b> بناءً على فواتيره. تدخل المبلغ المدفوع فيقوم النظام بخصمه وتحديث الحساب وتوليد <b>سند قبض رسمي</b> جاهز للتحميل والطباعة.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">6️⃣ خانة (🏭 إدارة الموردين):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">6️⃣ شرح تفصيلي لخانة (🏭 إدارة الموردين):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
             <li><b>ماذا تسوي؟</b> لحفظ أسماء وأرقام وتخصصات الموردين الذين تجهز بضاعتك منهم، لتكون بياناتهم حاضرة أمامك دائماً.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">7️⃣ خانة (🛒 سلة المبيعات):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">7️⃣ شرح تفصيلي لخانة (🛒 سلة المبيعات):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
             <li><b>ماذا تسوي؟</b> هي محطة البيع وإصدار الفواتير. تعرض المواد التي اخترتها للبيع، وتتيح لك تعديل الكميات أو حذف عنصر.</li>
-            <li><b>الحسابات:</b> تحسب المجموع الكلي للمشتريات، تختار اسم العميل المسجل، وتدخل المبلغ الذي دفعه الزبون. النظام يحلل الدفع تلقائياً إلى (كاش بالكامل، دين كامل آجل، أو أقساط جزئية)، وعند إتمام البيع <b>يخصم الكميات من المخزن تلقائياً</b> ويحفظ الفاتورة.</li>
+            <li><b>الحسابات:</b> تحسب المجموع الكلي، تختار اسم العميل، وتدخل المبلغ الواصل. النظام يحلل الدفع تلقائياً (كاش، آجل، أو أقساط)، وعند البيع <b>يخصم الكميات من المخزن تلقائياً</b> ويحفظ الفاتورة.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">8️⃣ خانة (📄 سجل الفواتير):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
-            <li><b>ماذا تسوي؟</b> أرشيف كامل لكل الفواتير الصادرة برقمها وتاريخها والتفاصيل والمبالغ الواصلة والمتبقية.</li>
-            <li><b>المميزات:</b> تتيح لك <b>تحميل الفاتورة بتنسيق HTML</b> لطباعتها، وتمنحك زراً مباشراً <b>لإرسال تفاصيل الفاتورة للزبون عبر تطبيق الواتساب</b> برقم هاتفه المسجل بضغطة زر واحدة.</li>
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">8️⃣ شرح تفصيلي لخانة (📄 سجل الفواتير):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
+            <li><b>ماذا تسوي؟</b> أرشيف كامل لكل الفواتير الصادرة برقمها وتاريخها والتفاصيل والمبالغ.</li>
+            <li><b>المميزات:</b> تتيح لك تحميل الفاتورة بتنسيق HTML لطباعتها، وتمنحك زراً مباشراً لإرسال تفاصيل الفاتورة للزبون عبر تطبيق الواتساب برقم هاتفه بضغطة زر.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">9️⃣ خانة (💰 صندوق الوردية):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
-            <li><b>ماذا تسوي؟</b> لتسجيل المصاريف اليومية والنثرية والنثريات التشغيلية للمحل (مثل أجور النقل، الضيافة، الصيانة، وغيرها) مع مبالغها وتاريخها بدقة لضبط الصندوق.</li>
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">9️⃣ شرح تفصيلي لخانة (💰 صندوق الوردية):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
+            <li><b>ماذا تسوي؟</b> لتسجيل المصاريف اليومية والنثرية التشغيلية للمحل (مثل أجور النقل، الضيافة، الصيانة) مع مبالغها وتاريخها بدقة لضبط الصندوق.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">🔟 خانة (📊 الرسوم والتقارير):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
-            <li><b>ماذا تسوي؟</b> اللوحة المالية العليا لنشاطك التجاري. تعرض لك بوضوح تامة: <b>إجمالي المبيعات، إجمالي التكاليف، وصافي الأرباح الحقيقية</b> للأعمال، بالإضافة إلى رسوم بيانية تفاعلية لحركة المبيعات.</li>
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">🔟 شرح تفصيلي لخانة (📊 الرسوم والتقارير):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
+            <li><b>ماذا تسوي؟</b> اللوحة المالية العليا لنشاطك التجاري. تعرض لك بوضوح تامة: <b>إجمالي المبيعات، إجمالي التكاليف، وصافي الأرباح الحقيقية</b>، بالإضافة إلى رسوم بيانية تفاعلية.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">1️⃣1️⃣ خانة (📜 سجل النشاطات):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
-            <li><b>ماذا تسوي؟</b> سجل رقابي دقيق يسجل كل حركة يقوم بها المستخدم في النظام (تسجيل دخول، إضافة منتج، إتمام بيع، تسديد ديون) مع الوقت والتاريخ واسم المستخدم لضمان الأمان والمتابعة.</li>
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">1️⃣1️⃣ شرح تفصيلي لخانة (📜 سجل النشاطات):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
+            <li><b>ماذا تسوي؟</b> سجل رقابي دقيق يسجل كل حركة يقوم بها المستخدم في النظام (تسجيل دخول، إضافة منتج، بيع، تسديد) مع الوقت والتاريخ واسم المستخدم لضمان الأمان والمتابعة.</li>
         </ul>
 
-        <h2 style="font-size: 32px; color: #047857; margin-top: 30px;">1️⃣2️⃣ خانة (📖 الدليل الشامل):</h2>
-        <ul style="font-size: 20px; line-height: 1.8;">
-            <li><b>ماذا تسوي؟</b> هذه الصفحة التي تقرأها الآن، والتي تشرح لك بالتفصيل مفردات النظام وطريقة إدارته بالكامل.</li>
+        <h2 style="font-size: 36px; color: #047857; margin-top: 40px; font-weight: bold;">1️⃣2️⃣ شرح تفصيلي لخانة (📖 الدليل الشامل ومعاينة الطباعة):</h2>
+        <ul style="font-size: 22px; line-height: 1.9;">
+            <li><b>ماذا تسوي؟</b> هذه الصفحة التي تقرأها الآن، والتي تشرح لك بالتفصيل مفردات النظام وتعرض لك نماذج الطباعة أدناه.</li>
         </ul>
+
+        <hr style="margin: 40px 0; border: 2px solid #D1D5DB;">
+
+        <h2 style="font-size: 38px; color: #B45309; font-weight: bold; text-align: center; margin-bottom: 25px;">
+            🖨️ معاينة حية: كيف تبدو الفاتورة ووصل السداد عند الطباعة للزبون؟
+        </h2>
+        <p style="font-size: 22px; text-align: center; color: #4B5563; margin-bottom: 30px;">
+            هذه النماذج هي بالضبط ما يطبعها الموقع ويستلمه الزبون لتكون واضحة أمامه:
+        </p>
+
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+            
+            <!-- نموذج معاينة الفاتورة -->
+            <div style="flex: 1; min-width: 320px; background: #fff; border: 2px solid #374151; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <h3 style="color: #1E3A8A; font-size: 26px; text-align: center; border-bottom: 2px solid #1E3A8A; padding-bottom: 10px; margin-top: 0;">
+                    📄 نموذج طباعة فاتورة بيع
+                </h3>
+                <p style="font-size: 18px; line-height: 1.8;"><b>اسم المحل:</b> YASSER WEB</p>
+                <p style="font-size: 18px; line-height: 1.8;"><b>رقم الفاتورة:</b> INV-001</p>
+                <p style="font-size: 18px; line-height: 1.8;"><b>اسم الزبون:</b> زبون تجريبي (مثال)</p>
+                <p style="font-size: 18px; line-height: 1.8;"><b>المنتجات:</b> جهاز أو مادة معينة [العدد: 2]</p>
+                <hr style="border: 1px dashed #ccc;">
+                <p style="font-size: 19px; color: #047857; font-weight: bold;">المبلغ الكلي: 50,000 د.ع</p>
+                <p style="font-size: 19px; color: #2563EB; font-weight: bold;">المبلغ الواصل: 50,000 د.ع</p>
+                <p style="font-size: 19px; color: #DC2626; font-weight: bold;">المتبقي (الدين): 0 د.ع</p>
+                <p style="font-size: 15px; text-align: center; color: #6B7280; margin-top: 15px;">(جاهزة للصقها على شحنة التوصيل وتسليمها للشركة)</p>
+            </div>
+
+            <!-- نموذج معاينة سند القبض -->
+            <div style="flex: 1; min-width: 320px; background: #fff; border: 2px dashed #374151; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <h3 style="color: #047857; font-size: 26px; text-align: center; border-bottom: 2px solid #047857; padding-bottom: 10px; margin-top: 0;">
+                    🧾 نموذج طباعة سند قبض نقدية
+                </h3>
+                <p style="font-size: 18px; line-height: 1.8;"><b>مؤسسة:</b> YASSER WEB المالية</p>
+                <p style="font-size: 18px; line-height: 1.8;"><b>اسم العميل:</b> زبون تسديد ديون (مثال)</p>
+                <p style="font-size: 18px; line-height: 1.8;"><b>المبلغ المستلم:</b> 25,000 د.ع</p>
+                <p style="font-size: 18px; line-height: 1.8;"><b>البيان:</b> استلمت من السيد المبلغ وثبت في الذمم كدفعة تسديد.</p>
+                <hr style="border: 1px solid #ccc;">
+                <p style="font-size: 18px; text-align: left; margin-top: 25px;"><b>توقيع أمين الصندوق:</b> ........................</p>
+            </div>
+
+        </div>
         
-        <div style="background-color: #FEF3C7; padding: 20px; border-radius: 10px; margin-top: 30px; border: 2px dashed #D97706;">
-            <p style="font-size: 22px; color: #92400E; font-weight: bold; margin: 0;">
-                💡 ملاحظة هامة: القائمة الجانبية للنظام تحتوي أيضاً على ميزة <b>"النسخ الاحتياطي الفوري للبيانات"</b> والتي تتيح لك تحميل نسخة احتياطية بصيغة JSON لكل بياناتك (العملاء، الموردين، الفواتير، المصاريف، وسجل النشاطات) في أي وقت بضغطة زر واحدة لحفظ بياناتك بأمان تام!
+        <div style="background-color: #FEF3C7; padding: 25px; border-radius: 12px; margin-top: 35px; border: 3px dashed #D97706;">
+            <p style="font-size: 24px; color: #92400E; font-weight: bold; margin: 0; line-height: 1.8;">
+                💡 ملاحظة هامة: القائمة الجانبية للنظام تحتوي أيضاً على ميزة <b>"النسخ الاحتياطي الفوري للبيانات"</b> لتتمكن من تحميل نسخة JSON كاملة لكل معلوماتك في أي وقت لحمايتها وضمان عدم ضياعها!
             </p>
         </div>
     </div>
