@@ -93,7 +93,7 @@ if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
 if "vip_days_left" not in st.session_state:
-    st.session_state.vip_days_left = 30  # اشتراك شهري (30 يوم)
+    st.session_state.vip_days_left = 30  # اشتراك شهري
 
 def log_audit(action, details):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -230,27 +230,37 @@ st.sidebar.info(f"{t['cart_badge']} **{cart_count_badge}**")
 
 st.sidebar.divider()
 
-# **قسم حالة الاشتراك الشهري (VIP) مع اللطشة التلقائية**
-st.sidebar.subheader("🌟 حالة الاشتراك الشهري (VIP)")
-if not st.session_state.is_vip or st.session_state.vip_days_left <= 0:
-    st.sidebar.error("🚨 **انتهى اشتراكك الشهري! تم قفل النظام.**")
-    vip_code_input = st.sidebar.text_input("أدخل كود التجديد الشهري الآمن (100$):", type="password")
-    if st.sidebar.button("تجديد الاشتراك الآن"):
+# **قسم حالة الاشتراك الشهري (VIP) - يتيح النسخة المجانية أولاً مع خيار التجديد بـ 20$**
+st.sidebar.subheader("🌟 نظام الاشتراكات والنسخة التجريبية")
+if not st.session_state.is_vip:
+    st.sidebar.info("💡 **أنت تستخدم النسخة التجريبية المجانية حالياً.** يمكنك تجربة ميزات البرنامج بالكامل.")
+    st.sidebar.write("🏷️ اشتراك النسخة المدفوعة الشهري: **20 دولار فقط**.")
+    vip_code_input = st.sidebar.text_input("أدخل كود التجديد الشهري (20$):", type="password")
+    if st.sidebar.button("تفعيل النسخة المدفوعة"):
         if vip_code_input.strip() == "Yasser@Web#2026!":
             st.session_state.is_vip = True
-            st.session_state.vip_days_left = 30  # تجديد شهر كامل (30 يوم)
+            st.session_state.vip_days_left = 30  # 30 يوم
             try:
                 supabase.table("users").update({"is_paid": True}).eq("username", username).execute()
             except:
                 pass
-            st.sidebar.success("تم تجديد الاشتراك الشهري بنجاح! 🎉")
+            st.sidebar.success("تم تفعيل النسخة المدفوعة بنجاح! 🎉")
             st.rerun()
         else:
-            st.sidebar.error("❌ كود التجديد غير صحيح! يرجى مراجعة الدعم.")
+            st.sidebar.error("❌ كود التجديد غير صحيح!")
 else:
     st.sidebar.success("🌟 **النسخة المدفوعة مفعلة (شهرية)**")
-    st.sidebar.info(f"⏳ **عداد الأيام المتبقية:** متبقي **{st.session_state.vip_days_left}** يوماً من اشتراكك الشهري.")
-    st.sidebar.write("✅ جميع ميزات النظام مفتوحة لك بالكامل.")
+    st.sidebar.info(f"⏳ **الأيام المتبقية:** متبقي **{st.session_state.vip_days_left}** يوماً.")
+    
+    # خيار إدخال كود جديد لتمديد الاشتراك إذا انتهى أو اقترب من الانتهاء
+    ext_code = st.sidebar.text_input("كود تمديد اشتراك جديد (20$):", type="password", key="ext_code_input")
+    if st.sidebar.button("تمديد الاشتراك شهر إضافي"):
+        if ext_code.strip() == "Yasser@Web#2026!":
+            st.session_state.vip_days_left += 30
+            st.sidebar.success("تم تمديد الاشتراك بنجاح شهر آخر! 🎉")
+            st.rerun()
+        else:
+            st.sidebar.error("❌ الكود غير صحيح.")
 
 st.sidebar.divider()
 st.sidebar.subheader(t["backup_title"])
@@ -293,11 +303,9 @@ if st.sidebar.button(t["logout"]):
 
 st.divider()
 
-# **قاعدة اللطشة البرمجية: إذا انتهى الاشتراك، النظام يلطش بالشاشة وما يفتح أي تبويب**
-if not st.session_state.is_vip or st.session_state.vip_days_left <= 0:
-    st.error("🚨 **تنبيه هام جداً: انتهت فترة اشتراكك الشهري في نظام Yasser Web!**")
-    st.warning("⚠️ **لقد تم قفل الشاشة مؤقتاً لحين إدخال كود التجديد الجديد من القائمة الجانبية.** يرجى إدخال الكود لتفعيل البرنامج واستئناف العمل فوراً.")
-    st.stop()  # يلطش بالشاشة ويوقف تشغيل أي تبويب نهائياً!
+# **ملاحظة ترحيبية بالنسخة المجانية في حال لم يشترك بعد (بدون قفل قسري)**
+if not st.session_state.is_vip:
+    st.info("👋 **أهلاً بك في النسخة المجانية لـ Yasser Web!** تصفح الأقسام وجرّب النظام براحتك، وعند رغبتك بالترقية للنسخة الكاملة، يمكنك تفعيلها عبر كود الاشتراك الشهري بـ 20$ من القائمة الجانبية.")
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(t["tabs"])
 
