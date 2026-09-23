@@ -531,7 +531,7 @@ with tab5:
         if st.session_state.get('last_receipt'):
             rec = st.session_state.last_receipt
             st.divider()
-            st.markdown("### 🧾 سند القبض (إيصال استلاستلم النقدية) الأخير:")
+            st.markdown("### 🧾 سند القبض (إيصال استلام النقدية) الأخير:")
             with st.container(border=True):
                 st.write(f"👤 **العميل:** {rec['customer_name']}")
                 st.write(f"💵 **المبلغ المستلم:** **{int(rec['amount']):,} د.ع**")
@@ -589,7 +589,7 @@ with tab7:
                 if st.button("❌", key=f"del_cart_{c_item['id']}"):
                     st.session_state.cart.pop(idx)
                     st.rerun()
-                    
+                
         st.divider()
         st.markdown(f"### 💵 المجموع الكلي المطلوب: **{int(total_cart_price):,} د.ع**")
         
@@ -703,130 +703,86 @@ with tab8:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 with tab9:
-    st.subheader("💰 صندوق الوردية والمصاريف اليومية")
-    with st.form("expenses_form", clear_on_submit=True):
-        exp_desc = st.text_input("بيان المصروف (مثال: أجور نقل، صيانة، ضيافة):")
-        exp_amount_str = st.text_input("المبلغ (د.ع):", "0")
-        if st.form_submit_button("تسجيل المصروف"):
-            if exp_desc.strip():
+    st.subheader("💰 صندوق الوردية وتسجيل المصروفات")
+    
+    with st.form("add_expense_form", clear_on_submit=True):
+        exp_title = st.text_input("بيان المصروف (مثل: إيجار، خط إنترنت، سحب شخصي):")
+        exp_amount_str = st.text_input("مبلغ المصروف (د.ع):", "0")
+        if st.form_submit_button("إضافة وتسجيل المصروف", type="primary"):
+            if exp_title.strip():
                 try:
-                    exp_amt = float(exp_amount_str.strip() if exp_amount_str.strip() else "0")
-                    st.session_state.expenses_list.append({
-                        "البيان": str(exp_desc.strip()),
-                        "المبلغ": int(exp_amt),
+                    exp_val = float(exp_amount_str.strip())
+                    st.session_state.expenses_list.insert(0, {
+                        "البيان": str(exp_title.strip()),
+                        "المبلغ": float(exp_val),
                         "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                     })
-                    log_audit("تسجيل مصروف", f"تم تسجيل مصروف {exp_desc} بمبلغ {exp_amt}")
+                    log_audit("تسجيل مصروف", f"تم تسجيل مصروف {exp_title} بمبلغ {exp_val}")
                     st.success("تم تسجيل المصروف بنجاح!")
                     st.rerun()
                 except ValueError:
-                    st.error("أدخل مبلغاً صحيحاً.")
+                    st.error("يرجى إدخال مبلغ صحيح.")
             else:
-                st.warning("أدخل بيان المصروف.")
+                st.warning("يرجى كتابة بيان المصروف.")
+
+    st.divider()
+    total_sales_cash = sum(float(inv.get('paid_amount', 0)) for inv in st.session_state.memory_invoices)
+    total_expenses = sum(float(ex.get('المبلغ', 0)) for ex in st.session_state.expenses_list)
+    net_box = total_sales_cash - total_expenses
+
+    col_b1, col_b2, col_b3 = st.columns(3)
+    with col_b1:
+        st.metric("إجمالي الواصل بالصندوق", f"{int(total_sales_cash):,} د.ع")
+    with col_b2:
+        st.metric("إجمالي المصروفات", f"{int(total_expenses):,} د.ع")
+    with col_b3:
+        st.metric("صافي رصيد الصندوق الحالي", f"{int(net_box):,} د.ع")
 
     if st.session_state.expenses_list:
+        st.subheader("📋 قائمة المصروفات المسجلة للوردية")
         st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
-    else:
-        st.info("لا توجد مصاريف مسجلة في هذه الوردية.")
 
 with tab10:
-    st.subheader("📊 الرسوم البيانية والتقارير المالية")
-    rep_invoices = st.session_state.memory_invoices
+    st.subheader("📊 الرسوم والتقارير المالية والمبيعات")
+    invoices_report = st.session_state.memory_invoices
+    
+    total_revenue = sum(float(inv['total_price']) for inv in invoices_report)
+    total_cost = sum(float(inv.get('cost_price', 0)) for inv in invoices_report)
+    total_net_profit = total_revenue - total_cost
+    total_debts = sum(float(inv.get('remaining_amount', 0)) for inv in invoices_report)
 
-    if rep_invoices:
-        df_rep = pd.DataFrame(rep_invoices)
-        total_sales = df_rep['total_price'].sum()
-        total_costs = df_rep['cost_price'].sum()
-        net_profit = float(total_sales) - float(total_costs)
+    col_r1, col_r2, col_r3 = st.columns(3)
+    with col_r1:
+        st.metric("إجمالي المبيعات", f"{int(total_revenue):,} د.ع")
+    with col_r2:
+        st.metric("صافي الأرباح", f"{int(total_net_profit):,} د.ع")
+    with col_r3:
+        st.metric("إجمالي الديون المعلقة", f"{int(total_debts):,} د.ع")
 
-        col_r1, col_r2, col_r3 = st.columns(3)
-        col_r1.metric("إجمالي المبيعات", f"{int(total_sales):,} د.ع")
-        col_r2.metric("إجمالي التكلفة", f"{int(total_costs):,} د.ع")
-        col_r3.metric("صافي الأرباح", f"{int(net_profit):,} د.ع", delta=f"{int(net_profit):,} د.ع")
-
-        st.divider()
-        st.bar_chart(df_rep, x="invoice_code", y="total_price")
+    st.divider()
+    if invoices_report:
+        df_inv_report = pd.DataFrame(invoices_report)
+        st.bar_chart(df_inv_report, x="invoice_code", y="total_price")
     else:
-        st.info("لا توجد بيانات كافية لعرض التقارير والرسوم البيانية.")
+        st.info("لا توجد بيانات كافية لعرض الرسوم البيانية حتى الآن.")
 
 with tab11:
-    st.subheader("📜 سجل النشاطات والعمليات")
+    st.subheader("📜 سجل النشاطات والعمليات (Audit Log)")
     if st.session_state.audit_logs:
-        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
+        df_audit = pd.DataFrame(st.session_state.audit_logs)
+        st.dataframe(df_audit, use_container_width=True)
     else:
-        st.info("لا توجد نشاطات مسجلة بعد.")
+        st.info("لا توجد نشاطات مسجلة حتى الآن.")
 
 with tab12:
-    st.markdown(
-        """
-        <div style="font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; color: #000; background: #ffffff;">
-            <div style="border: 2px solid #000; padding: 20px; margin-bottom: 30px; background: #fff;">
-                <h2 style="font-size: 28px; color: #000; margin-top: 0; font-weight: bold;">📞 معلومات التواصل والدعم الفني:</h2>
-                <p style="font-size: 22px; margin: 8px 0;"><b>اسم المسؤول:</b> """ + str(username) + """</p>
-                <p style="font-size: 22px; margin: 8px 0;"><b>حساب انستغرام:</b> <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #0000EE; font-weight: bold;">@yaser120120120120</a></p>
-                <p style="font-size: 20px; margin: 8px 0;">نحن في الخدمة دائماً لدعمكم عبر نظام ياسر ويب.</p>
-            </div>
-            <div style="border: 3px solid #000; padding: 30px; background: #ffffff;">
-                <h1 style="font-size: 36px; text-align: center; margin-top: 0; margin-bottom: 30px; font-weight: bold; border-bottom: 3px solid #000; padding-bottom: 15px;">
-                    📖 الدليل الشامل لنظام ياسر ويب
-                </h1>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">1️⃣ خانة (➕ إضافة مادة)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> تتيح إدخال أي بضاعة أو منتج جديد للمخزن.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> إدخال اسم المادة، اللون، القياس، سعر الشراء، سعر البيع، الكمية، والباركود، ثم الضغط على حفظ.</p>
-                </div>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">2️⃣ خانة (📦 جرد المخزن)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> عرض كافة مواد المخزن مع خاصية البحث السريع.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> يحسب النظام ربح القطعة تلقائياً، ينبهك بحالة نفاد المخزون، ويتيح إضافة المواد للسلة.</p>
-                </div>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">3️⃣ خانة (🏷️ الباركود)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> توليد رموز باركود واضحة ورسمية (Code 128) لكل منتج.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> طباعة الباركود ولصقه على السلع والمنتجات بالمحل.</p>
-                </div>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">4️⃣ خانة (👥 إدارة العملاء)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> تسجيل وإدارة بيانات الزبائن والمحلات المتعاملة معك.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> حفظ الاسم، رقم الهاتف الأساسي، المحافظة، والملاحظات بجدول منظم.</p>
-                </div>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">5️⃣ خانة (💵 سداد الديون)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> إدارة الذمم المالية وديون العملاء بدقة.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> اختيار العميل، إدخال المبلغ المدفوع ليقوم النظام بتحديث الحساب وإصدار سند قبض.</p>
-                </div>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">6️⃣ خانة (🏭 إدارة الموردين)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> حفظ أسماء وأرقام وتخصصات الموردين الأساسيين.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> لضمان بقاء جهات تجهيز البضائع حاضرة ومتاحة دائماً.</p>
-                </div>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">7️⃣ خانة (🛒 سلة المبيعات)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> المحطة الرئيسية للبيع وإصدار الفواتير.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> حساب المجموع، تحديد العميل، تحليل الدفع (كاش/آجل)، والخصم التلقائي من المخزن.</p>
-                </div>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">8️⃣ خانة (📄 سجل الفواتير)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> أرشيف شامل لجميع الفواتير والعمليات السابقة.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> إمكانية تحميل الفاتورة HTML للطباعة، أو إرسال تفاصيلها مباشرة عبر واتساب للزبون.</p>
-                </div>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">9️⃣ خانة (💰 صندوق الوردية)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> تسجيل المصاريف النثرية والتشغيلية اليومية.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> إدخال بيان المصروف والمبلغ لضبط الصندوق اليومي بدقة.</p>
-                </div>
-                <div style="padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px solid #000;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">🔟 خانة (📊 الرسوم والتقارير)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> اللوحة المالية العليا لنشاطك التجاري.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> عرض إجمالي المبيعات، التكاليف، وصافي الأرباح الحقيقية مع رسوم بيانية.</p>
-                </div>
-                <div style="padding-bottom: 0; margin-bottom: 0;">
-                    <h2 style="font-size: 26px; margin-top: 0; margin-bottom: 10px; font-weight: bold;">1️⃣1️⃣ خانة (📜 سجل النشاطات)</h2>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>العملية:</b> سجل رقابي دقيق ومفصل لكل حركات المستخدمين.</p>
-                    <p style="font-size: 20px; margin: 5px 0;"><b>الخطوات:</b> توثيق عمليات الدخول، البيع، والإضافة مع التوقيت واسم المستخدم.</p>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.subheader("📖 الدليل الشامل ومعاينة الطباعة")
+    st.markdown("""
+    ### أهلاً بك في نظام **Yasser Web** الشامل لإدارة المحلات والمبيعات 🛍️
+    - **الهدف من النظام:** تقديم بيئة احترافية، سريعة، ومحلية لإدارة المخزن، المبيعات، حسابات العملاء، الديون، وسندات القبض.
+    - **مميزات النسخة:**
+      1. دعم كامل لتوجيه النصوص من اليمين لليسار (`RTL`).
+      2. التوليد التلقائي لباركود المواد وقابلية الطباعة.
+      3. حساب الأرباح، جرد المخزن، والتنبيه التلقائي للمواد وشيكة النفاد.
+      4. إصدار فواتير رسمية بصيغة `HTML` جاهزة للطباعة واللصق على شحنات التوصيل.
+      5. نظام أمان وصلاحيات متكامل مع إمكانية تصدير واستيراد النسخ الاحتياطية.
+    """)
