@@ -20,7 +20,34 @@ st.markdown("""
         text-align: right;
     }
     </style>
+    
+    <!-- دالة تشغيل الصوت التفاعلي (بيب) بالمتصفح -->
+    <script>
+    function playBeep() {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 800; // تردد نغمة البيب
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+    }
+    </script>
 """, unsafe_allow_html=True)
+
+# دالة مساعدة لتشغيل صوت البيب عبر الكود
+def trigger_sound():
+    st.components.v1.html("""
+        <script>
+            if (typeof playBeep === 'function') {
+                playBeep();
+            }
+        </script>
+    """, height=0)
 
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
@@ -299,6 +326,7 @@ if selected_menu == "نقطة البيع (POS)":
                     })
                     log_audit("إتمام بيع", f"فاتورة جديدة {inv_code} للعميل {selected_customer_name}")
                     st.session_state.cart = []
+                    trigger_sound()
                     st.success("✅ تمت عملية البيع وحفظ الفاتورة بنجاح!")
                     st.rerun()
                 except Exception as e:
@@ -345,7 +373,8 @@ elif selected_menu == "المخزن وجرد البضائع":
                                     "max_qty": item["quantity"],
                                     "qty": 1
                                 })
-                            st.toast("تمت الإضافة للسلة!", icon="🛒")
+                            trigger_sound()  # تشغيل صوت بيب التفاعلي عند الإضافة للسلة
+                            st.toast("تمت الإضافة للسلة بنجاح!", icon="🛒")
                             st.rerun()
                     else:
                         st.warning("⚠️ الكمية نافذة")
@@ -394,6 +423,7 @@ elif selected_menu == "إضافة مادة جديدة":
                         "barcode": generated_bc
                     })
                     log_audit("إضافة منتج", f"تمت إضافة المنتج {p_name.strip()}")
+                    trigger_sound()
                     st.success(f"تمت إضافة المادة ({p_name}) بنجاح!")
                     st.rerun()
                 except ValueError:
@@ -434,6 +464,7 @@ elif selected_menu == "العملاء والديون":
                     "notes": ""
                 })
                 log_audit("إضافة عميل", f"تم تسجيل العميل {c_name}")
+                trigger_sound()
                 st.success("تم تسجيل العميل بنجاح!")
                 st.rerun()
             else:
@@ -499,6 +530,7 @@ elif selected_menu == "سندات القبض":
                             "date": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                         }
                         log_audit("سداد ديون", f"تسديد مبلغ {payment_val:,} للعميل {selected_debt_customer}")
+                        trigger_sound()
                         st.success("تم استلام المبلغ وتحديث الحساب بنجاح!")
                         st.rerun()
                 except ValueError:
@@ -520,6 +552,7 @@ elif selected_menu == "الموردين":
         if st.form_submit_button("إضافة المورد"):
             if sup_name.strip():
                 st.session_state.suppliers_list.append({"اسم المورد": sup_name, "رقم الهاتف": sup_phone})
+                trigger_sound()
                 st.success("تم إضافة المورد بنجاح!")
                 st.rerun()
             else:
@@ -550,7 +583,7 @@ elif selected_menu == "سجل الفواتير":
                 if cust_ph:
                     wa_msg = f"مرحباً أستاذ {inv['customer_name']}\nإليك تفاصيل فاتورتك برقم {inv['invoice_code']}:\nالمبلغ الإجمالي: {int(inv['total_price']):,} د.ع\nالمتبقي الذمي: {int(inv['remaining_amount']):,} د.ع"
                     encoded_msg = urllib.parse.quote(wa_msg)
-                    st.markdown(f"📱 [إرسال الفاتورة للعميل عبر واتساب]({https_url if 'https_url' in locals() else 'https://wa.me/' + cust_ph + '?text=' + encoded_msg})", unsafe_allow_html=True)
+                    st.markdown(f"📱 [إرسال الفاتورة للعميل عبر واتساب](https://wa.me/{cust_ph}?text={encoded_msg})", unsafe_allow_html=True)
     else:
         st.info("لا توجد فواتير مسجلة.")
 
@@ -565,6 +598,7 @@ elif selected_menu == "صندوق الوردية والمصروفات":
                     exp_val = float(exp_amount_str.strip())
                     st.session_state.expenses_list.insert(0, {"البيان": exp_title, "المبلغ": exp_val, "التاريخ": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')})
                     log_audit("تسجيل مصروف", f"مصروف {exp_title} بقيمة {exp_val}")
+                    trigger_sound()
                     st.success("تم تسجيل المصروف!")
                     st.rerun()
                 except ValueError:
@@ -598,7 +632,7 @@ elif selected_menu == "تقارير الأرباح":
         total_net_profit = total_revenue - total_cost
         total_debts = sum(float(inv.get('remaining_amount', 0)) for inv in invoices_report)
 
-        col_r1, col_r2, col_r3 = st.columns(3)
+        col_r1, col_r2, col_r3 = st.cols(3) if hasattr(st, 'cols') else st.columns(3)
         with col_r1:
             st.metric("إجمالي المبيعات", f"{int(total_revenue):,} د.ع")
         with col_r2:
@@ -623,15 +657,34 @@ elif selected_menu == "سجل النشاطات الرقابي":
             st.info("لا توجد نشاطات مسجلة.")
 
 elif selected_menu == "الدليل وشرح الاستخدام":
-    st.subheader("📖 دليل الاستخدام ونظرة عامة على النظام")
+    st.subheader("📖 الدليل الشامل لاستخدام نظام ياسر ويب 🛍️")
     st.markdown("""
-    ### أهلاً بك في الدليل الشامل لنظام **ياسر ويب** 🛍️
-    
-    * **مميزات النظام الأساسية:**
-      * **القائمة العمودية الجانبية:** تتيح لك التنقل بسلاسة تامة عبر جميع الأجهزة (موبايل، تابلت، لابتوب) دون الحاجة لأسهم أو إزاحات مزعجة.
-      * **إدارة المخزن والباركود:** تتبع المواد، كمياتها، وتوليد باركود خاص بكل منتج لسهولة الجرد والبيع.
-      * **نظام نقاط البيع (POS):** خصم تلقائي للكميات، حساب الأرباح، وإصدار فواتير بيع تفصيلية.
-      * **إدارة العملاء والديون وسندات القبض:** متابعة الحسابات المدينة، تسديد الدفعات، وإصدار سندات قبض نقدية رسمية.
-      * **صندوق الوردية والمصروفات:** فصل حركة الصندوق النقدي اليومي والمصروفات والإيجارات.
-      * **الصلاحيات الأمنية:** حماية الأقسام الحساسة (كالتقارير والأرباح وسجل النشاطات) وقصرها حصراً على مدير النظام والمشرفين.
+    أهلاً بك أخي العزيز في **دليل الاستخدام الرسمي** لنظام **ياسر ويب** للإدارة والسيطرة المتكاملة على المحلات والمخازن. تم تصميم هذا النظام بعناية فائقة ليلبي كافة احتياجاتك اليومية بسرعة وسلاسة تامة.
+
+    ---
+
+    ### 🌟 1. القائمة الجانبية العمودية وسهولة التنقل
+    * تم تصميم القائمة بشكل عمودي (Sidebar) لتناسب الهواتف الذكية، الأجهزة اللوحية (التابلت)، وأجهزة الكمبيوتر بدقة عالية وسلاسة تامة.
+    * يمكنك الانتقال بين الأقسام بضغطة زر واحدة دون الحاجة للتمرير المزعج أو الأزرار الأفقية.
+
+    ### 🛒 2. نقطة البيع (POS) وإتمام الفواتير
+    * **إضافة المواد:** من قسم "المخزن وجرد البضائع"، اضغط على زر **(🛒 إضافة للسلة)** لأي مادة، وسيصدر النظام صوت تفاعلي (**بيب 🔊**) لتأكيد الإضافة فوراً.
+    * **خصم المخزون التلقائي:** بمجرد حفظ الفاتورة، يقوم النظام بخصم الكمية المباعة من المخزن تلقائياً وبدقة.
+    * **تعدد طرق الدفع:** يدعم النظام البيع نقداً بالكامل، البيع بالآجل (دين كامل)، أو الدفع الجزئي (الأقساط) مع حساب المتبقي على العميل فوراً.
+
+    ### 📦 3. إدارة المخزن والباركود
+    * يتيح لك إضافة الألوان، القياسات، الأسعار (الشراء والبيع)، والكميات لكل منتج.
+    * **توليد الباركود:** يقوم النظام تلقائياً بتوليد وعرض رموز باركود لكل مادة لسهولة طباعتها واستخدامها في عمليات البيع السريع.
+
+    ### 👥 4. العملاء، الديون، وسندات القبض
+    * تسجيل العملاء وأرقام هواتفهم المرتبطة بتطبيق **واتساب**.
+    * متابعة الديون المترتبة على كل عميل بشكل دقيق.
+    * إصدار **سندات قبض نقدية رسمية** عند تسديد الديون مع إمكانية طباعتها وتحميلها كملف HTML.
+
+    ### 🔐 5. نظام الصلاحيات والأمان
+    * **مدير عام / مشرف مبيعات:** يمتلكون الصلاحيات الكاملة لمتابعة الأرباح، الاطلاع على التقارير المالية، ومراجعة سجل النشاطات الرقابي.
+    * **كاشير رئيسي:** تقتصر صلاحياته على عمليات البيع، إضافة المواد، وإصدار الفواتير، مع حماية الأقسام المالية الحساسة لضمان أمان العمل.
+
+    ### 🔄 6. النسخ الاحتياطي وحماية البيانات
+    * من خلال القائمة الجانبية، يمكنك في أي وقت الضغط على **(📥 تحميل نسخة احتياطية)** لحفظ جميع بيانات محلك، فواتيرك، وعملائك بملف JSON آمن على جهازك.
     """)
