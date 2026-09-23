@@ -21,39 +21,49 @@ st.markdown("""
     }
     </style>
     
-    <!-- دالة تشغيل الصوت التفاعلي (بيب) بالمتصفح -->
+    <!-- محرك أصوات البيب التفاعلي -->
     <script>
-    function playBeep() {
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = 800; // تردد نغمة البيب
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.15);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.15);
+    function playBeepSound() {
+        try {
+            var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            var oscillator = audioCtx.createOscillator();
+            var gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // تردد نغمة البيب
+            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.15);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.15);
+        } catch(e) {
+            console.log("Audio not allowed yet");
+        }
     }
     </script>
 """, unsafe_allow_html=True)
 
-# دالة مساعدة لتشغيل صوت البيب عبر الكود
-def trigger_sound():
-    st.components.v1.html("""
-        <script>
-            if (typeof playBeep === 'function') {
-                playBeep();
-            }
-        </script>
-    """, height=0)
+def trigger_beep():
+    if st.session_state.get("enable_audio", False):
+        st.components.v1.html("""
+            <script>
+                if (typeof playBeepSound === 'function') {
+                    playBeepSound();
+                }
+            </script>
+        """, height=0)
 
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 
 if "user_role" not in st.session_state:
     st.session_state.user_role = "مدير عام"
+
+if "enable_audio" not in st.session_state:
+    st.session_state.enable_audio = True
 
 if "suppliers_list" not in st.session_state or isinstance(st.session_state.suppliers_list, pd.DataFrame):
     st.session_state.suppliers_list = []
@@ -207,6 +217,14 @@ st.sidebar.write(f"👤 المستخدم: **{username}**")
 st.sidebar.write(f"📌 الصلاحية: **{user_role}**")
 st.sidebar.divider()
 
+# زر التحكم بالأصوات التفاعلية (بيب)
+audio_toggle = st.sidebar.checkbox("🔊 تفعيل أصوات البيب التفاعلية", value=st.session_state.enable_audio)
+if audio_toggle != st.session_state.enable_audio:
+    st.session_state.enable_audio = audio_toggle
+    trigger_beep()
+
+st.sidebar.divider()
+
 cart_count_badge = sum(int(item['qty']) for item in st.session_state.cart)
 st.sidebar.info(f"🛒 المنتجات بالسلة: **{cart_count_badge}**")
 st.sidebar.divider()
@@ -265,6 +283,7 @@ if selected_menu == "نقطة البيع (POS)":
             with cols_cart[3]:
                 if st.button("❌", key=f"del_cart_{c_item['id']}"):
                     st.session_state.cart.pop(idx)
+                    trigger_beep()
                     st.rerun()
                 
         st.divider()
@@ -326,7 +345,7 @@ if selected_menu == "نقطة البيع (POS)":
                     })
                     log_audit("إتمام بيع", f"فاتورة جديدة {inv_code} للعميل {selected_customer_name}")
                     st.session_state.cart = []
-                    trigger_sound()
+                    trigger_beep()
                     st.success("✅ تمت عملية البيع وحفظ الفاتورة بنجاح!")
                     st.rerun()
                 except Exception as e:
@@ -373,7 +392,7 @@ elif selected_menu == "المخزن وجرد البضائع":
                                     "max_qty": item["quantity"],
                                     "qty": 1
                                 })
-                            trigger_sound()  # تشغيل صوت بيب التفاعلي عند الإضافة للسلة
+                            trigger_beep()  # صوت بيب تفاعلي عند إضافة المنتج للسلة
                             st.toast("تمت الإضافة للسلة بنجاح!", icon="🛒")
                             st.rerun()
                     else:
@@ -423,7 +442,7 @@ elif selected_menu == "إضافة مادة جديدة":
                         "barcode": generated_bc
                     })
                     log_audit("إضافة منتج", f"تمت إضافة المنتج {p_name.strip()}")
-                    trigger_sound()
+                    trigger_beep()
                     st.success(f"تمت إضافة المادة ({p_name}) بنجاح!")
                     st.rerun()
                 except ValueError:
@@ -464,7 +483,7 @@ elif selected_menu == "العملاء والديون":
                     "notes": ""
                 })
                 log_audit("إضافة عميل", f"تم تسجيل العميل {c_name}")
-                trigger_sound()
+                trigger_beep()
                 st.success("تم تسجيل العميل بنجاح!")
                 st.rerun()
             else:
@@ -530,7 +549,7 @@ elif selected_menu == "سندات القبض":
                             "date": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                         }
                         log_audit("سداد ديون", f"تسديد مبلغ {payment_val:,} للعميل {selected_debt_customer}")
-                        trigger_sound()
+                        trigger_beep()
                         st.success("تم استلام المبلغ وتحديث الحساب بنجاح!")
                         st.rerun()
                 except ValueError:
@@ -552,7 +571,7 @@ elif selected_menu == "الموردين":
         if st.form_submit_button("إضافة المورد"):
             if sup_name.strip():
                 st.session_state.suppliers_list.append({"اسم المورد": sup_name, "رقم الهاتف": sup_phone})
-                trigger_sound()
+                trigger_beep()
                 st.success("تم إضافة المورد بنجاح!")
                 st.rerun()
             else:
@@ -598,7 +617,7 @@ elif selected_menu == "صندوق الوردية والمصروفات":
                     exp_val = float(exp_amount_str.strip())
                     st.session_state.expenses_list.insert(0, {"البيان": exp_title, "المبلغ": exp_val, "التاريخ": datetime.datetime.now().strftime('%Y-%m-%d %H:%M')})
                     log_audit("تسجيل مصروف", f"مصروف {exp_title} بقيمة {exp_val}")
-                    trigger_sound()
+                    trigger_beep()
                     st.success("تم تسجيل المصروف!")
                     st.rerun()
                 except ValueError:
@@ -632,7 +651,7 @@ elif selected_menu == "تقارير الأرباح":
         total_net_profit = total_revenue - total_cost
         total_debts = sum(float(inv.get('remaining_amount', 0)) for inv in invoices_report)
 
-        col_r1, col_r2, col_r3 = st.cols(3) if hasattr(st, 'cols') else st.columns(3)
+        col_r1, col_r2, col_r3 = st.columns(3)
         with col_r1:
             st.metric("إجمالي المبيعات", f"{int(total_revenue):,} د.ع")
         with col_r2:
@@ -657,34 +676,74 @@ elif selected_menu == "سجل النشاطات الرقابي":
             st.info("لا توجد نشاطات مسجلة.")
 
 elif selected_menu == "الدليل وشرح الاستخدام":
-    st.subheader("📖 الدليل الشامل لاستخدام نظام ياسر ويب 🛍️")
+    st.subheader("📖 الدليل الشامل وشرح مميزات نظام ياسر ويب 🛍️")
+    
+    # تصميم الإطار الذهبي الأنيق لكل ميزة بحد
     st.markdown("""
-    أهلاً بك أخي العزيز في **دليل الاستخدام الرسمي** لنظام **ياسر ويب** للإدارة والسيطرة المتكاملة على المحلات والمخازن. تم تصميم هذا النظام بعناية فائقة ليلبي كافة احتياجاتك اليومية بسرعة وسلاسة تامة.
+    <style>
+    .gold-box {
+        border: 2px solid #d4af37;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: #fdfdfd;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .gold-title {
+        color: #b8860b;
+        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-    ---
-
-    ### 🌟 1. القائمة الجانبية العمودية وسهولة التنقل
-    * تم تصميم القائمة بشكل عمودي (Sidebar) لتناسب الهواتف الذكية، الأجهزة اللوحية (التابلت)، وأجهزة الكمبيوتر بدقة عالية وسلاسة تامة.
-    * يمكنك الانتقال بين الأقسام بضغطة زر واحدة دون الحاجة للتمرير المزعج أو الأزرار الأفقية.
-
-    ### 🛒 2. نقطة البيع (POS) وإتمام الفواتير
-    * **إضافة المواد:** من قسم "المخزن وجرد البضائع"، اضغط على زر **(🛒 إضافة للسلة)** لأي مادة، وسيصدر النظام صوت تفاعلي (**بيب 🔊**) لتأكيد الإضافة فوراً.
-    * **خصم المخزون التلقائي:** بمجرد حفظ الفاتورة، يقوم النظام بخصم الكمية المباعة من المخزن تلقائياً وبدقة.
-    * **تعدد طرق الدفع:** يدعم النظام البيع نقداً بالكامل، البيع بالآجل (دين كامل)، أو الدفع الجزئي (الأقساط) مع حساب المتبقي على العميل فوراً.
-
-    ### 📦 3. إدارة المخزن والباركود
-    * يتيح لك إضافة الألوان، القياسات، الأسعار (الشراء والبيع)، والكميات لكل منتج.
-    * **توليد الباركود:** يقوم النظام تلقائياً بتوليد وعرض رموز باركود لكل مادة لسهولة طباعتها واستخدامها في عمليات البيع السريع.
-
-    ### 👥 4. العملاء، الديون، وسندات القبض
-    * تسجيل العملاء وأرقام هواتفهم المرتبطة بتطبيق **واتساب**.
-    * متابعة الديون المترتبة على كل عميل بشكل دقيق.
-    * إصدار **سندات قبض نقدية رسمية** عند تسديد الديون مع إمكانية طباعتها وتحميلها كملف HTML.
-
-    ### 🔐 5. نظام الصلاحيات والأمان
-    * **مدير عام / مشرف مبيعات:** يمتلكون الصلاحيات الكاملة لمتابعة الأرباح، الاطلاع على التقارير المالية، ومراجعة سجل النشاطات الرقابي.
-    * **كاشير رئيسي:** تقتصر صلاحياته على عمليات البيع، إضافة المواد، وإصدار الفواتير، مع حماية الأقسام المالية الحساسة لضمان أمان العمل.
-
-    ### 🔄 6. النسخ الاحتياطي وحماية البيانات
-    * من خلال القائمة الجانبية، يمكنك في أي وقت الضغط على **(📥 تحميل نسخة احتياطية)** لحفظ جميع بيانات محلك، فواتيرك، وعملائك بملف JSON آمن على جهازك.
+    st.markdown("""
+    أهلاً بك أخي العزيز في **الدليل الرسمي** لنظام **ياسر ويب** للإدارة والسيطرة المتكاملة. تم تصميم هذا الدليل بعناية ليوضح لك تفاصيل كل ميزة في النظام بشكل مستقل وواضح تماماً:
     """)
+
+    st.markdown("""
+    <div class="gold-box">
+        <div class="gold-title">📌 1. القائمة الجانبية العمودية وسهولة التنقل</div>
+        <p>تم تصميم واجهة النظام بقائمة عمودية (Sidebar) حديثة ومرنة تتيح لك الانتقال بين جميع الأقسام بسلاسة تامة على الهواتف الذكية، الأجهزة اللوحية، وأجهزة الكمبيوتر، مع دعم كامل للوضع المظلم والفاتح.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="gold-box">
+        <div class="gold-title">🛒 2. نقطة البيع السريعة (POS) والأصوات التفاعلية</div>
+        <p>منصة مخصصة لإتمام عمليات البيع بسرعة فائقة. بمجرد الضغط على زر <b>(🛒 إضافة للسلة)</b>، يصدر النظام صوت بيّب (Beep) تفاعلي لتأكيد العملية بصرياً وسمعياً، مع خصم الكميات من المخزن فوراً وحساب المجموع.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="gold-box">
+        <div class="gold-title">📦 3. إدارة المخزن وتوليد الباركود</div>
+        <p>إدارة شاملة للمنتجات والمواد مع تحديد الأسعار (الشراء والبيع)، الألوان، والقياسات. يتيح النظام أيضاً ميزة <b>توليد باركود فريد</b> لكل مادة لسهولة طباعتها واستخدامها في عمليات البيع الحديثة.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="gold-box">
+        <div class="gold-title">👥 4. العملاء، الديون، وسندات القبض</div>
+        <p>تسجيل بيانات العملاء وأرقام هواتفهم المرتبطة بتطبيق <b>واتساب</b>، ومتابعة الديون المترتبة عليهم بدقة. كما يدعم النظام إصدار <b>سندات قبض نقدية رسمية</b> عند تسديد الدفعات مع إمكانية تحميلها كملف HTML.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="gold-box">
+        <div class="gold-title">🔐 5. نظام الصلاحيات الأمنية والرقابة</div>
+        <p>تقسيم الصلاحيات بين (مدير عام، مشرف مبيعات، وكاشير رئيسي) لحماية الأقسام المالية الحساسة وتقارير الأرباح وسجل النشاطات الرقابي، مما يضمن أمان العمل وصلاحيات دقيقة لكل مستخدم.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="gold-box">
+        <div class="gold-title">📞 التواصل والدعم الفني والمبرمج</div>
+        <p>يسعدنا دائماً تواصلكم معنا، تقديم آرائكم، أو طلب الدعم الفني وتطوير النظام:</p>
+        <ul>
+            <li>📷 <b>حساب إنستغرام الرسمي:</b> <a href="https://instagram.com" target="_blank">تواصل معنا عبر إنستغرام</a></li>
+            <li>💬 <b>التطوير والبرمجة:</b> نظام ياسر ويب الإداري المتكامل.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
