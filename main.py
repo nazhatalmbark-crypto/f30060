@@ -392,7 +392,7 @@ elif selected_menu == "المخزن وجرد البضائع":
                                     "max_qty": item["quantity"],
                                     "qty": 1
                                 })
-                            trigger_beep()  # صوت بيب تفاعلي عند إضافة المنتج للسلة
+                            trigger_beep()
                             st.toast("تمت الإضافة للسلة بنجاح!", icon="🛒")
                             st.rerun()
                     else:
@@ -742,7 +742,7 @@ elif selected_menu == "الدليل وشرح الاستخدام":
         <div class="gold-title">📞 التواصل والدعم الفني والمبرمج</div>
         <p>يسعدنا دائماً تواصلكم معنا، تقديم آرائكم، أو طلب الدعم الفني وتطوير النظام:</p>
         <ul>
-            <li>📷 <b>حساب إنستغرام الرسمي:</b> <a href="https://instagram.com" target="_blank">تواصل معنا عبر إنستغرام</a></li>
+            <li>📷 <b>حساب إنستغرام الرسمي:</b> <a href="https://instagram.com/yaser120120120120" target="_blank">yaser120120120120</a></li>
             <li>💬 <b>التطوير والبرمجة:</b> نظام ياسر ويب الإداري المتكامل.</li>
         </ul>
     </div>
