@@ -20,7 +20,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# **التنسيق العام**
+# **التنسيق العام مع إصلاح مشكلة الحروف المتقطعة والاتجاه في الشريط الجانبي والشاشات**
 st.markdown("""
     <style>
     .stApp {
@@ -30,6 +30,16 @@ st.markdown("""
     input, select, textarea {
         direction: rtl;
         text-align: right;
+    }
+    /* إصلاح مشكلة تقطيع النصوص واتجاهها في الشريط الجانبي للأجهزة الذكية */
+    section[data-testid="stSidebar"] {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    section[data-testid="stSidebar"] * {
+        direction: rtl !important;
+        text-align: right !important;
+        writing-mode: horizontal-tb !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -182,7 +192,6 @@ if not st.session_state.logged_in_user:
                             st.session_state.logged_in_user = str(user_info["username"])
                             st.session_state.user_role = str(login_role)
                             
-                            # التحقق من حالة وتاريخ انتهاء الـ VIP
                             is_paid_db = bool(user_info.get("is_paid", False))
                             expiry_str = user_info.get("vip_expiry_date")
                             
@@ -283,7 +292,6 @@ st.sidebar.download_button(
 st.sidebar.divider()
 st.sidebar.subheader("💎 حالة النسخة والتفعيل (30 يوم)")
 
-# فحص انتهاء العداد تلقائياً إذا كانت مفعلة
 if st.session_state.is_vip and st.session_state.vip_expiry_date:
     if datetime.datetime.now() > st.session_state.vip_expiry_date:
         st.session_state.is_vip = False
@@ -319,7 +327,6 @@ else:
 
 st.sidebar.divider()
 
-# **قائمة الأقسام الطولية للهواتف في الـ Sidebar**
 st.sidebar.subheader("📌 أقسام النظام (اختر للفتح)")
 selected_tab = st.sidebar.radio("التنقل بين الأقسام:", t["tabs"], label_visibility="collapsed")
 
