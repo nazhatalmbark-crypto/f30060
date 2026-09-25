@@ -19,22 +19,44 @@ st.markdown("""
         direction: rtl;
         text-align: right;
     }
-    /* تنسيق الإطارات الذهبية الفخمة للدليل */
+    /* تصميم الإطار الذهبي الفخم والمميز */
     .gold-frame-container {
         border: 3px solid #FFD700;
         border-radius: 15px;
-        padding: 25px;
+        padding: 30px;
         background: linear-gradient(135deg, #fffcf0 0%, #fff8e1 100%);
-        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.35);
         margin-bottom: 25px;
     }
     .gold-tab-box {
-        border: 2px solid #DAA520;
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 15px;
         background-color: #ffffff;
-        box-shadow: 0 2px 8px rgba(218, 165, 32, 0.15);
+        border: 2px solid #DAA520;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 3px 10px rgba(218, 165, 32, 0.15);
+    }
+    .gold-divider {
+        border: 0;
+        height: 1px;
+        background: linear-gradient(to right, rgba(218, 165, 32, 0), rgba(218, 165, 32, 0.8), rgba(218, 165, 32, 0));
+        margin: 20px 0;
+    }
+    .instagram-link {
+        display: inline-block;
+        background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+        color: white !important;
+        padding: 10px 20px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: bold;
+        box-shadow: 0 4px 10px rgba(220, 39, 67, 0.3);
+        margin-top: 10px;
+        transition: 0.3s;
+    }
+    .instagram-link:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
     }
     </style>
     
@@ -690,51 +712,61 @@ elif selected_menu == "سجل النشاطات الرقابي":
             st.info("لا توجد نشاطات مسجلة.")
 
 elif selected_menu == "الدليل وشرح الاستخدام":
-    # الدليل الشامل والمفصل مع الإطار الذهبي وتنسيق حساب الانستغرام الفخم
+    # الدليل الشامل داخل إطار ذهبي، وكل تبويب بمفرده ويفصلهما خط ذهبي فاخر، مع زر انستغرام مباشر
     st.markdown("""
     <div class="gold-frame-container">
-        <h2 style="text-align: center; color: #b8860b; margin-bottom: 20px;">📖 الدليل الشامل وشرح مميزات نظام ياسر ويب المتقدم</h2>
-        <p style="text-align: center; font-size: 16px; color: #444; margin-bottom: 25px;">
-            أهلاً بك في الدليل الرسمي للنظام. تم تصميم هذا المرشد خصيصاً لمساعدتك على استثمار كافة إمكانيات <b>نظام ياسر ويب - الإدارة المتكاملة</b> بكفاءة واحترافية عالية.
+        <h2 style="text-align: center; color: #b8860b; margin-bottom: 15px;">📖 الدليل الشامل وشرح مميزات نظام ياسر ويب المتقدم</h2>
+        <p style="text-align: center; font-size: 15px; color: #555; margin-bottom: 25px;">
+            دليلك السريع والمرتب لاستخدام كافة أقسام وخصائص <b>نظام ياسر ويب - الإدارة المتكاملة</b> بكفاءة عالية.
         </p>
         
         <div class="gold-tab-box">
-            <h4 style="color: #8b6508;">🛒 1. نقطة البيع السريعة (POS) وإتمام الفاتورة</h4>
-            <p>قسم مخصص لتجميع المواد المختارة من المخزن في سلة المبيعات مع إمكانية تعديل الكميات أو حذفها بضغطة زر. يقوم النظام بحساب المجاميع تلقائياً، والتعرف على اسم العميل، وتحديد نوع الدفع (نقدي تام، دين آجل، أو دفعة جزئية) مع إمكانية إصدار وحفظ الفاتورة رسمياً.</p>
+            <h4 style="color: #8b6508; margin-bottom: 8px;">🛒 1. نقطة البيع السريعة (POS) وإتمام الفاتورة</h4>
+            <p style="color: #333; margin: 0; line-height: 1.6;">قسم مخصص لتجميع المواد المختارة من المخزن في سلة المبيعات مع إمكانية تعديل الكميات أو حذفها بضغطة زر. يقوم النظام بحساب المجاميع تلقائياً، والتعرف على اسم العميل، وتحديد نوع الدفع (نقدي تام، دين آجل، أو دفعة جزئية) مع إمكانية إصدار وحفظ الفاتورة رسمياً.</p>
         </div>
+
+        <div class="gold-divider"></div>
 
         <div class="gold-tab-box">
-            <h4 style="color: #8b6508;">📦 2. إدارة المخزن وجرد البضائع</h4>
-            <p>نافذة عرض تفصيلية لجميع المواد والأجهزة المسجلة في المخزن مع بيان الألوان، القياسات، الباركود، أسعار الشراء والبيع، والكميات المتوفرة. يتضمن محرك بحث سريع وفوري للعثور على أي مادة بلحظات.</p>
+            <h4 style="color: #8b6508; margin-bottom: 8px;">📦 2. إدارة المخزن وجرد البضائع</h4>
+            <p style="color: #333; margin: 0; line-height: 1.6;">نافذة عرض تفصيلية لجميع المواد والأجهزة المسجلة في المخزن مع بيان الألوان، القياسات، الباركود، أسعار الشراء والبيع، والكميات المتوفرة. يتضمن محرك بحث سريع وفوري للعثور على أي مادة بلحظات.</p>
         </div>
+
+        <div class="gold-divider"></div>
 
         <div class="gold-tab-box">
-            <h4 style="color: #8b6508;">➕ 3. إضافة مادة جديدة وتوليد الباركود</h4>
-            <p>تتيح لك إدخال بضائع جديدة للمخزن وتحديد أسعار الشراء والبيع والكميات بدقة. كما يضم النظام قسماً خاصاً لتوليد وطباعة رموز الباركود لكل مادة بصيغة Code128 المعيارية.</p>
+            <h4 style="color: #8b6508; margin-bottom: 8px;">➕ 3. إضافة مادة جديدة وتوليد الباركود</h4>
+            <p style="color: #333; margin: 0; line-height: 1.6;">تتيح لك إدخال بضائع جديدة للمخزن وتحديد أسعار الشراء والبيع والكميات بدقة. كما يضم النظام قسماً خاصاً لتوليد وطباعة رموز الباركود لكل مادة بصيغة Code128 المعيارية.</p>
         </div>
+
+        <div class="gold-divider"></div>
 
         <div class="gold-tab-box">
-            <h4 style="color: #8b6508;">👥 4. العملاء والديون وسندات القبض</h4>
-            <p>لتسجيل بيانات الزبائن ومعلومات التواصل الخاصة بهم ومتابعة حركة الديون المرتبطة بفواتيرهم. يتيح نظام سندات القبض إدخال الدفعات النقدية المسددة وتحديث رصيد العميل وتوليد سند قبض رسمي بصيغة HTML.</p>
+            <h4 style="color: #8b6508; margin-bottom: 8px;">👥 4. العملاء والديون وسندات القبض</h4>
+            <p style="color: #333; margin: 0; line-height: 1.6;">لتسجيل بيانات الزبائن ومعلومات التواصل الخاصة بهم ومتابعة حركة الديون المرتبطة بفواتيرهم. يتيح نظام سندات القبض إدخال الدفعات النقدية المسددة وتحديث رصيد العميل وتوليد سند قبض رسمي بصيغة HTML.</p>
         </div>
+
+        <div class="gold-divider"></div>
 
         <div class="gold-tab-box">
-            <h4 style="color: #8b6508;">💰 5. صندوق الوردية والمصروفات النقدية</h4>
-            <p>مخصص لتسجيل النثريات والمصروفات اليومية (مثل أجور النقل، الصيانة، والإيجار) لحساب صافي رصيد الصندوق النقدي الفعلي بدقة ومقارنته مع إجمالي المقبوضات.</p>
+            <h4 style="color: #8b6508; margin-bottom: 8px;">💰 5. صندوق الوردية والمصروفات النقدية</h4>
+            <p style="color: #333; margin: 0; line-height: 1.6;">مخصص لتسجيل النثريات والمصروفات اليومية (مثل أجور النقل، الصيانة، والإيجار) لحساب صافي رصيد الصندوق النقدي الفعلي بدقة ومقارنته مع إجمالي المقبوضات.</p>
         </div>
+
+        <div class="gold-divider"></div>
 
         <div class="gold-tab-box">
-            <h4 style="color: #8b6508;">📊 6. تقارير الأرباح والسجل الرقابي</h4>
-            <p>أقسام استراتيجية مخصصة لمدير النظام والمشرفين تعرض تحليلات مالية دقيقة لإجمالي المبيعات، صافي أرباح البضائع، الديون المعلقة، بالإضافة إلى سجل رقابي متكامل يوثق جميع عمليات المستخدمين بدقة.</p>
+            <h4 style="color: #8b6508; margin-bottom: 8px;">📊 6. تقارير الأرباح والسجل الرقابي</h4>
+            <p style="color: #333; margin: 0; line-height: 1.6;">أقسام استراتيجية مخصصة لمدير النظام والمشرفين تعرض تحليلات مالية دقيقة لإجمالي المبيعات، صافي أرباح البضائع، الديون المعلقة، بالإضافة إلى سجل رقابي متكامل يوثق جميع عمليات المستخدمين بدقة.</p>
         </div>
 
-        <div style="text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px dashed #DAA520;">
-            <p style="font-size: 15px; color: #555; font-weight: bold;">
+        <div style="text-align: center; margin-top: 35px; padding-top: 20px; border-top: 2px dashed #DAA520;">
+            <p style="font-size: 15px; color: #444; font-weight: bold; margin-bottom: 10px;">
                 ✨ تصميم وبرمجة: <b>نظام ياسر ويب</b> | جميع الحقوق محفوظة للإدارة المتكاملة 2026
             </p>
-            <p style="font-size: 14px; color: #b8860b; margin-top: 5px;">
-                📸 تابعنا على منصة انستغرام لمزيد من التحديثات والدعم الفني: <b>@yasser_web</b>
-            </p>
+            <a href="https://instagram.com/yasser_web" target="_blank" class="instagram-link">
+                📸 تواصل معنا عبر انستغرام: @yasser_web
+            </a>
         </div>
     </div>
     """, unsafe_allow_html=True)
