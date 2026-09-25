@@ -19,17 +19,56 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# إزالة أي خصائص CSS معقدة كانت تسبب انعكاس الكلمات والحروف
+# **التنسيق العام مع الإصلاح النهائي والجذري لمشكلة تقطيع الحروف وعرض الموبايل**
 st.markdown("""
     <style>
+    /* فرض الاتجاه الصحيح لكل التطبيق */
     .stApp {
         direction: rtl !important;
         text-align: right !important;
     }
+    input, select, textarea {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    
+    /* إصلاح جذري لعرض النصوص في القائمة الجانبية ومنع تناثر الحروف عمودياً */
+    section[data-testid="stSidebar"] {
+        direction: rtl !important;
+        text-align: right !important;
+        width: 100% !important;
+    }
+    
+    section[data-testid="stSidebar"] *, 
+    section[data-testid="stSidebar"] span, 
+    section[data-testid="stSidebar"] p, 
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] div {
+        direction: rtl !important;
+        text-align: right !important;
+        unicode-bidi: normal !important;
+        word-break: normal !important;
+    }
+    
+    /* تصجهيز وتعديل تلقائي لحجم الخطوط للشاشات الصغيرة (الموبايل) لمنع التداخل */
+    @media (max-width: 768px) {
+        section[data-testid="stSidebar"] .stRadio label p {
+            font-size: 14px !important;
+        }
+        section[data-testid="stSidebar"] {
+            min-width: 260px !important;
+        }
+    }
+    
+    /* منع التفاف النصوص في أزرار القائمة الجانبية */
+    section[data-testid="stSidebar"] .stRadio label,
+    section[data-testid="stSidebar"] .stButton button {
+        white-space: normal !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# إدارة اللغات والواجهات
+# **إدارة اللغات**
 if "lang" not in st.session_state:
     st.session_state.lang = "العربية"
 
@@ -112,7 +151,7 @@ def generate_html_invoice(inv):
         <meta charset="UTF-8">
         <title>فاتورة رقم {inv['invoice_code']}</title>
         <style>
-            body {{ font-family: 'Tahoma', Arial, sans-serif; padding: 20px; color: #333; direction: rtl; text-align: right; }}
+            body {{ font-family: 'Tahoma', Arial, sans-serif; padding: 20px; color: #333; }}
             .invoice-box {{ max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); background: #fff; }}
             .header {{ text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }}
             .info {{ margin-bottom: 20px; font-size: 15px; line-height: 1.6; }}
@@ -325,7 +364,7 @@ if st.sidebar.button(t["logout"]):
 
 st.divider()
 
-# عرض الأقسام
+# **عرض الأقسام**
 if selected_tab == "➕ إضافة مادة":
     st.subheader("➕ واجهة إضافة مادة أو بضاعة جديدة للمخزن")
     if user_role == "كاشير":
@@ -664,155 +703,220 @@ elif selected_tab == "🛒 البيع والفواتير":
 
         st.info(f"💡 **تحليل النظام التلقائي:** {auto_pay_type} | الواصل: **{int(paid_amount):,} د.ع** | المتبقي (الدين): **{int(remaining_amount):,} د.ع**")
 
-        if not cust_names_list:
-            st.error("❌ لا يمكنك إتمام الفاتورة لعدم وجود عملاء مسجلين.")
-        else:
-            if st.button("💾 إتمام وحفظ الفاتورة رسمياً", type="primary"):
+        if st.button("💾 إتمام البيع، خصم المخزن، وحفظ الفاتورة", type="primary"):
+            if not selected_customer_name:
+                st.error("❌ خطأ: اختر عميلاً مسجلاً.")
+            else:
                 try:
-                    invoice_code = f"INV-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
-                    created_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    prod_names_str = []
+                    total_buy_cost_of_invoice = 0
                     
-                    products_text_summary = " - ".join([f"{item['product_name']} ({item['color']} / {item['size']}) × {item['qty']}" for item in st.session_state.cart])
+                    for c_item in st.session_state.cart:
+                        prod_names_str.append(f"{c_item['product_name']} ({c_item['color']}) [العدد: {c_item['qty']}]")
+                        total_buy_cost_of_invoice += (c_item['buy_price'] * c_item['qty'])
+                        
+                        res_p = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
+                        if res_p.data:
+                            current_db_qty = res_p.data[0]["quantity"]
+                            new_db_qty = max(0, current_db_qty - c_item['qty'])
+                            supabase.table("products").update({"quantity": new_db_qty}).eq("id", c_item["id"]).execute()
+                    
+                    try:
+                        res_inv_count = supabase.table("invoices").select("id").eq("username", username).execute()
+                        inv_id = len(res_inv_count.data) + 1 if res_inv_count.data else 1
+                    except:
+                        inv_id = 1
+                        
+                    inv_code = f"INV-{inv_id:03d}"
                     
                     supabase.table("invoices").insert({
                         "username": str(username),
-                        "invoice_code": str(invoice_code),
+                        "invoice_code": str(inv_code),
                         "customer_name": str(selected_customer_name),
-                        "total_price": float(total_cart_price),
-                        "paid_amount": float(paid_amount),
-                        "remaining_amount": float(remaining_amount),
+                        "products_text": str(" ، ".join(prod_names_str)),
+                        "total_price": int(total_cart_price),
+                        "cost_price": int(total_buy_cost_of_invoice),
+                        "paid_amount": int(paid_amount),
+                        "remaining_amount": int(remaining_amount),
                         "payment_type": str(auto_pay_type),
-                        "products_text": str(products_text_summary),
-                        "created_date": str(created_date)
+                        "created_date": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                     }).execute()
                     
-                    for c_item in st.session_state.cart:
-                        res_p_db = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
-                        if res_p_db.data:
-                            current_qty_in_db = res_p_db.data[0]["quantity"]
-                            new_qty_db = max(0, current_qty_in_db - c_item["qty"])
-                            supabase.table("products").update({"quantity": int(new_qty_db)}).eq("id", c_item["id"]).execute()
-                    
-                    log_audit("إتمام بيع", f"تم إصدار الفاتورة رقم {invoice_code} بمبلغ {total_cart_price:,} د.ع")
-                    st.success(f"🎉 تم إتمام الفاتورة وحفظها بنجاح برقم: {invoice_code}")
-                    
+                    log_audit("إتمام بيع", f"فاتورة {inv_code} للزبون {selected_customer_name}")
                     st.session_state.cart = []
+                    st.success("✅ تمت عملية البيع وتحديث المخزن وحفظ الفاتورة بنجاح!")
                     st.rerun()
-                    
                 except Exception as e:
-                    st.error(f"❌ خطأ أثناء حفظ الفاتورة: {e}")
+                    st.error(f"❌ خطأ: {e}")
     else:
-        st.info("🛒 سلة المبيعات فارغة حالياً. قم بإضافة مواد من قسم المخزن للبدء بالبيع.")
+        st.info("🛒 السلة فارغة.")
 
 elif selected_tab == "📄 سجل الفواتير":
-    st.subheader("📄 سجل الفواتير الصادرة والبحث فيها")
+    st.subheader("📄 سجل الفواتير والطباعة والواتساب")
     try:
-        res_inv_all = supabase.table("invoices").select("*").eq("username", username).order("created_date", desc=True).execute()
-        invoices_list = res_inv_all.data if res_inv_all.data else []
+        res_all_inv = supabase.table("invoices").select("*").eq("username", username).order("id", desc=True).execute()
+        all_invoices = res_all_inv.data if res_all_inv.data else []
     except:
-        invoices_list = []
+        all_invoices = []
 
-    if invoices_list:
-        search_inv_term = st.text_input("🔍 بحث برقم الفاتورة أو اسم الزبون:", "")
-        filtered_invoices = invoices_list
-        if search_inv_term:
-            filtered_invoices = [
-                inv for inv in filtered_invoices 
-                if search_inv_term.lower() in inv.get('invoice_code', '').lower() or 
-                   search_inv_term.lower() in inv.get('customer_name', '').lower()
-            ]
-
-        for inv in filtered_invoices:
+    if all_invoices:
+        for inv in all_invoices:
             with st.container(border=True):
-                st.markdown(f"### 📄 الفاتورة: `{inv['invoice_code']}`")
+                st.markdown(f"### 🧾 فاتورة رقم: `{inv['invoice_code']}`")
                 st.write(f"👤 **الزبون:** {inv['customer_name']} | 📅 **التاريخ:** {inv['created_date']}")
-                st.write(f"📦 **المواد:** {inv['products_text']}")
-                st.markdown(f"💰 **المجموع:** `{int(inv['total_price']):,}` د.ع | **الواصل:** `{int(inv['paid_amount']):,}` د.ع | **المتبقي:** `{int(inv['remaining_amount']):,}` د.ع")
-                st.write(f"🏷️ **حالة الدفع:** {inv['payment_type']}")
-                
+                st.write(f"🛍️ **المواد:** {inv['products_text']}")
+                st.write(f"💰 **المجموع الكلي:** {inv['total_price']:,} د.ع | **الواصل:** {inv['paid_amount']:,} د.ع | **المتبقي:** `{inv['remaining_amount']:,}` د.ع")
+                st.write(f"📌 **الحالة:** {inv['payment_type']}")
+
                 html_code = generate_html_invoice(inv)
                 st.download_button(
-                    label=f"📥 تحميل الفاتورة HTML (رقم {inv['invoice_code']})",
+                    label="📥 تحميل الفاتورة (HTML)",
                     data=html_code,
                     file_name=f"invoice_{inv['invoice_code']}.html",
                     mime="text/html",
                     key=f"dl_inv_{inv['id']}"
                 )
+                
+                try:
+                    res_c_phone = supabase.table("customers").select("phone").eq("username", username).eq("customer_name", inv['customer_name']).execute()
+                    c_phone_num = res_c_phone.data[0]["phone"] if res_c_phone.data else ""
+                except:
+                    c_phone_num = ""
+                
+                if c_phone_num:
+                    wa_msg = f"مرحباً عزيزنا {inv['customer_name']}\nتجد أدناه تفاصيل فاتورتك ({inv['invoice_code']}):\nالمبلغ الكلي: {inv['total_price']:,} د.ع\nالواصل: {inv['paid_amount']:,} د.ع\nالمتبقي: {inv['remaining_amount']:,} د.ع\nتابعنا على إنستغرام: @yaser120120120120\nشكراً لتعاملكم معنا!"
+                    encoded_wa = urllib.parse.quote(wa_msg)
+                    whatsapp_url = f"https://wa.me/{c_phone_num}?text={encoded_wa}"
+                    st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer; width:100%; margin-top:5px;">💬 إرسال الفاتورة عبر واتساب</button></a>', unsafe_allow_html=True)
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
 elif selected_tab == "💰 المصاريف":
-    st.subheader("💰 إدارة المصاريف اليومية للمحل")
+    st.subheader("💰 صندوق الوردية والمصاريف النقدية")
     with st.form("add_expense_form", clear_on_submit=True):
-        exp_title = st.text_input("عنوان المصروف (مثلاً: إيجار، كهرباء، صيانة):")
-        exp_amount_str = st.text_input("المبلغ (د.ع):", "0")
-        exp_notes = st.text_input("ملاحظات إضافية:")
-        if st.form_submit_button("تسجيل المصروف"):
+        exp_title = st.text_input("بيان المصروف / النثرية (مثل: أجور نقل، صيانة):")
+        exp_amount_str = st.text_input("المبلغ المدفوع (د.ع):", "0")
+        if st.form_submit_button("تسجيل وحفظ المصروف"):
             if exp_title.strip():
                 try:
-                    exp_amount = float(exp_amount_str.strip())
-                    st.session_state.expenses_list.append({
-                        "العنوان": str(exp_title.strip()),
-                        "المبلغ": float(exp_amount),
-                        "الملاحظات": str(exp_notes.strip() if exp_notes else "لا يوجد"),
+                    exp_amt = float(exp_amount_str.strip())
+                    st.session_state.expenses_list.insert(0, {
+                        "البيان": str(exp_title.strip()),
+                        "المبلغ": float(exp_amt),
                         "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                     })
-                    log_audit("تسجيل مصروف", f"تم تسجيل مصروف {exp_title} بقيمة {exp_amount:,} د.ع")
+                    log_audit("تسجيل مصروف", f"تم تسجيل مصروف {exp_title} بمبلغ {exp_amt}")
                     st.success("تم تسجيل المصروف بنجاح!")
                     st.rerun()
                 except ValueError:
-                    st.error("❌ يرجى إدخال مبلغ صحيح.")
+                    st.error("يرجى إدخال مبلغ صحيح.")
             else:
-                st.warning("يرجى إدخال عنوان المصروف.")
+                st.warning("يرجى إدخال بيان المصروف.")
 
     if st.session_state.expenses_list:
         st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
-        total_exp = sum(e["المبلغ"] for e in st.session_state.expenses_list)
-        st.markdown(f"### 📉 إجمالي المصاريف المسجلة: **{int(total_exp):,} د.ع**")
+        total_exp = sum(e['المبلغ'] for e in st.session_state.expenses_list)
+        st.markdown(f"### 📉 إجمالي المصروفات والنثريات: **{int(total_exp):,} د.ع**")
     else:
-        st.info("لا توجد مصاريف مسجلة.")
+        st.info("لا توجد مصروفات مسجلة في هذه الوردية.")
 
 elif selected_tab == "📊 التقارير":
-    st.subheader("📊 التقارير المالية والإحصائيات الشاملة")
+    st.subheader("📊 الرسوم البيانية والتقارير المالية الإجمالية")
     try:
         res_rep_inv = supabase.table("invoices").select("*").eq("username", username).execute()
         rep_invoices = res_rep_inv.data if res_rep_inv.data else []
-        
-        res_rep_prod = supabase.table("products").select("*").eq("username", username).execute()
-        rep_products = res_rep_prod.data if res_rep_prod.data else []
     except:
         rep_invoices = []
-        rep_products = []
 
-    total_sales_revenue = sum(i.get('total_price', 0) for i in rep_invoices)
-    total_remaining_debt = sum(i.get('remaining_amount', 0) for i in rep_invoices)
-    total_inventory_items = sum(p.get('quantity', 0) for p in rep_products)
-    
-    col_r1, col_r2, col_r3 = st.columns(3)
-    with col_r1:
-        st.metric("إجمالي المبيعات الكلية", f"{int(total_sales_revenue):,} د.ع")
-    with col_r2:
-        st.metric("إجمالي الديون المعلقة", f"{int(total_remaining_debt):,} د.ع")
-    with col_r3:
-        st.metric("إجمالي القطع بالمخزن", f"{int(total_inventory_items)} قطعة")
+    if rep_invoices:
+        total_sales_all = sum(inv['total_price'] for inv in rep_invoices)
+        total_cost_all = sum(inv.get('cost_price', 0) for inv in rep_invoices)
+        net_profit_all = total_sales_all - total_cost_all
+        total_remaining_debts = sum(inv['remaining_amount'] for inv in rep_invoices)
+        total_expenses_all = sum(e['المبلغ'] for e in st.session_state.expenses_list) if st.session_state.expenses_list else 0
+        true_net_profit = net_profit_all - total_expenses_all
+
+        st.metric("💵 إجمالي المبيعات", f"{int(total_sales_all):,} د.ع")
+        st.metric("📈 إجمالي الأرباح الصافية", f"{int(net_profit_all):,} د.ع")
+        st.metric("🚨 الديون المعلقة", f"{int(total_remaining_debts):,} د.ع")
+        st.metric("💰 صافي الربح الفعلي (بعد خصم المصاريف)", f"{int(true_net_profit):,} د.ع")
+    else:
+        st.info("لا توجد بيانات كافية لعرض التقارير المالية.")
 
 elif selected_tab == "📜 سجل النشاطات":
-    st.subheader("📜 سجل نشاطات النظام والعمليات (Audit Log)")
-    if isinstance(st.session_state.audit_logs, list) and st.session_state.audit_logs:
+    st.subheader("📜 سجل النشاطات والعمليات (Audit Trail)")
+    if st.session_state.audit_logs:
         st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
     else:
         st.info("لا توجد نشاطات مسجلة حتى الآن.")
 
 elif selected_tab == "📖 الدليل والدعم":
-    st.subheader("📖 دليل الاستخدام والدعم الفني لنظام Yasser Web")
     st.markdown("""
-    أهلاً بك يا أسر في نظامك الشامل لإدارة المحلات والمبيعات **Yasser Web** 🛍️.
-    
-    * **إضافة المواد:** يمكنك إضافة منتجات جديدة مع الباركود وتحديد أسعار الشراء والبيع.
-    * **المخزن والباركود:** يتيح لك جرد البضاعة، معرفة الأرباح، وتوليد باركود لكل منتج وطباعته.
-    * **العملاء والديون:** لتسجيل بيانات الزبائن ومتابعة الذمم المالية وديون الأقساط.
-    * **سداد الديون:** واجهة مخصصة لتسديد وتصفير ديون العملاء وتحديث الفواتير تلقائياً.
-    * **البيع والفواتير:** سلة مبيعات ذكية تخصم الكميات من المخزن فوراً وتدعم طباعة وتحميل الفواتير بتنسيق HTML.
-    
-    📞 **الدعم الفني والتواصل:** إنستغرام: [@yaser120120120120](https://instagram.com/yaser120120120120)
-    """)
+        <div style="font-family: 'Cairo', sans-serif; direction: rtl; padding: 10px; width: 100%;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: #8b6508; font-size: 20px; font-weight: 700;">🌟 دليل استخدام نظام ياسر ويب الشامل</h2>
+                <p style="color: #666; font-size: 13px;">المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة</p>
+            </div>
+            <hr style="border: 0; border-top: 2px solid #DAA520; margin: 15px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">➕ 1. إضافة مادة جديدة</h4>
+                <p style="color: #333; font-size: 13px;">إدخال البضائع الجديدة للمخزن وتحديد أسعار الشراء والبيع والكميات بدقة.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📦 2. جرد المخزن والباركود</h4>
+                <p style="color: #333; font-size: 13px;">عرض المواد والمنتجات مع الألوان، القياسات، الباركود، وطباعة الرموز.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">👥 3. العملاء والديون</h4>
+                <p style="color: #333; font-size: 13px;">تسجيل بيانات الزبائن ومعلومات التواصل ومتابعة حركة الديون المرتبطة بفواتيرهم.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">💵 4. تسداد الديون</h4>
+                <p style="color: #333; font-size: 13px;">إدخال الدفعات النقدية المسددة وتحديث أرصدة العملاء وتصفير الذمم.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">🏭 5. الموردين</h4>
+                <p style="color: #333; font-size: 13px;">تسجيل بيانات الموردين وأرقام هواتفهم والتخصصات المرتبطة بتوريد البضائع.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">🛒 6. البيع والفواتير</h4>
+                <p style="color: #333; font-size: 13px;">نافذة سلة المبيعات لتجميع المواد وتحديد الكميات وحساب المبالغ تلقائياً.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📄 7. سجل الفواتير</h4>
+                <p style="color: #333; font-size: 13px;">عرض الفواتير الصادرة، تحميلها للطباعة المباشرة، أو إرسالها عبر الواتساب.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">💰 8. المصاريف</h4>
+                <p style="color: #333; font-size: 13px;">تسجيل النثريات والمصروفات اليومية لحساب صافي الصندوق بدقة.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📊 9. التقارير</h4>
+                <p style="color: #333; font-size: 13px;">تحليلات مالية دقيقة لإجمالي المبيعات، صافي الأرباح، والديون المعلقة.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📜 10. سجل النشاطات</h4>
+                <p style="color: #333; font-size: 13px;">سجل رقابي متكامل يوثق جميع عمليات المستخدمين بدقة عالية.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📖 11. الدليل والدعم</h4>
+                <p style="color: #333; font-size: 13px;">المرجع الشامل والدعم الفني.</p>
+            </div>
+            <hr style="border: 0; border-top: 2px solid #DAA520; margin: 20px 0;">
+            <div style="text-align: center; margin-top: 10px;">
+                <p style="font-size: 12px; color: #444; font-weight: bold;">
+                    ✨ تطوير البرمجة: نظام ياسر ويب | انستغرام: <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #b8860b; text-decoration: none;">@yaser120120120120</a> 2026
+                </p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
