@@ -19,39 +19,17 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# التنسيق العام ودعم اللغة العربية ومنع تقطيع الحروف
+# إزالة أي خصائص CSS معقدة كانت تسبب انعكاس الكلمات والحروف
 st.markdown("""
     <style>
     .stApp {
         direction: rtl !important;
         text-align: right !important;
     }
-    input, select, textarea {
-        direction: rtl !important;
-        text-align: right !important;
-    }
-    section[data-testid="stSidebar"] {
-        direction: rtl !important;
-        text-align: right !important;
-    }
-    section[data-testid="stSidebar"] *, 
-    section[data-testid="stSidebar"] span, 
-    section[data-testid="stSidebar"] p, 
-    section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] div {
-        direction: rtl !important;
-        text-align: right !important;
-        unicode-bidi: normal !important;
-    }
-    section[data-testid="stSidebar"] .stRadio label,
-    section[data-testid="stSidebar"] .stButton button {
-        white-space: normal !important;
-        word-break: normal !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
-# إدارة اللغات
+# إدارة اللغات والواجهات
 if "lang" not in st.session_state:
     st.session_state.lang = "العربية"
 
@@ -134,7 +112,7 @@ def generate_html_invoice(inv):
         <meta charset="UTF-8">
         <title>فاتورة رقم {inv['invoice_code']}</title>
         <style>
-            body {{ font-family: 'Tahoma', Arial, sans-serif; padding: 20px; color: #333; }}
+            body {{ font-family: 'Tahoma', Arial, sans-serif; padding: 20px; color: #333; direction: rtl; text-align: right; }}
             .invoice-box {{ max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); background: #fff; }}
             .header {{ text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }}
             .info {{ margin-bottom: 20px; font-size: 15px; line-height: 1.6; }}
