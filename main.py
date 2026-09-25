@@ -19,7 +19,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# **تنسيق اتجاه النصوص لليمين (RTL) وتحسين المظهر على الهواتف**
+# **تنسيق صارم ليكون كل شيء عمودياً وتحت بعضه تماماً على الهواتف منعاً للخطوط العرضية**
 st.markdown("""
     <style>
     .stApp {
@@ -30,11 +30,14 @@ st.markdown("""
         direction: rtl;
         text-align: right;
     }
-    /* تحسين شكل التبويبات لتكون أكثر مرونة على الهواتف */
+    /* إجبار التبويبات والعناصر على النزول تحت بعضها بشكل عمودي متناسق للهواتف */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        overflow-x: auto;
-        flex-wrap: nowrap;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        width: 100%;
+        justify-content: flex-right;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -53,7 +56,6 @@ lang_dict = {
         "login_btn": "تسجيل الدخول",
         "signup_btn": "إنشاء الحساب الآن",
         "settings": "⚙️ إعدادات الحساب والنسخ الاحتياطي",
-        "lang_select": "🌐 اللغة / Language",
         "role_label": "👤 الصلاحية:",
         "cart_badge": "🛒 المواد الحالية بالسلة:",
         "backup_title": "🔄 النسخ الاحتياطي الفوري للبيانات",
@@ -307,22 +309,14 @@ with tab1:
             st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات).")
         else:
             with st.form("add_product_clean_form", clear_on_submit=True):
+                # تم جعل الحقول تظهر حصراً واحدة تحت الأخرى عمودياً لمنع التداخل في الهاتف
                 p_name = st.text_input("اسم المادة / المنتج / الجهاز:")
-                c_col, c_sz = st.columns(2)
-                with c_col:
-                    p_color = st.text_input("اللون / المواصفات الإضافية:", "عام")
-                with c_sz:
-                    p_size = st.text_input("القياس / السعة / الحجم:", "عام")
-                
-                c1, c2, c3, c4 = st.columns(4)
-                with c1:
-                    p_buy_str = st.text_input("سعر الشراء (د.ع):", "0")
-                with c2:
-                    p_sell_str = st.text_input("سعر البيع (د.ع):", "0")
-                with c3:
-                    p_qty_str = st.text_input("الكمية المتوفرة:", "1")
-                with c4:
-                    p_barcode = st.text_input("رمز الباركود:", "")
+                p_color = st.text_input("اللون / المواصفات الإضافية:", "عام")
+                p_size = st.text_input("القياس / السعة / الحجم:", "عام")
+                p_buy_str = st.text_input("سعر الشراء (د.ع):", "0")
+                p_sell_str = st.text_input("سعر البيع (د.ع):", "0")
+                p_qty_str = st.text_input("الكمية المتوفرة:", "1")
+                p_barcode = st.text_input("رمز الباركود:", "")
                 
                 submitted = st.form_submit_button("حفظ المادة في المخزن", type="primary")
                 if submitted:
@@ -365,11 +359,8 @@ with tab2:
         low_names = " ، ".join([f"**{i['product_name']}**" for i in low_stock_items])
         st.error(f"🚨 **تنبيه قرب نفاد المخزون:** المواد التالية وشيكة النفاذ أو نفدت: {low_names}")
 
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        search_prod_term = st.text_input("🔍 بحث عن مادة:", "")
-    with col_s2:
-        search_barcode_term = st.text_input("📷 بحث بالباركود:", "")
+    search_prod_term = st.text_input("🔍 بحث عن مادة:", "")
+    search_barcode_term = st.text_input("📷 بحث بالباركود:", "")
 
     if all_products:
         filtered_products = all_products
@@ -378,59 +369,57 @@ with tab2:
         if search_barcode_term:
             filtered_products = [p for p in filtered_products if search_barcode_term.lower() in p.get('barcode','').lower()]
 
-        cols = st.columns(3)
-        for idx, item in enumerate(filtered_products):
-            with cols[idx % 3]:
-                with st.container(border=True):
-                    st.markdown(f"### 📦 {item['product_name']}")
-                    st.markdown(f"🎨 **اللون:** `{item.get('color', 'عام')}` | 📏 **القياس:** `{item.get('size', 'عام')}`")
-                    st.markdown(f"🏷️ **الباركود:** `{item.get('barcode', 'بدون')}`")
-                    st.markdown(f"💰 **الشراء:** `{int(item['buy_price']):,}` | **البيع:** `{int(item['sell_price']):,}` د.ع")
-                    
-                    profit_per_unit = int(float(item['sell_price']) - float(item['buy_price']))
-                    if profit_per_unit < 0:
-                        st.error(f"📉 خسارة القطعة: {profit_per_unit:,} د.ع")
-                    else:
-                        st.success(f"📈 ربح القطعة: +{profit_per_unit:,} د.ع")
-                    
-                    st.markdown(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة")
-                    
-                    with st.expander("🏷️ باركود المادة"):
-                        b_code_val = item.get('barcode', '')
-                        if not b_code_val or b_code_val == "بدون":
-                            b_code_val = f"PRD{item['id']}"
-                        try:
-                            rv = barcode.get('code128', str(b_code_val), writer=ImageWriter())
-                            buffer_bc = io.BytesIO()
-                            rv.write(buffer_bc)
-                            st.image(buffer_bc.getvalue(), caption=f"باركود: {b_code_val}", width=200)
-                        except Exception as ex:
-                            st.error(f"تعذر توليد الباركود: {ex}")
+        for item in filtered_products:
+            with st.container(border=True):
+                st.markdown(f"### 📦 {item['product_name']}")
+                st.markdown(f"🎨 **اللون:** `{item.get('color', 'عام')}` | 📏 **القياس:** `{item.get('size', 'عام')}`")
+                st.markdown(f"🏷️ **الباركود:** `{item.get('barcode', 'بدون')}`")
+                st.markdown(f"💰 **الشراء:** `{int(item['buy_price']):,}` | **البيع:** `{int(item['sell_price']):,}` د.ع")
+                
+                profit_per_unit = int(float(item['sell_price']) - float(item['buy_price']))
+                if profit_per_unit < 0:
+                    st.error(f"📉 خسارة القطعة: {profit_per_unit:,} د.ع")
+                else:
+                    st.success(f"📈 ربح القطعة: +{profit_per_unit:,} د.ع")
+                
+                st.markdown(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة")
+                
+                with st.expander("🏷️ باركود المادة"):
+                    b_code_val = item.get('barcode', '')
+                    if not b_code_val or b_code_val == "بدون":
+                        b_code_val = f"PRD{item['id']}"
+                    try:
+                        rv = barcode.get('code128', str(b_code_val), writer=ImageWriter())
+                        buffer_bc = io.BytesIO()
+                        rv.write(buffer_bc)
+                        st.image(buffer_bc.getvalue(), caption=f"باركود: {b_code_val}", width=200)
+                    except Exception as ex:
+                        st.error(f"تعذر توليد الباركود: {ex}")
 
-                    if item['quantity'] > 0:
-                        if st.button(f"🛒 إضافة للسلة", key=f"add_cart_{item['id']}"):
-                            found = False
-                            for ci in st.session_state.cart:
-                                if ci["id"] == item["id"]:
-                                    if ci["qty"] < item["quantity"]:
-                                        ci["qty"] += 1
-                                    found = True
-                                    break
-                            if not found:
-                                st.session_state.cart.append({
-                                    "id": item["id"],
-                                    "product_name": item["product_name"],
-                                    "color": item.get('color', ''),
-                                    "size": item.get('size', ''),
-                                    "sell_price": item["sell_price"],
-                                    "buy_price": item["buy_price"],
-                                    "max_qty": item["quantity"],
-                                    "qty": 1
-                                })
-                            st.toast(f"✅ تمت الإضافة للسلة!", icon="🛍️")
-                            st.rerun()
-                    else:
-                        st.warning("⚠️ نفذت الكمية")
+                if item['quantity'] > 0:
+                    if st.button(f"🛒 إضافة للسلة", key=f"add_cart_{item['id']}"):
+                        found = False
+                        for ci in st.session_state.cart:
+                            if ci["id"] == item["id"]:
+                                if ci["qty"] < item["quantity"]:
+                                    ci["qty"] += 1
+                                found = True
+                                break
+                        if not found:
+                            st.session_state.cart.append({
+                                "id": item["id"],
+                                "product_name": item["product_name"],
+                                "color": item.get('color', ''),
+                                "size": item.get('size', ''),
+                                "sell_price": item["sell_price"],
+                                "buy_price": item["buy_price"],
+                                "max_qty": item["quantity"],
+                                "qty": 1
+                            })
+                        st.toast(f"✅ تمت الإضافة للسلة!", icon="🛍️")
+                        st.rerun()
+                else:
+                    st.warning("⚠️ نفذت الكمية")
     else:
         st.info("المخزن فارغ حالياً.")
 
@@ -439,14 +428,9 @@ with tab3:
     iraq_govs = ["بغداد", "البصرة", "نينوى", "أربيل", "النجف", "كربلاء", "ذي قار", "بابل", "الأنبار", "ديالى", "كركوك", "صلاح الدين", "المثنى", "ميسان", "القادسية", "واسط", "دهوك", "السليمانية"]
     
     with st.form("add_customer_db_form", clear_on_submit=True):
-        col_c1, col_c2, col_c3 = st.columns(3)
-        with col_c1:
-            c_name = st.text_input("اسم الزبون / العميل:")
-        with col_c2:
-            c_phone = st.text_input("رقم الهاتف:")
-        with col_c3:
-            c_gov = st.selectbox("المحافظة:", iraq_govs)
-            
+        c_name = st.text_input("اسم الزبون / العميل:")
+        c_phone = st.text_input("رقم الهاتف:")
+        c_gov = st.selectbox("المحافظة:", iraq_govs)
         c_address = st.text_input("العنوان / المنطقة:")
         c_notes = st.text_area("ملاحظات:")
             
@@ -585,18 +569,14 @@ with tab6:
     if st.session_state.cart:
         total_cart_price = 0
         for idx, c_item in enumerate(st.session_state.cart):
-            cols_cart = st.columns([3, 2, 2, 1])
-            with cols_cart[0]:
+            with st.container(border=True):
                 st.write(f"**{c_item['product_name']}** ({c_item['color']} / {c_item['size']})")
-            with cols_cart[1]:
-                new_q = st.number_input(f"الكمية", min_value=1, max_value=int(c_item['max_qty']), value=int(c_item['qty']), key=f"cart_q_{c_item['id']}")
+                new_q = st.number_input(f"الكمية لـ {c_item['product_name']}", min_value=1, max_value=int(c_item['max_qty']), value=int(c_item['qty']), key=f"cart_q_{c_item['id']}")
                 c_item['qty'] = new_q
-            with cols_cart[2]:
                 item_total = c_item['sell_price'] * c_item['qty']
                 total_cart_price += item_total
                 st.write(f"المجموع: **{int(item_total):,}** د.ع")
-            with cols_cart[3]:
-                if st.button("❌", key=f"del_cart_{c_item['id']}"):
+                if st.button("❌ حذف المادة", key=f"del_cart_{c_item['id']}"):
                     st.session_state.cart.pop(idx)
                     st.rerun()
                     
@@ -702,28 +682,26 @@ with tab7:
                 st.write(f"💰 **المجموع الكلي:** {inv['total_price']:,} د.ع | **الواصل:** {inv['paid_amount']:,} د.ع | **المتبقي:** `{inv['remaining_amount']:,}` د.ع")
                 st.write(f"📌 **الحالة:** {inv['payment_type']}")
 
-                col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                    html_code = generate_html_invoice(inv)
-                    st.download_button(
-                        label="📥 تحميل الفاتورة (HTML)",
-                        data=html_code,
-                        file_name=f"invoice_{inv['invoice_code']}.html",
-                        mime="text/html",
-                        key=f"dl_inv_{inv['id']}"
-                    )
-                with col_btn2:
-                    try:
-                        res_c_phone = supabase.table("customers").select("phone").eq("username", username).eq("customer_name", inv['customer_name']).execute()
-                        c_phone_num = res_c_phone.data[0]["phone"] if res_c_phone.data else ""
-                    except:
-                        c_phone_num = ""
-                    
-                    if c_phone_num:
-                        wa_msg = f"مرحباً عزيزنا {inv['customer_name']}\nتجد أدناه تفاصيل فاتورتك ({inv['invoice_code']}):\nالمبلغ الكلي: {inv['total_price']:,} د.ع\nالواصل: {inv['paid_amount']:,} د.ع\nالمتبقي: {inv['remaining_amount']:,} د.ع\nتابعنا على إنستغرام: @yaser120120120120\nشكراً لتعاملكم معنا!"
-                        encoded_wa = urllib.parse.quote(wa_msg)
-                        whatsapp_url = f"https://wa.me/{c_phone_num}?text={encoded_wa}"
-                        st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer;">💬 إرسال الفاتورة عبر واتساب</button></a>', unsafe_allow_html=True)
+                html_code = generate_html_invoice(inv)
+                st.download_button(
+                    label="📥 تحميل الفاتورة (HTML)",
+                    data=html_code,
+                    file_name=f"invoice_{inv['invoice_code']}.html",
+                    mime="text/html",
+                    key=f"dl_inv_{inv['id']}"
+                )
+                
+                try:
+                    res_c_phone = supabase.table("customers").select("phone").eq("username", username).eq("customer_name", inv['customer_name']).execute()
+                    c_phone_num = res_c_phone.data[0]["phone"] if res_c_phone.data else ""
+                except:
+                    c_phone_num = ""
+                
+                if c_phone_num:
+                    wa_msg = f"مرحباً عزيزنا {inv['customer_name']}\nتجد أدناه تفاصيل فاتورتك ({inv['invoice_code']}):\nالمبلغ الكلي: {inv['total_price']:,} د.ع\nالواصل: {inv['paid_amount']:,} د.ع\nالمتبقي: {inv['remaining_amount']:,} د.ع\nتابعنا على إنستغرام: @yaser120120120120\nشكراً لتعاملكم معنا!"
+                    encoded_wa = urllib.parse.quote(wa_msg)
+                    whatsapp_url = f"https://wa.me/{c_phone_num}?text={encoded_wa}"
+                    st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer; width:100%; margin-top:5px;">💬 إرسال الفاتورة عبر واتساب</button></a>', unsafe_allow_html=True)
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
@@ -772,14 +750,9 @@ with tab9:
         total_expenses_all = sum(e['المبلغ'] for e in st.session_state.expenses_list) if st.session_state.expenses_list else 0
         true_net_profit = net_profit_all - total_expenses_all
 
-        col_r1, col_r2, col_r3 = st.columns(3)
-        with col_r1:
-            st.metric("💵 إجمالي المبيعات", f"{int(total_sales_all):,} د.ع")
-        with col_r2:
-            st.metric("📈 إجمالي الأرباح الصافية", f"{int(net_profit_all):,} د.ع")
-        with col_r3:
-            st.metric("🚨 الديون المعلقة", f"{int(total_remaining_debts):,} د.ع")
-        
+        st.metric("💵 إجمالي المبيعات", f"{int(total_sales_all):,} د.ع")
+        st.metric("📈 إجمالي الأرباح الصافية", f"{int(net_profit_all):,} د.ع")
+        st.metric("🚨 الديون المعلقة", f"{int(total_remaining_debts):,} د.ع")
         st.metric("💰 صافي الربح الفعلي (بعد خصم المصاريف)", f"{int(true_net_profit):,} د.ع")
     else:
         st.info("لا توجد بيانات كافية لعرض التقارير المالية.")
@@ -792,11 +765,10 @@ with tab10:
         st.info("لا توجد نشاطات مسجلة حتى الآن.")
 
 with tab11:
-    # تم تصحيح طريقة الـ HTML بالكامل لكي تظهر كمحتوى تصميمي نظيف وليس كنص برمجي
     st.markdown("""
         <div style="font-family: 'Cairo', sans-serif; direction: rtl; padding: 10px; width: 100%;">
             <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="color: #8b6508; font-size: 22px; font-weight: 700;">🌟 دليل استخدام نظام ياسر ويب الشامل</h2>
+                <h2 style="color: #8b6508; font-size: 20px; font-weight: 700;">🌟 دليل استخدام نظام ياسر ويب الشامل</h2>
                 <p style="color: #666; font-size: 13px;">المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة</p>
             </div>
             <hr style="border: 0; border-top: 2px solid #DAA520; margin: 15px 0;">
