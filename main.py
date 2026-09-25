@@ -92,6 +92,9 @@ if "audit_logs" not in st.session_state or isinstance(st.session_state.audit_log
 if "is_vip" not in st.session_state:
     st.session_state.is_vip = False
 
+if "vip_expiry_date" not in st.session_state:
+    st.session_state.vip_expiry_date = None
+
 def log_audit(action, details):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     user = st.session_state.logged_in_user or "زائر"
@@ -178,7 +181,25 @@ if not st.session_state.logged_in_user:
                             user_info = res.data[0]
                             st.session_state.logged_in_user = str(user_info["username"])
                             st.session_state.user_role = str(login_role)
-                            st.session_state.is_vip = bool(user_info.get("is_paid", False))
+                            
+                            # التحقق من حالة وتاريخ انتهاء الـ VIP
+                            is_paid_db = bool(user_info.get("is_paid", False))
+                            expiry_str = user_info.get("vip_expiry_date")
+                            
+                            if is_paid_db and expiry_str:
+                                try:
+                                    exp_dt = datetime.datetime.strptime(expiry_str, '%Y-%m-%d %H:%M:%S')
+                                    if datetime.datetime.now() < exp_dt:
+                                        st.session_state.is_vip = True
+                                        st.session_state.vip_expiry_date = exp_dt
+                                    else:
+                                        st.session_state.is_vip = False
+                                        supabase.table("users").update({"is_paid": False}).eq("username", login_user.strip()).execute()
+                                except:
+                                    st.session_state.is_vip = is_paid_db
+                            else:
+                                st.session_state.is_vip = is_paid_db
+                                
                             log_audit("تسجيل دخول", f"تم تسجيل الدخول بواسطة {user_info['username']}")
                             st.success("تم تسجيل الدخول بنجاح!")
                             st.rerun()
@@ -258,29 +279,47 @@ st.sidebar.download_button(
     mime="application/json"
 )
 
-# **حقل تفعيل النسخة المدفوعة والمجانية في الشريط الجانبي**
+# **حقل تفعيل النسخة المدفوعة مع عداد الـ 30 يوماً في الشريط الجانبي**
 st.sidebar.divider()
-st.sidebar.subheader("💎 حالة النسخة والتفعيل")
+st.sidebar.subheader("💎 حالة النسخة والتفعيل (30 يوم)")
+
+# فحص انتهاء العداد تلقائياً إذا كانت مفعلة
+if st.session_state.is_vip and st.session_state.vip_expiry_date:
+    if datetime.datetime.now() > st.session_state.vip_expiry_date:
+        st.session_state.is_vip = False
+        st.session_state.vip_expiry_date = None
+        try:
+            supabase.table("users").update({"is_paid": False, "vip_expiry_date": None}).eq("username", username).execute()
+        except:
+            pass
+
 if not st.session_state.is_vip:
     st.sidebar.warning("🔒 حالة النسخة: **مجانية (محدودة)**")
-    vip_code = st.sidebar.text_input("أدخل كود النسخة المدفوعة (VIP):", type="password", key="sidebar_vip_input")
-    if st.sidebar.button("تفعيل النسخة المدفوعة", key="sidebar_vip_btn"):
-        if vip_code.strip() == "YASSER2026":
+    vip_code_input = st.sidebar.text_input("أدخل كود التفعيل (30 يوماً):", type="password", key="sidebar_vip_code_input")
+    if st.sidebar.button("تفعيل النسخة المدفوعة", key="sidebar_vip_submit_btn"):
+        if vip_code_input.strip() == "YASSER2026":
+            expiry_dt = datetime.datetime.now() + datetime.timedelta(days=30)
             st.session_state.is_vip = True
+            st.session_state.vip_expiry_date = expiry_dt
             try:
-                supabase.table("users").update({"is_paid": True}).eq("username", username).execute()
+                supabase.table("users").update({
+                    "is_paid": True,
+                    "vip_expiry_date": expiry_dt.strftime('%Y-%m-%d %H:%M:%S')
+                }).eq("username", username).execute()
             except:
                 pass
-            st.sidebar.success("تم تفعيل النسخة المدفوعة (VIP) بنجاح! 🎉")
+            st.sidebar.success("🎉 تم تفعيل النسخة المدفوعة بنجاح لمدة 30 يوماً!")
             st.rerun()
         else:
-            st.sidebar.error("كود التفعيل غير صحيح!")
+            st.sidebar.error("❌ كود التفعيل غير صحيح!")
 else:
-    st.sidebar.success("🌟 النسخة المدفوعة (VIP) مفعلة بالكامل")
+    remaining_days = (st.session_state.vip_expiry_date - datetime.datetime.now()).days if st.session_state.vip_expiry_date else 30
+    if remaining_days < 0: remaining_days = 0
+    st.sidebar.success(f"🌟 النسخة المدفوعة (VIP) مفعلة\n\n⏱️ الوقت المتبقي: **{remaining_days} يوم**")
 
 st.sidebar.divider()
 
-# **تحويل التبويبات إلى قائمة طولية (Radio) في الشريط الجانبي لتعمل بسلاسة تامة على الهاتف بدون أي مشاكل عرض**
+# **قائمة الأقسام الطولية للهواتف في الـ Sidebar**
 st.sidebar.subheader("📌 أقسام النظام (اختر للفتح)")
 selected_tab = st.sidebar.radio("التنقل بين الأقسام:", t["tabs"], label_visibility="collapsed")
 
@@ -289,13 +328,13 @@ if st.sidebar.button(t["logout"]):
     log_audit("تسجيل خروج", f"تم تسجيل الخروج للمستخدم {username}")
     st.session_state.logged_in_user = None
     st.session_state.is_vip = False
+    st.session_state.vip_expiry_date = None
     st.session_state.cart = []
     st.rerun()
 
 st.divider()
 
-# **عرض القسم المختار بناءً على القائمة الطولية في الـ Sidebar**
-
+# **عرض الأقسام**
 if selected_tab == "➕ إضافة مادة":
     st.subheader("➕ واجهة إضافة مادة أو بضاعة جديدة للمخزن")
     if user_role == "كاشير":
@@ -308,7 +347,7 @@ if selected_tab == "➕ إضافة مادة":
             current_count = 0
             
         if not st.session_state.is_vip and current_count >= 5:
-            st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات).")
+            st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات). فعّل النسخة المدفوعة لتجاوز الحد.")
         else:
             with st.form("add_product_clean_form", clear_on_submit=True):
                 p_name = st.text_input("اسم المادة / المنتج / الجهاز:")
