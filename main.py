@@ -20,7 +20,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# **التنسيق العام مع إصلاح مشكلة الحروف المتقطعة والاتجاه في الشريط الجانبي والشاشات**
+# **التنسيق العام مع الإصلاح الجذري لمشكلة الحروف المتقطعة وانعكاسها في الشريط الجانبي والشاشات**
 st.markdown("""
     <style>
     .stApp {
@@ -31,7 +31,7 @@ st.markdown("""
         direction: rtl;
         text-align: right;
     }
-    /* إصلاح مشكلة تقطيع النصوص واتجاهها في الشريط الجانبي للأجهزة الذكية */
+    /* الإصلاح النهائي لتقطيع وانعكاس الحروف في الشريط الجانبي للأجهزة الذكية */
     section[data-testid="stSidebar"] {
         direction: rtl !important;
         text-align: right !important;
@@ -40,6 +40,12 @@ st.markdown("""
         direction: rtl !important;
         text-align: right !important;
         writing-mode: horizontal-tb !important;
+        unicode-bidi: plaintext !important;
+    }
+    /* ضمان صحة اتجاه النصوص في القوائم والعناصر */
+    .stRadio > div, .stSelectbox, .stTextInput {
+        direction: rtl !important;
+        text-align: right !important;
     }
     </style>
 """, unsafe_allow_html=True)
