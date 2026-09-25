@@ -1,3 +1,4 @@
+import streamlit as str_lib
 import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
@@ -19,7 +20,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# **تنسيق صارم ليكون كل شيء عمودياً وتحت بعضه تماماً على الهواتف منعاً للخطوط العرضية**
+# **تنسيق عام مع السماح لبطاقات المنتجات بالظهور بشكل شبكي جميل وصغير كما كنت ترغب**
 st.markdown("""
     <style>
     .stApp {
@@ -29,15 +30,6 @@ st.markdown("""
     input, select, textarea {
         direction: rtl;
         text-align: right;
-    }
-    /* إجبار التبويبات والعناصر على النزول تحت بعضها بشكل عمودي متناسق للهواتف */
-    .stTabs [data-baseweb="tab-list"] {
-        flex-direction: column;
-        gap: 5px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        width: 100%;
-        justify-content: flex-right;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -309,7 +301,6 @@ with tab1:
             st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات).")
         else:
             with st.form("add_product_clean_form", clear_on_submit=True):
-                # تم جعل الحقول تظهر حصراً واحدة تحت الأخرى عمودياً لمنع التداخل في الهاتف
                 p_name = st.text_input("اسم المادة / المنتج / الجهاز:")
                 p_color = st.text_input("اللون / المواصفات الإضافية:", "عام")
                 p_size = st.text_input("القياس / السعة / الحجم:", "عام")
@@ -369,57 +360,62 @@ with tab2:
         if search_barcode_term:
             filtered_products = [p for p in filtered_products if search_barcode_term.lower() in p.get('barcode','').lower()]
 
-        for item in filtered_products:
-            with st.container(border=True):
-                st.markdown(f"### 📦 {item['product_name']}")
-                st.markdown(f"🎨 **اللون:** `{item.get('color', 'عام')}` | 📏 **القياس:** `{item.get('size', 'عام')}`")
-                st.markdown(f"🏷️ **الباركود:** `{item.get('barcode', 'بدون')}`")
-                st.markdown(f"💰 **الشراء:** `{int(item['buy_price']):,}` | **البيع:** `{int(item['sell_price']):,}` د.ع")
-                
-                profit_per_unit = int(float(item['sell_price']) - float(item['buy_price']))
-                if profit_per_unit < 0:
-                    st.error(f"📉 خسارة القطعة: {profit_per_unit:,} د.ع")
-                else:
-                    st.success(f"📈 ربح القطعة: +{profit_per_unit:,} د.ع")
-                
-                st.markdown(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة")
-                
-                with st.expander("🏷️ باركود المادة"):
-                    b_code_val = item.get('barcode', '')
-                    if not b_code_val or b_code_val == "بدون":
-                        b_code_val = f"PRD{item['id']}"
-                    try:
-                        rv = barcode.get('code128', str(b_code_val), writer=ImageWriter())
-                        buffer_bc = io.BytesIO()
-                        rv.write(buffer_bc)
-                        st.image(buffer_bc.getvalue(), caption=f"باركود: {b_code_val}", width=200)
-                    except Exception as ex:
-                        st.error(f"تعذر توليد الباركود: {ex}")
+        # **إعادة عرض المنتجات بنظام شبكي (Grid / Columns) بطاقات صغيرة ومرتبة كما كانت**
+        cols = st.columns(2)
+        for idx, item in enumerate(filtered_products):
+            with cols[idx % 2]:
+                with st.container(border=True):
+                    st.markdown(f"### 📦 {item['product_name']}")
+                    st.markdown(f"🎨 **اللون:** `{item.get('color', 'عام')}`")
+                    st.markdown(f"📏 **القياس:** `{item.get('size', 'عام')}`")
+                    st.markdown(f"🏷️ **الباركود:** `{item.get('barcode', 'بدون')}`")
+                    st.markdown(f"💰 **الشراء:** `{int(item['buy_price']):,}` د.ع")
+                    st.markdown(f"💵 **البيع:** `{int(item['sell_price']):,}` د.ع")
+                    
+                    profit_per_unit = int(float(item['sell_price']) - float(item['buy_price']))
+                    if profit_per_unit < 0:
+                        st.error(f"📉 خسارة القطعة: {profit_per_unit:,} د.ع")
+                    else:
+                        st.success(f"📈 ربح القطعة: +{profit_per_unit:,} د.ع")
+                    
+                    st.markdown(f"🔢 **الكمية:** `{int(item['quantity'])}` قطعة")
+                    
+                    with st.expander("🏷️ الباركود"):
+                        b_code_val = item.get('barcode', '')
+                        if not b_code_val or b_code_val == "بدون":
+                            b_code_val = f"PRD{item['id']}"
+                        try:
+                            rv = barcode.get('code128', str(b_code_val), writer=ImageWriter())
+                            buffer_bc = io.BytesIO()
+                            rv.write(buffer_bc)
+                            st.image(buffer_bc.getvalue(), caption=f"باركود: {b_code_val}", width=150)
+                        except Exception as ex:
+                            st.error(f"تعذر توليد الباركود: {ex}")
 
-                if item['quantity'] > 0:
-                    if st.button(f"🛒 إضافة للسلة", key=f"add_cart_{item['id']}"):
-                        found = False
-                        for ci in st.session_state.cart:
-                            if ci["id"] == item["id"]:
-                                if ci["qty"] < item["quantity"]:
-                                    ci["qty"] += 1
-                                found = True
-                                break
-                        if not found:
-                            st.session_state.cart.append({
-                                "id": item["id"],
-                                "product_name": item["product_name"],
-                                "color": item.get('color', ''),
-                                "size": item.get('size', ''),
-                                "sell_price": item["sell_price"],
-                                "buy_price": item["buy_price"],
-                                "max_qty": item["quantity"],
-                                "qty": 1
-                            })
-                        st.toast(f"✅ تمت الإضافة للسلة!", icon="🛍️")
-                        st.rerun()
-                else:
-                    st.warning("⚠️ نفذت الكمية")
+                    if item['quantity'] > 0:
+                        if st.button(f"🛒 إضافة للسلة", key=f"add_cart_{item['id']}"):
+                            found = False
+                            for ci in st.session_state.cart:
+                                if ci["id"] == item["id"]:
+                                    if ci["qty"] < item["quantity"]:
+                                        ci["qty"] += 1
+                                    found = True
+                                    break
+                            if not found:
+                                st.session_state.cart.append({
+                                    "id": item["id"],
+                                    "product_name": item["product_name"],
+                                    "color": item.get('color', ''),
+                                    "size": item.get('size', ''),
+                                    "sell_price": item["sell_price"],
+                                    "buy_price": item["buy_price"],
+                                    "max_qty": item["quantity"],
+                                    "qty": 1
+                                })
+                            st.toast(f"✅ تمت الإضافة للسلة!", icon="🛍️")
+                            st.rerun()
+                    else:
+                        st.warning("⚠️ نفذت الكمية")
     else:
         st.info("المخزن فارغ حالياً.")
 
