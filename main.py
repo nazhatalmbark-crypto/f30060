@@ -20,7 +20,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# **تنسيق عام مع السماح لبطاقات المنتجات بالظهور بشكل شبكي جميل وصغير كما كنت ترغب**
+# **التنسيق العام**
 st.markdown("""
     <style>
     .stApp {
@@ -258,10 +258,13 @@ st.sidebar.download_button(
     mime="application/json"
 )
 
+# **حقل تفعيل النسخة المدفوعة والمجانية في الشريط الجانبي**
+st.sidebar.divider()
+st.sidebar.subheader("💎 حالة النسخة والتفعيل")
 if not st.session_state.is_vip:
     st.sidebar.warning("🔒 حالة النسخة: **مجانية (محدودة)**")
-    vip_code = st.sidebar.text_input("أدخل كود النسخة المدفوعة (VIP):", type="password")
-    if st.sidebar.button("تفعيل النسخة المدفوعة"):
+    vip_code = st.sidebar.text_input("أدخل كود النسخة المدفوعة (VIP):", type="password", key="sidebar_vip_input")
+    if st.sidebar.button("تفعيل النسخة المدفوعة", key="sidebar_vip_btn"):
         if vip_code.strip() == "YASSER2026":
             st.session_state.is_vip = True
             try:
@@ -275,6 +278,13 @@ if not st.session_state.is_vip:
 else:
     st.sidebar.success("🌟 النسخة المدفوعة (VIP) مفعلة بالكامل")
 
+st.sidebar.divider()
+
+# **تحويل التبويبات إلى قائمة طولية (Radio) في الشريط الجانبي لتعمل بسلاسة تامة على الهاتف بدون أي مشاكل عرض**
+st.sidebar.subheader("📌 أقسام النظام (اختر للفتح)")
+selected_tab = st.sidebar.radio("التنقل بين الأقسام:", t["tabs"], label_visibility="collapsed")
+
+st.sidebar.divider()
 if st.sidebar.button(t["logout"]):
     log_audit("تسجيل خروج", f"تم تسجيل الخروج للمستخدم {username}")
     st.session_state.logged_in_user = None
@@ -284,9 +294,9 @@ if st.sidebar.button(t["logout"]):
 
 st.divider()
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(t["tabs"])
+# **عرض القسم المختار بناءً على القائمة الطولية في الـ Sidebar**
 
-with tab1:
+if selected_tab == "➕ إضافة مادة":
     st.subheader("➕ واجهة إضافة مادة أو بضاعة جديدة للمخزن")
     if user_role == "كاشير":
         st.warning("⚠️ عذراً، حساب الكاشير لا يمتلك صلاحية إضافة أو تعديل المواد في المخزن.")
@@ -302,12 +312,24 @@ with tab1:
         else:
             with st.form("add_product_clean_form", clear_on_submit=True):
                 p_name = st.text_input("اسم المادة / المنتج / الجهاز:")
-                p_color = st.text_input("اللون / المواصفات الإضافية:", "عام")
-                p_size = st.text_input("القياس / السعة / الحجم:", "عام")
-                p_buy_str = st.text_input("سعر الشراء (د.ع):", "0")
-                p_sell_str = st.text_input("سعر البيع (د.ع):", "0")
-                p_qty_str = st.text_input("الكمية المتوفرة:", "1")
-                p_barcode = st.text_input("رمز الباركود:", "")
+                
+                col_f1, col_f2 = st.columns(2)
+                with col_f1:
+                    p_color = st.text_input("اللون / المواصفات الإضافية:", "عام")
+                with col_f2:
+                    p_size = st.text_input("القياس / السعة / الحجم:", "عام")
+                
+                col_f3, col_f4 = st.columns(2)
+                with col_f3:
+                    p_buy_str = st.text_input("سعر الشراء (د.ع):", "0")
+                with col_f4:
+                    p_sell_str = st.text_input("سعر البيع (د.ع):", "0")
+                
+                col_f5, col_f6 = st.columns(2)
+                with col_f5:
+                    p_qty_str = st.text_input("الكمية المتوفرة:", "1")
+                with col_f6:
+                    p_barcode = st.text_input("رمز الباركود:", "")
                 
                 submitted = st.form_submit_button("حفظ المادة في المخزن", type="primary")
                 if submitted:
@@ -337,7 +359,7 @@ with tab1:
                     else:
                         st.warning("يرجى كتابة اسم المادة.")
 
-with tab2:
+elif selected_tab == "📦 المخزن والباركود":
     st.subheader("📦 جرد المخزن الشامل مع الباركود وحساب أرباح القطع")
     try:
         res_all_p = supabase.table("products").select("*").eq("username", username).execute()
@@ -360,7 +382,6 @@ with tab2:
         if search_barcode_term:
             filtered_products = [p for p in filtered_products if search_barcode_term.lower() in p.get('barcode','').lower()]
 
-        # **إعادة عرض المنتجات بنظام شبكي (Grid / Columns) بطاقات صغيرة ومرتبة كما كانت**
         cols = st.columns(2)
         for idx, item in enumerate(filtered_products):
             with cols[idx % 2]:
@@ -419,7 +440,7 @@ with tab2:
     else:
         st.info("المخزن فارغ حالياً.")
 
-with tab3:
+elif selected_tab == "👥 العملاء والديون":
     st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم")
     iraq_govs = ["بغداد", "البصرة", "نينوى", "أربيل", "النجف", "كربلاء", "ذي قار", "بابل", "الأنبار", "ديالى", "كركوك", "صلاح الدين", "المثنى", "ميسان", "القادسية", "واسط", "دهوك", "السليمانية"]
     
@@ -464,7 +485,7 @@ with tab3:
     else:
         st.info("لا يوجد عملاء مسجلين حالياً.")
 
-with tab4:
+elif selected_tab == "💵 تسداد الديون":
     st.subheader("💵 نظام سداد الديون والذمم للعملاء")
     try:
         res_cust_debt = supabase.table("customers").select("customer_name").eq("username", username).execute()
@@ -536,7 +557,7 @@ with tab4:
                 except Exception as e:
                     st.error(f"❌ خطأ في عملية التسديد: {e}")
 
-with tab5:
+elif selected_tab == "🏭 الموردين":
     st.subheader("🏭 إدارة الموردين")
     with st.form("add_supplier_form", clear_on_submit=True):
         sup_name = st.text_input("اسم المورد:")
@@ -559,7 +580,7 @@ with tab5:
     else:
         st.info("لا يوجد موردين.")
 
-with tab6:
+elif selected_tab == "🛒 البيع والفواتير":
     st.subheader("🛒 سلة المبيعات وإتمام الفاتورة الذكية")
     
     if st.session_state.cart:
@@ -661,7 +682,7 @@ with tab6:
     else:
         st.info("🛒 السلة فارغة.")
 
-with tab7:
+elif selected_tab == "📄 سجل الفواتير":
     st.subheader("📄 سجل الفواتير والطباعة والواتساب")
     try:
         res_all_inv = supabase.table("invoices").select("*").eq("username", username).order("id", desc=True).execute()
@@ -701,7 +722,7 @@ with tab7:
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
-with tab8:
+elif selected_tab == "💰 المصاريف":
     st.subheader("💰 صندوق الوردية والمصاريف النقدية")
     with st.form("add_expense_form", clear_on_submit=True):
         exp_title = st.text_input("بيان المصروف / النثرية (مثل: أجور نقل، صيانة):")
@@ -730,7 +751,7 @@ with tab8:
     else:
         st.info("لا توجد مصروفات مسجلة في هذه الوردية.")
 
-with tab9:
+elif selected_tab == "📊 التقارير":
     st.subheader("📊 الرسوم البيانية والتقارير المالية الإجمالية")
     try:
         res_rep_inv = supabase.table("invoices").select("*").eq("username", username).execute()
@@ -753,14 +774,14 @@ with tab9:
     else:
         st.info("لا توجد بيانات كافية لعرض التقارير المالية.")
 
-with tab10:
+elif selected_tab == "📜 سجل النشاطات":
     st.subheader("📜 سجل النشاطات والعمليات (Audit Trail)")
     if st.session_state.audit_logs:
         st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
     else:
         st.info("لا توجد نشاطات مسجلة حتى الآن.")
 
-with tab11:
+elif selected_tab == "📖 الدليل والدعم":
     st.markdown("""
         <div style="font-family: 'Cairo', sans-serif; direction: rtl; padding: 10px; width: 100%;">
             <div style="text-align: center; margin-bottom: 20px;">
