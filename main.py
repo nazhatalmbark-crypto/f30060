@@ -19,7 +19,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# **تنسيق اتجاه النصوص لليمين (RTL)**
+# **تنسيق اتجاه النصوص لليمين (RTL) وتحسين المظهر على الهواتف**
 st.markdown("""
     <style>
     .stApp {
@@ -29,6 +29,12 @@ st.markdown("""
     input, select, textarea {
         direction: rtl;
         text-align: right;
+    }
+    /* تحسين شكل التبويبات لتكون أكثر مرونة على الهواتف */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -54,17 +60,17 @@ lang_dict = {
         "backup_download": "📥 تحميل نسخة احتياطية (JSON)",
         "logout": "تسجيل الخروج",
         "tabs": [
-            "➕ إضافة مادة جديدة", 
-            "📦 جرد المخزن والباركود", 
-            "👥 إدارة العملاء والديون", 
-            "💵 سداد الديون",
-            "🏭 إدارة الموردين",
-            "🛒 إتمام البيع والفواتير", 
-            "📄 سجل الفواتير وواتساب", 
-            "💰 صندوق الوردية والمصاريف", 
-            "📊 الرسوم البيانية والتقارير",
-            "📜 سجل النشاطات (Audit Trail)",
-            "📖 دليل الاستخدام والمميزات والدعم"
+            "➕ إضافة مادة", 
+            "📦 المخزن والباركود", 
+            "👥 العملاء والديون", 
+            "💵 تسداد الديون",
+            "🏭 الموردين",
+            "🛒 البيع والفواتير", 
+            "📄 سجل الفواتير", 
+            "💰 المصاريف", 
+            "📊 التقارير",
+            "📜 سجل النشاطات",
+            "📖 الدليل والدعم"
         ]
     }
 }
@@ -106,7 +112,6 @@ def log_audit(action, details):
         "التفاصيل": str(details)
     })
 
-# **دالة توليد الفاتورة الاحترافية بصيغة HTML**
 def generate_html_invoice(inv):
     html_content = f"""
     <!DOCTYPE html>
@@ -151,7 +156,7 @@ def generate_html_invoice(inv):
                 <p>المتبقي (الدين): {inv['remaining_amount']:,} دينار عراقي</p>
             </div>
             <div class="footer">
-                <p>شكراً لتعاملكم معنا - جاهزة للصقها على شحنة التوصيل وتسليمها لشركة النقل</p>
+                <p>شكراً لتعاملكم معنا - إنستغرام: @yaser120120120120</p>
             </div>
         </div>
     </body>
@@ -222,6 +227,7 @@ user_role = st.session_state.user_role
 st.sidebar.title(t["settings"])
 st.sidebar.write(f"👤 المستخدم: **{username}**")
 st.sidebar.write(f"{t['role_label']} **{user_role}**")
+st.sidebar.markdown("📸 إنستغرام: [@yaser120120120120](https://instagram.com/yaser120120120120)")
 
 cart_count_badge = sum(int(item['qty']) for item in st.session_state.cart)
 st.sidebar.info(f"{t['cart_badge']} **{cart_count_badge}**")
@@ -429,7 +435,7 @@ with tab2:
         st.info("المخزن فارغ حالياً.")
 
 with tab3:
-    st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم (محفوظة بقاعدة البيانات بشكل دائم)")
+    st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم")
     iraq_govs = ["بغداد", "البصرة", "نينوى", "أربيل", "النجف", "كربلاء", "ذي قار", "بابل", "الأنبار", "ديالى", "كركوك", "صلاح الدين", "المثنى", "ميسان", "القادسية", "واسط", "دهوك", "السليمانية"]
     
     with st.form("add_customer_db_form", clear_on_submit=True):
@@ -574,7 +580,7 @@ with tab5:
         st.info("لا يوجد موردين.")
 
 with tab6:
-    st.subheader("🛒 سلة المبيعات وإتمام الفاتورة (النظام الذكي للمبالغ)")
+    st.subheader("🛒 سلة المبيعات وإتمام الفاتورة الذكية")
     
     if st.session_state.cart:
         total_cart_price = 0
@@ -604,13 +610,13 @@ with tab6:
             cust_names_list = []
             
         if not cust_names_list:
-            st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (إدارة العملاء) لتتمكن من إتمام الفاتورة!")
+            st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (العملاء والديون) لتتمكن من إتمام الفاتورة!")
             selected_customer_name = ""
         else:
             selected_customer_name = st.selectbox("اختر اسم الزبون:", cust_names_list)
         
         st.write("---")
-        st.markdown("#### 💰 طريقة الدفع (أدخل المبلغ الواصل طبيعياً):")
+        st.markdown("#### 💰 طريقة الدفع:")
         paid_input_str = st.text_input("أدخل المبلغ الذي دفعه الزبون (د.ع):", value=str(int(total_cart_price)))
         
         try:
@@ -629,7 +635,7 @@ with tab6:
         else:
             auto_pay_type = "🔵 دفعة جزئية (أقساط)"
 
-        st.info(f"💡 **تحليل النظام التلقائي للفاتورة:** {auto_pay_type} | الواصل: **{int(paid_amount):,} د.ع** | المتبقي (الدين): **{int(remaining_amount):,} د.ع**")
+        st.info(f"💡 **تحليل النظام التلقائي:** {auto_pay_type} | الواصل: **{int(paid_amount):,} د.ع** | المتبقي (الدين): **{int(remaining_amount):,} د.ع**")
 
         if st.button("💾 إتمام البيع، خصم المخزن، وحفظ الفاتورة", type="primary"):
             if not selected_customer_name:
@@ -680,7 +686,7 @@ with tab6:
         st.info("🛒 السلة فارغة.")
 
 with tab7:
-    st.subheader("📄 سجل الفواتير، الطباعة المباشرة، وإرسال الفاتورة عبر الواتساب")
+    st.subheader("📄 سجل الفواتير والطباعة والواتساب")
     try:
         res_all_inv = supabase.table("invoices").select("*").eq("username", username).order("id", desc=True).execute()
         all_invoices = res_all_inv.data if res_all_inv.data else []
@@ -700,7 +706,7 @@ with tab7:
                 with col_btn1:
                     html_code = generate_html_invoice(inv)
                     st.download_button(
-                        label="📥 تحميل الفاتورة (HTML للطباعة)",
+                        label="📥 تحميل الفاتورة (HTML)",
                         data=html_code,
                         file_name=f"invoice_{inv['invoice_code']}.html",
                         mime="text/html",
@@ -714,7 +720,7 @@ with tab7:
                         c_phone_num = ""
                     
                     if c_phone_num:
-                        wa_msg = f"مرحباً عزيزنا {inv['customer_name']}\nتجد أدناه تفاصيل فاتورتك ({inv['invoice_code']}):\nالمبلغ الكلي: {inv['total_price']:,} د.ع\nالواصل: {inv['paid_amount']:,} د.ع\nالمتبقي: {inv['remaining_amount']:,} د.ع\nشكراً لتعاملكم معنا!"
+                        wa_msg = f"مرحباً عزيزنا {inv['customer_name']}\nتجد أدناه تفاصيل فاتورتك ({inv['invoice_code']}):\nالمبلغ الكلي: {inv['total_price']:,} د.ع\nالواصل: {inv['paid_amount']:,} د.ع\nالمتبقي: {inv['remaining_amount']:,} د.ع\nتابعنا على إنستغرام: @yaser120120120120\nشكراً لتعاملكم معنا!"
                         encoded_wa = urllib.parse.quote(wa_msg)
                         whatsapp_url = f"https://wa.me/{c_phone_num}?text={encoded_wa}"
                         st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer;">💬 إرسال الفاتورة عبر واتساب</button></a>', unsafe_allow_html=True)
@@ -724,7 +730,7 @@ with tab7:
 with tab8:
     st.subheader("💰 صندوق الوردية والمصاريف النقدية")
     with st.form("add_expense_form", clear_on_submit=True):
-        exp_title = st.text_input("بيان المصروف / النثرية (مثل: أجور نقل، صيانة، إيجار):")
+        exp_title = st.text_input("بيان المصروف / النثرية (مثل: أجور نقل، صيانة):")
         exp_amount_str = st.text_input("المبلغ المدفوع (د.ع):", "0")
         if st.form_submit_button("تسجيل وحفظ المصروف"):
             if exp_title.strip():
@@ -772,7 +778,7 @@ with tab9:
         with col_r2:
             st.metric("📈 إجمالي الأرباح الصافية", f"{int(net_profit_all):,} د.ع")
         with col_r3:
-            st.metric("🚨 الديون المعلقة للزبونات", f"{int(total_remaining_debts):,} د.ع")
+            st.metric("🚨 الديون المعلقة", f"{int(total_remaining_debts):,} د.ع")
         
         st.metric("💰 صافي الربح الفعلي (بعد خصم المصاريف)", f"{int(true_net_profit):,} د.ع")
     else:
@@ -786,108 +792,73 @@ with tab10:
         st.info("لا توجد نشاطات مسجلة حتى الآن.")
 
 with tab11:
+    # تم تصحيح طريقة الـ HTML بالكامل لكي تظهر كمحتوى تصميمي نظيف وليس كنص برمجي
     st.markdown("""
-    <div style="font-family: 'Cairo', sans-serif; direction: rtl; padding: 10px; width: 100%;">
-        
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="color: #8b6508; font-size: 22px; font-weight: 700;">🌟 دليل استخدام نظام ياسر ويب الشامل</h2>
-            <p style="color: #666; font-size: 13px;">المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة</p>
+        <div style="font-family: 'Cairo', sans-serif; direction: rtl; padding: 10px; width: 100%;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: #8b6508; font-size: 22px; font-weight: 700;">🌟 دليل استخدام نظام ياسر ويب الشامل</h2>
+                <p style="color: #666; font-size: 13px;">المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة</p>
+            </div>
+            <hr style="border: 0; border-top: 2px solid #DAA520; margin: 15px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">➕ 1. إضافة مادة جديدة</h4>
+                <p style="color: #333; font-size: 13px;">إدخال البضائع الجديدة للمخزن وتحديد أسعار الشراء والبيع والكميات بدقة.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📦 2. جرد المخزن والباركود</h4>
+                <p style="color: #333; font-size: 13px;">عرض المواد والمنتجات مع الألوان، القياسات، الباركود، وطباعة الرموز.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">👥 3. العملاء والديون</h4>
+                <p style="color: #333; font-size: 13px;">تسجيل بيانات الزبائن ومعلومات التواصل ومتابعة حركة الديون المرتبطة بفواتيرهم.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">💵 4. تسداد الديون</h4>
+                <p style="color: #333; font-size: 13px;">إدخال الدفعات النقدية المسددة وتحديث أرصدة العملاء وتصفير الذمم.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">🏭 5. الموردين</h4>
+                <p style="color: #333; font-size: 13px;">تسجيل بيانات الموردين وأرقام هواتفهم والتخصصات المرتبطة بتوريد البضائع.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">🛒 6. البيع والفواتير</h4>
+                <p style="color: #333; font-size: 13px;">نافذة سلة المبيعات لتجميع المواد وتحديد الكميات وحساب المبالغ تلقائياً.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📄 7. سجل الفواتير</h4>
+                <p style="color: #333; font-size: 13px;">عرض الفواتير الصادرة، تحميلها للطباعة المباشرة، أو إرسالها عبر الواتساب.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">💰 8. المصاريف</h4>
+                <p style="color: #333; font-size: 13px;">تسجيل النثريات والمصروفات اليومية لحساب صافي الصندوق بدقة.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📊 9. التقارير</h4>
+                <p style="color: #333; font-size: 13px;">تحليلات مالية دقيقة لإجمالي المبيعات، صافي الأرباح، والديون المعلقة.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📜 10. سجل النشاطات</h4>
+                <p style="color: #333; font-size: 13px;">سجل رقابي متكامل يوثق جميع عمليات المستخدمين بدقة عالية.</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 12px 0;">
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #8b6508; font-size: 15px; margin-bottom: 4px;">📖 11. الدليل والدعم</h4>
+                <p style="color: #333; font-size: 13px;">المرجع الشامل والدعم الفني.</p>
+            </div>
+            <hr style="border: 0; border-top: 2px solid #DAA520; margin: 20px 0;">
+            <div style="text-align: center; margin-top: 10px;">
+                <p style="font-size: 12px; color: #444; font-weight: bold;">
+                    ✨ تطوير البرمجة: نظام ياسر ويب | انستغرام: <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #b8860b; text-decoration: none;">@yaser120120120120</a> 2026
+                </p>
+            </div>
         </div>
-
-        <hr style="border: 0; border-top: 2px solid #DAA520; margin: 15px 0;">
-
-        <!-- التبويب الأول -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">➕ 1. تبويب إضافة مادة جديدة</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> تتيح لك إدخال بضائع جديدة للمخزن وتحديد أسعار الشراء والبيع والكميات بدقة. يدعم النظام النسخة المجانية والمدفوعة مع إظهار التنبيهات اللازمة.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب الثاني -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">📦 2. جرد المخزن والباركود</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> نافذة عرض تفصيلية لجميع المواد والمنتجات مع بيان الألوان، القياسات، الباركود، أسعار الشراء والبيع، والكميات المتوفرة مع إمكانية توليد وطباعة رموز الباركود بصيغة Code128.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب الثالث -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">👥 3. إدارة العملاء والديون</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> لتسجيل بيانات الزبائن ومعلومات التواصل والمحافظات ومتابعة حركة الديون المرتبطة بفواتيرهم وحفظها بشكل دائم في قاعدة البيانات.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب الرابع -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">💵 4. سداد الديون</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> نظام مخصص لإدخال الدفعات النقدية المسددة من قبل العملاء وتحديث رصيدهم وتوزيع المبلغ على الفواتير تصاعدياً لتصفير الذمم.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب الخامس -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">🏭 5. إدارة الموردين</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> لتسجيل بيانات الموردين وأرقام هواتفهم والتخصصات المرتبطة بتوريد البضائع للمحل.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب السادس -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">🛒 6. إتمام البيع والفواتير</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> نافذة سلة المبيعات لتجميع المواد وتحديد الكميات وحساب المبالغ تلقائياً (نقدي، دين، أو دفعة جزئية) مع الخصم التلقائي من المخزن.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب السابع -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">📄 7. سجل الفواتير وواتساب</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> عرض جميع الفواتير الصادرة، تحميلها بصيغة HTML للطباعة المباشرة، أو إرسال تفاصيل الفاتورة للعميل مباشرة عبر تطبيق الواتساب.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب الثامن -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">💰 8. صندوق الوردية والمصاريف</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> مخصص لتسجيل النثريات والمصروفات اليومية (مثل أجور النقل والصيانة) لحساب صافي الصندوق بدقة.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب التاسع -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">📊 9. الرسوم البيانية والتقارير</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> عرض تحليلات مالية دقيقة لإجمالي المبيعات، صافي أرباح البضائع، الديون المعلقة، والأرباح الفعلية بعد خصم المصروفات.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب العاشر -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">📜 10. سجل النشاطات (Audit Trail)</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> سجل رقابي متكامل يوثق جميع عمليات المستخدمين بدقة (تسجيل دخول، إضافة منتجات، إتمام بيع، وغيرها).</p>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #e6d5b8; margin: 15px 0;">
-
-        <!-- التبويب الحادي عشر -->
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #8b6508; font-size: 16px; margin-bottom: 6px;">📖 11. دليل الاستخدام والمميزات والدعم</h4>
-            <p style="color: #333; font-size: 13px; line-height: 1.6;"><b>الوظيفة:</b> هذا الدليل الشامل والمرجع السريع الذي يشرح كل تبويب ووظيفته داخل النظام بشكل عمودي ومرن يعمل بسلاسة تامة على جميع الهواتف المحمولة.</p>
-        </div>
-
-        <hr style="border: 0; border-top: 2px solid #DAA520; margin: 20px 0;">
-
-        <div style="text-align: center; margin-top: 15px;">
-            <p style="font-size: 13px; color: #444; font-weight: bold; margin-bottom: 8px;">
-                ✨ تصميم وبرمجة: <b>نظام ياسر ويب</b> | جميع الحقوق محفوظة للإدارة المتكاملة 2026
-            </p>
-        </div>
-    </div>
     """, unsafe_allow_html=True)
