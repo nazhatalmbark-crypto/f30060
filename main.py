@@ -19,7 +19,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# **التنسيق العام مع الإصلاح النهائي والجذري لمشكلة تقطيع الحروف وعرض الموبايل**
+# **التنسيق العام مع الإصلاح النهائي لمشكلة تقطيع الحروف في القائمة الجانبية**
 st.markdown("""
     <style>
     /* فرض الاتجاه الصحيح لكل التطبيق */
@@ -36,7 +36,6 @@ st.markdown("""
     section[data-testid="stSidebar"] {
         direction: rtl !important;
         text-align: right !important;
-        width: 100% !important;
     }
     
     section[data-testid="stSidebar"] *, 
@@ -47,23 +46,13 @@ st.markdown("""
         direction: rtl !important;
         text-align: right !important;
         unicode-bidi: normal !important;
-        word-break: normal !important;
-    }
-    
-    /* تصجهيز وتعديل تلقائي لحجم الخطوط للشاشات الصغيرة (الموبايل) لمنع التداخل */
-    @media (max-width: 768px) {
-        section[data-testid="stSidebar"] .stRadio label p {
-            font-size: 14px !important;
-        }
-        section[data-testid="stSidebar"] {
-            min-width: 260px !important;
-        }
     }
     
     /* منع التفاف النصوص في أزرار القائمة الجانبية */
     section[data-testid="stSidebar"] .stRadio label,
     section[data-testid="stSidebar"] .stButton button {
         white-space: normal !important;
+        word-break: normal !important;
     }
     </style>
 """, unsafe_allow_html=True)
