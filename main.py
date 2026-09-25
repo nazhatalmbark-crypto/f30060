@@ -19,7 +19,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# التنسيق العام مع الإصلاح النهائي لمشكلة تقطيع الحروف والنصوص
+# التنسيق العام ودعم اللغة العربية ومنع تقطيع الحروف
 st.markdown("""
     <style>
     .stApp {
@@ -30,12 +30,10 @@ st.markdown("""
         direction: rtl !important;
         text-align: right !important;
     }
-    
     section[data-testid="stSidebar"] {
         direction: rtl !important;
         text-align: right !important;
     }
-    
     section[data-testid="stSidebar"] *, 
     section[data-testid="stSidebar"] span, 
     section[data-testid="stSidebar"] p, 
@@ -45,7 +43,6 @@ st.markdown("""
         text-align: right !important;
         unicode-bidi: normal !important;
     }
-    
     section[data-testid="stSidebar"] .stRadio label,
     section[data-testid="stSidebar"] .stButton button {
         white-space: normal !important;
