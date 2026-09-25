@@ -12,7 +12,7 @@ st.set_page_config(
 # تخزين مؤقت للبيانات الوهمية لتشغيل النظام بسلاسة
 if 'inventory' not in st.session_state:
     st.session_state.inventory = [
-        {"id": 1, "name": "هاتف آيفون 15 برو", "color": التيتانيوم, "size": 256GB, "barcode": "6281001", "buy_price": 950, "sell_price": 1050, "qty": 10},
+        {"id": 1, "name": "هاتف آيفون 15 برو", "color": "التيتانيوم", "size": "256GB", "barcode": "6281001", "buy_price": 950, "sell_price": 1050, "qty": 10},
         {"id": 2, "name": "ساعة أبل الترا", "color": "برتقالي", "size": "قياسي", "barcode": "6281002", "buy_price": 300, "sell_price": 350, "qty": 15}
     ]
 
@@ -105,7 +105,7 @@ elif menu == "🛒 نقطة البيع السريعة (POS)":
     qty_to_buy = st.number_input("الكمية:", min_value=1, value=1)
     
     if st.button("إضافة إلى السلة وإصدار الفاتورة"):
-        st.success(تم إصدار الفاتورة بنجاح للمادة: {selected_item} بكمية {qty_to_buy})
+        st.success(f"تم إصدار الفاتورة بنجاح للمادة: {selected_item} بكمية {qty_to_buy}")
         st.session_state.logs.append({"action": f"بيع مادة: {selected_item}", "user": "موظف المبيعات", "time": str(datetime.now())[:16]})
 
 # 3. إدارة المخزن
@@ -134,7 +134,7 @@ elif menu == "➕ إضافة مادة جديدة والباركود":
                 "sell_price": item_sell,
                 "qty": item_qty
             })
-            st.success(تمت إضافة المادة '{item_name}' بنجاح وتوليد الباركود المعياري!)
+            st.success(f"تمت إضافة المادة '{item_name}' بنجاح وتوليد الباركود المعياري!")
             st.session_state.logs.append({"action": f"إضافة مادة جديدة: {item_name}", "user": "مدير النظام", "time": str(datetime.now())[:16]})
 
 # 5. العملاء والديون
