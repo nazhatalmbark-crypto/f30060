@@ -19,7 +19,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# **التنسيق العام مع الإصلاح الجذري والقاطع لمشكلة الحروف المتقطعة وانعكاسها في القائمة الجانبية والشاشات**
+# **التنسيق العام مع الإصلاح النهائي لمشكلة تقطيع الحروف في القائمة الجانبية**
 st.markdown("""
     <style>
     /* فرض الاتجاه الصحيح لكل التطبيق */
@@ -32,27 +32,27 @@ st.markdown("""
         text-align: right !important;
     }
     
-    /* إصلاح جذري وشامل للقائمة الجانبية لمنع تناثر الحروف عمودياً وعكسها */
+    /* إصلاح جذري لعرض النصوص في القائمة الجانبية ومنع تناثر الحروف عمودياً */
     section[data-testid="stSidebar"] {
         direction: rtl !important;
         text-align: right !important;
     }
     
-    section[data-testid="stSidebar"] div, 
+    section[data-testid="stSidebar"] *, 
     section[data-testid="stSidebar"] span, 
     section[data-testid="stSidebar"] p, 
     section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] span[class*="css"],
-    section[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
+    section[data-testid="stSidebar"] div {
         direction: rtl !important;
         text-align: right !important;
-        unicode-bidi: embed !important;
+        unicode-bidi: normal !important;
     }
     
-    /* ضبط أزرار وراديوهات القائمة الجانبية بالكامل */
-    .stRadio div label, .stRadio div, div[data-baseweb="radio"] {
-        direction: rtl !important;
-        text-align: right !important;
+    /* منع التفاف النصوص في أزرار القائمة الجانبية */
+    section[data-testid="stSidebar"] .stRadio label,
+    section[data-testid="stSidebar"] .stButton button {
+        white-space: normal !important;
+        word-break: normal !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -301,7 +301,6 @@ st.sidebar.download_button(
     mime="application/json"
 )
 
-# **حقل تفعيل النسخة المدفوعة مع عداد الـ 30 يوماً في الشريط الجانبي**
 st.sidebar.divider()
 st.sidebar.subheader("💎 حالة النسخة والتفعيل (30 يوم)")
 
