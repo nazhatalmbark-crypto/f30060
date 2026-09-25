@@ -1,4 +1,3 @@
-import streamlit as str_lib
 import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
@@ -20,30 +19,38 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
 
-# **التنسيق العام مع الإصلاح الجذري لمشكلة الحروف المتقطعة وانعكاسها في الشريط الجانبي والشاشات**
+# **التنسيق العام مع الإصلاح الجذري والقاطع لمشكلة الحروف المتقطعة وانعكاسها في القائمة الجانبية والشاشات**
 st.markdown("""
     <style>
+    /* فرض الاتجاه الصحيح لكل التطبيق */
     .stApp {
-        direction: rtl;
-        text-align: right;
+        direction: rtl !important;
+        text-align: right !important;
     }
     input, select, textarea {
-        direction: rtl;
-        text-align: right;
+        direction: rtl !important;
+        text-align: right !important;
     }
-    /* الإصلاح النهائي لتقطيع وانعكاس الحروف في الشريط الجانبي للأجهزة الذكية */
+    
+    /* إصلاح جذري وشامل للقائمة الجانبية لمنع تناثر الحروف عمودياً وعكسها */
     section[data-testid="stSidebar"] {
         direction: rtl !important;
         text-align: right !important;
     }
-    section[data-testid="stSidebar"] * {
+    
+    section[data-testid="stSidebar"] div, 
+    section[data-testid="stSidebar"] span, 
+    section[data-testid="stSidebar"] p, 
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] span[class*="css"],
+    section[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
         direction: rtl !important;
         text-align: right !important;
-        writing-mode: horizontal-tb !important;
-        unicode-bidi: plaintext !important;
+        unicode-bidi: embed !important;
     }
-    /* ضمان صحة اتجاه النصوص في القوائم والعناصر */
-    .stRadio > div, .stSelectbox, .stTextInput {
+    
+    /* ضبط أزرار وراديوهات القائمة الجانبية بالكامل */
+    .stRadio div label, .stRadio div, div[data-baseweb="radio"] {
         direction: rtl !important;
         text-align: right !important;
     }
