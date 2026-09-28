@@ -1,11 +1,11 @@
 import streamlit as st
 import urllib.request
 import json
+from datetime import datetime, timedelta
 
-# إعدادات الصفحة لتكون متوافقة تماماً مع التليفون والحاسبة وبألوان مريحة
+# إعدادات الصفحة متوافقة مع التليفون والحاسبة وألوان مريحة للعين
 st.set_page_config(page_title="نظام ياسر ويب المتكامل", page_icon="🛍️", layout="wide")
 
-# تصميم الألوان والخلفية لتكون مريحة للعين وتمنع الانزعاج
 st.markdown("""
     <style>
     .stApp {
@@ -29,12 +29,9 @@ st.markdown("""
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
 
-# دوال الاتصال بقاعدة البيانات مع فلترة خاصة حسب اسم المحل لعزل البيانات تماماً
-def sb_select(table, shop_name=""):
+def sb_select(table):
     try:
         url = f"{SUPABASE_URL}/rest/v1/{table}?select=*"
-        if shop_name and table in ["products", "customers"]:
-            url += f"&shop_name=eq.id_{urllib.parse.quote(shop_name)}"
         req = urllib.request.Request(url, headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {SUPABASE_KEY}"
@@ -94,13 +91,16 @@ if 'shop_name' not in st.session_state:
     st.session_state.shop_name = ""
 if 'sub_type' not in st.session_state:
     st.session_state.sub_type = "النسخة المجانية"
+if 'sub_expiry_date' not in st.session_state:
+    # افتراضياً النسخة المجانية أو المدفوعة تبدأ بمدة أو تفعيل
+    st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
 if 'cart' not in st.session_state:
     st.session_state.cart = []
 
-# --- واجهة تسجيل الدخول المحدثة (اسم المحل + تحديد الصلاحية والنسخة بدون رموز) ---
+# --- واجهة تسجيل الدخول المحدثة ---
 if not st.session_state.logged_in:
     st.markdown("<h2 style='text-align: center; color: #2c3e50;'>🏷️ تسجيل دخول نظام ياسر ويب</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #555;'>أدخل اسم المحل وحدد الصلاحية والنسخة المطلوبة للبدء</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #555;'>أدخل اسم المحل وحدد الصلاحية المطلوبة للبدء</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -118,16 +118,29 @@ if not st.session_state.logged_in:
                     st.session_state.shop_name = s_name.strip()
                     if "المدفوعة" in selected_privilege:
                         st.session_state.sub_type = "النسخة المدفوعة 🌟"
+                        st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
                     else:
                         st.session_state.sub_type = "النسخة المجانية"
+                        st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
                     st.rerun()
                 else:
                     st.error("الرجاء إدخال اسم المحل بشكل صحيح.")
     st.stop()
 
+# --- فحص انتهاء ال30 يوم (إذا انتهى الاشتراك يوقف النظام بس تظل البضاعة محفوظة) ---
+remaining_days = (st.session_state.sub_expiry_date - datetime.now()).days
+if remaining_days < 0 and "المدفوعة" in st.session_state.sub_type:
+    st.warning("⚠️ انتهت صلاحية الاشتراك (30 يوماً). تم إيقاف النظام مؤقتاً لحين تجديد الاشتراك، مع العلم أن كافة بضاعتك ومخزونك وعملائك محفوظة بأمان تام ولن تنحذف.")
+    st.markdown("### يرجى مراجعة الدعم الفني أو إدخال كود التجديد في تبويب الإعدادات.")
+    if st.button("⚙️ الانتقال لإدخال كود التجديد"):
+        st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
+        st.rerun()
+    st.stop()
+
 # --- القائمة الجانبية (11 تبويب مرتبة مع العزل التام) ---
 st.sidebar.markdown(f"### 🏪 المحل: {st.session_state.shop_name}")
 st.sidebar.markdown(f"📦 النوع: **{st.session_state.sub_type}**")
+st.sidebar.markdown(f"⏳ المتبقي من الاشتراك: **{max(0, remaining_days)} يوم**")
 st.sidebar.markdown("---")
 
 menu = st.sidebar.radio("اختر التبويب المطلوبة:", [
@@ -141,7 +154,7 @@ menu = st.sidebar.radio("اختر التبويب المطلوبة:", [
     "8️⃣ المصاريف اليومية",
     "9️⃣ تقارير الأرباح والخسائر",
     "🔟 دليل الاستخدام وإنستجرام 📖",
-    "1️⃣1️⃣ إعدادات النظام والنسخة"
+    "1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة"
 ])
 
 st.sidebar.markdown("---")
@@ -150,10 +163,13 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.cart = []
     st.rerun()
 
-# جلب البيانات الخاصة حصرياً بالمحل الحالي لعزل العملاء والمواد تماماً
+# جلب وعزل بيانات المحل الحالي بدقة
 current_shop_id = f"id_{st.session_state.shop_name}"
-products = [p for p in sb_select("products") if p.get('shop_name') == current_shop_id]
-customers = [c for c in sb_select("customers") if c.get('shop_name') == current_shop_id]
+all_products = sb_select("products")
+all_customers = sb_select("customers")
+
+products = [p for p in all_products if p.get('shop_name') == current_shop_id]
+customers = [c for c in all_customers if c.get('shop_name') == current_shop_id]
 
 # --- 1️⃣ إدارة المخزون والبطاقات ---
 if menu == "1️⃣ إدارة المخزون والبطاقات":
@@ -336,7 +352,6 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
             is_debt_sale = st.checkbox("تسجيل المبلغ كدين على العميل؟")
             
             if st.button("✅ إتمام البيع وخصم المخزون"):
-                success_checkout = True
                 for c_item in st.session_state.cart:
                     current_item = next((p for p in products if p['id'] == c_item['id']), None)
                     if current_item:
@@ -430,9 +445,24 @@ elif menu == "🔟 دليل الاستخدام وإنستجرام 📖":
     * **حساب إنستجرام الرسمي:** [اضغط هنا لمتابعة صفحة نظام ياسر ويب](https://instagram.com)
     """)
 
-# --- 1️⃣1️⃣ إعدادات النظام والنسخة ---
-elif menu == "1️⃣1️⃣ إعدادات النظام والنسخة":
-    st.header("⚙️ إعدادات النظام وحالة النسخة")
+# --- 1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة (نظام الـ 30 يوم وكود التفعيل) ---
+elif menu == "1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة":
+    st.header("⚙️ إعدادات النظام والاشتراك (30 يوماً)")
     st.write(f"اسم المحل: **{st.session_state.shop_name}**")
     st.write(f"النسخة الحالية: **{st.session_state.sub_type}**")
-    st.markdown("النظام مؤمن، معزول، ومستقر تماماً ويعمل بكل كفاءة.")
+    st.write(f"الأيام المتبقية للاشتراك: **{max(0, remaining_days)} يوم**")
+    st.markdown("---")
+    
+    with st.form("activation_form"):
+        st.markdown("### تفعيل أو تجديد الاشتراك لمدة 30 يوماً:")
+        activation_code_input = st.text_input("أدخل كود التفعيل للنسخة المدفوعة:", type="password")
+        submit_activation = st.form_submit_button("تفعيل الاشتراك وبدء العد التنازلي")
+        
+        if submit_activation:
+            if activation_code_input.strip() == "YASER2026VIP" or activation_code_input.strip() == "ياسر2026":
+                st.session_state.sub_type = "النسخة المدفوعة 🌟"
+                st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
+                st.success("تم تفعيل النسخة المدفوعة بنجاح! تم احتساب 30 يوماً جديدة.")
+                st.rerun()
+            else:
+                st.error("كود التفعيل غير صحيح.")
