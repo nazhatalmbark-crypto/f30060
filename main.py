@@ -92,7 +92,6 @@ if 'shop_name' not in st.session_state:
 if 'sub_type' not in st.session_state:
     st.session_state.sub_type = "النسخة المجانية"
 if 'sub_expiry_date' not in st.session_state:
-    # افتراضياً النسخة المجانية أو المدفوعة تبدأ بمدة أو تفعيل
     st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
 if 'cart' not in st.session_state:
     st.session_state.cart = []
@@ -127,7 +126,7 @@ if not st.session_state.logged_in:
                     st.error("الرجاء إدخال اسم المحل بشكل صحيح.")
     st.stop()
 
-# --- فحص انتهاء ال30 يوم (إذا انتهى الاشتراك يوقف النظام بس تظل البضاعة محفوظة) ---
+# --- فحص انتهاء ال30 يوم (حفظ البضاعة بالكامل عند التوقف) ---
 remaining_days = (st.session_state.sub_expiry_date - datetime.now()).days
 if remaining_days < 0 and "المدفوعة" in st.session_state.sub_type:
     st.warning("⚠️ انتهت صلاحية الاشتراك (30 يوماً). تم إيقاف النظام مؤقتاً لحين تجديد الاشتراك، مع العلم أن كافة بضاعتك ومخزونك وعملائك محفوظة بأمان تام ولن تنحذف.")
@@ -137,7 +136,7 @@ if remaining_days < 0 and "المدفوعة" in st.session_state.sub_type:
         st.rerun()
     st.stop()
 
-# --- القائمة الجانبية (11 تبويب مرتبة مع العزل التام) ---
+# --- القائمة الجانبية ---
 st.sidebar.markdown(f"### 🏪 المحل: {st.session_state.shop_name}")
 st.sidebar.markdown(f"📦 النوع: **{st.session_state.sub_type}**")
 st.sidebar.markdown(f"⏳ المتبقي من الاشتراك: **{max(0, remaining_days)} يوم**")
@@ -153,7 +152,7 @@ menu = st.sidebar.radio("اختر التبويب المطلوبة:", [
     "7️⃣ سجل الديون والذمم",
     "8️⃣ المصاريف اليومية",
     "9️⃣ تقارير الأرباح والخسائر",
-    "🔟 دليل الاستخدام وإنستجرام 📖",
+    "🔟 دليل الاستخدام والدعم 📖",
     "1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة"
 ])
 
@@ -163,7 +162,6 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.cart = []
     st.rerun()
 
-# جلب وعزل بيانات المحل الحالي بدقة
 current_shop_id = f"id_{st.session_state.shop_name}"
 all_products = sb_select("products")
 all_customers = sb_select("customers")
@@ -215,7 +213,7 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
     else:
         st.info("لا توجد مواد مضافة في مخزونك الحالي.")
 
-# --- 2️⃣ إضافة مادة جديدة (بدون أزرار زائد وناقص) ---
+# --- 2️⃣ إضافة مادة جديدة ---
 elif menu == "2️⃣ إضافة مادة جديدة":
     st.header("➕ إضافة مادة جديدة إلى المخزون")
     with st.form("add_product_form"):
@@ -431,21 +429,61 @@ elif menu == "9️⃣ تقارير الأرباح والخسائر":
     else:
         st.info("لا توجد بيانات كافية.")
 
-# --- 🔟 دليل الاستخدام وإنستجرام ---
-elif menu == "🔟 دليل الاستخدام وإنستجرام 📖":
-    st.header("📖 دليل الاستخدام الشامل وحساب إنستجرام")
-    st.markdown("""
-    * **إدارة المخزون:** عرض المواد والربح والخسارة.
-    * **إضافة مادة جديدة:** لإدخال المنتجات المباشرة.
-    * **زيادة كمية:** لتحديث الرصيد بدون إعادة إدخال المنتج.
-    * **العملاء والسلة ووصل السداد:** لإدارة المبيعات وديون العملاء وتصفيرها بدقة.
+# --- 🔟 دليل الاستخدام والدعم (حسب الصور بالحرف الواحد + حساب إنستجرام الجديد) ---
+elif menu == "🔟 دليل الاستخدام والدعم 📖":
+    st.markdown("<h1 style='text-align: center; color: #2c3e50;'>🛍️ نظام Yasser Web الشامل لإدارة المبيعات والمخزون</h1>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #b7950b;'>✨ دليل استخدام نظام ياسر ويب الشامل</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #555;'>المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة</p>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
     
-    ---
-    ### 📸 التواصل والدعم:
-    * **حساب إنستجرام الرسمي:** [اضغط هنا لمتابعة صفحة نظام ياسر ويب](https://instagram.com)
-    """)
+    st.markdown("### ➕ 1. إضافة مادة جديدة")
+    st.markdown("إدخال البضائع الجديدة للمخزن وتحديد أسعار الشراء والبيع والكميات بدقة.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 📦 2. جرد المخزن والباركود")
+    st.markdown("عرض المواد والمنتجات مع الألوان، القياسات، الباركود، وطباعة الرموز.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 👥 3. العملاء والديون")
+    st.markdown("تسجيل بيانات الزبائن ومعلومات التواصل ومتابعة حركة الديون المرتبطة بفواتيرهم.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 💵 4. تسداد الديون")
+    st.markdown("إدخال الدفعات النقدية المسددة وتحديث أرصدة العملاء وتصفير الذمم.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 🏬 5. الموردين")
+    st.markdown("تسجيل بيانات الموردين وأرقام هواتفهم والتخصصات المرتبطة بتوريد البضائع.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 🛒 6. البيع والفواتير")
+    st.markdown("نافذة سلة المبيعات لتجميع المواد وتحديد الكميات وحساب المبالغ تلقائياً.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 📄 7. سجل الفواتير")
+    st.markdown("عرض الفواتير الصادرة، تحميلها للطباعة المباشرة، أو إرسالها عبر الواتساب.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 💰 8. المصاريف")
+    st.markdown("تسجيل النثريات والمصروفات اليومية لحساب صافي الصندوق بدقة.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 📊 9. التقارير")
+    st.markdown("تحليلات مالية دقيقة لإجمالي المبيعات، صافي الأرباح، والديون المعلقة.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 📜 10. سجل النشاطات")
+    st.markdown("سجل رقابي متكامل يوثق جميع عمليات المستخدمين بدقة عالية.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 📖 11. الدليل والدعم")
+    st.markdown("المرجع الشامل والدعم الفني.")
+    st.markdown("<hr style='border: 2px solid #d4ac0d;'>", unsafe_allow_html=True)
+    
+    st.markdown("✨ **تطوير البرمجة: نظام ياسر ويب | انستغرام:** yaser120120120120 2026©")
 
-# --- 1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة (نظام الـ 30 يوم وكود التفعيل) ---
+# --- 1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة ---
 elif menu == "1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة":
     st.header("⚙️ إعدادات النظام والاشتراك (30 يوماً)")
     st.write(f"اسم المحل: **{st.session_state.shop_name}**")
