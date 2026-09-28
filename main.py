@@ -1,123 +1,317 @@
 import streamlit as st
+import urllib.request
+import json
 
-# إعدادات الصفحة الأساسية
-st.set_page_config(
-    page_title="نظام ياسر ويب", page_icon="🛍️", layout="wide"
-)
+# إعدادات الصفحة لتكون متوافقة مع كل الأجهزة (تليفون وحاسبة)
+st.set_page_config(page_title="نظام ياسر ويب المتكامل", page_icon="🛍️", layout="wide")
 
-# كود الـ CSS الشامل لحل مشكلة تقطيع الحروف في القائمة الجانبية (Sidebar)
-st.markdown(
-    """
-    <style>
-    /* توسيع وتعديل اتجاه القائمة الجانبية لمنع تقطيع الحروف */
-    [data-testid="stSidebar"] {
-        width: 320px !important;
-        direction: rtl !important;
-    }
-    [data-testid="stSidebar"] * {
-        direction: rtl !important;
-        text-align: right !important;
-        writing-mode: horizontal-tb !important;
-        white-space: normal !important;
-    }
+SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
+SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
+
+# دالة الجلب من قاعدة البيانات
+def sb_select(table):
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/{table}?select=*"
+        req = urllib.request.Request(url, headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}"
+        })
+        with urllib.request.urlopen(req) as res:
+            return json.loads(res.read().decode())
+    except Exception as e:
+        return []
+
+# دالة الإضافة لقاعدة البيانات
+def sb_insert(table, data):
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/{table}"
+        encoded = json.dumps(data).encode('utf-8')
+        req = urllib.request.Request(url, data=encoded, headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }, method="POST")
+        with urllib.request.urlopen(req):
+            return True
+    except Exception as e:
+        return False
+
+# دالة الحذف
+def sb_delete(table, item_id):
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/{table}?id=eq.{item_id}"
+        req = urllib.request.Request(url, headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Prefer": "return=minimal"
+        }, method="DELETE")
+        with urllib.request.urlopen(req):
+            return True
+    except Exception as e:
+        return False
+
+# دالة تحديث الكمية (للبيع والخصم المباشر)
+def sb_update_qty(product_id, new_qty):
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/products?id=eq.{product_id}"
+        payload = {"quantity": int(max(0, new_qty))}
+        encoded = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(url, data=encoded, headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }, method="PATCH")
+        with urllib.request.urlopen(req):
+            return True
+    except Exception as e:
+        return False
+
+# تهيئة الجلسة (Session State)
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'username' not in st.session_state:
+    st.session_state.username = ""
+if 'sub_type' not in st.session_state:
+    st.session_state.sub_type = "مجاني"
+if 'cart' not in st.session_state:
+    st.session_state.cart = []
+
+# --- شاشة تسجيل الدخول وتحديد نوع الاشتراك ---
+if not st.session_state.logged_in:
+    st.markdown("<h2 style='text-align: center; color: #2c3e50;'>🏷️ تسجيل دخول نظام ياسر ويب</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666;'>يرجى إدخال اسم المستخدم واختيار نوع الاشتراك للمتابعة</p>", unsafe_allow_html=True)
     
-    /* اتجاه عام للصفحة باللغة العربية */
-    .stApp {
-        direction: rtl;
-        text-align: right;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        with st.form("login_form"):
+            u_name = st.text_input("اسم المستخدم / اسم المحل")
+            sub_choice = st.selectbox("نوع الاشتراك:", ["النسخة المجانية", "النسخة المدفوعة"])
+            submitted = st.form_submit_button("دخول إلى النظام")
+            
+            if submitted:
+                if u_name.strip():
+                    st.session_state.logged_in = True
+                    st.session_state.username = u_name.strip()
+                    st.session_state.sub_type = sub_choice
+                    st.rerun()
+                else:
+                    st.error("الرجاء إدخال اسم المستخدم بشكل صحيح.")
+    st.stop()
 
-# القائمة الجانبية الكاملة للنظام
-st.sidebar.title("🛍️ نظام ياسر ويب")
+# --- القائمة الجانبية (Sidebar) والملاحة ---
+st.sidebar.markdown(f"### 🏪 المستخدم: {st.session_state.username}")
+st.sidebar.markdown(f"📦 نوع الاشتراك: **{st.session_state.sub_type}**")
 st.sidebar.markdown("---")
 
-menu = st.sidebar.selectbox(
-    "القائمة الرئيسية",
-    [
-        "إدارة المخزن والمنتجات",
-        "إضافة منتج جديد",
-        "إضافة عميل جديد",
-        "قسم السداد والبيع",
-        "عرض وإدارة المنتجات (بيع وتعديل)",
-        "الفواتير والتقارير",
-    ],
-)
+menu = st.sidebar.radio("اختر التبويب المطلوبة:", [
+    "📦 إدارة المخزون والبطاقات",
+    "➕ إضافة مادة جديدة",
+    "👥 العملاء",
+    "🛒 سلة المبيعات والفاتورة",
+    "📖 دليل الاستخدام والشرح",
+    "📸 التواصل وإنستجرام"
+])
 
-# 1. إدارة المخزن والمنتجات
-if menu == "إدارة المخزن والمنتجات":
-    st.header("📦 إدارة المخزن والمنتجات")
-    st.write("هنا يمكنك متابعة المنتجات والمخزون المتوفر بالكامل.")
+st.sidebar.markdown("---")
+if st.sidebar.button("🚪 تسجيل الخروج"):
+    st.session_state.logged_in = False
+    st.session_state.cart = []
+    st.rerun()
 
-# 2. إضافة منتج جديد
-elif menu == "إضافة منتج جديد":
-    st.header("➕ إضافة منتج / جهاز جديد")
+# جلب البيانات
+products = sb_select("products")
+customers = sb_select("customers")
 
-    product_name = st.text_input("اسم المنتج / الجهاز:")
-    description = st.text_area("المواصفات والأوصاف الإضافية:")
-    price = st.number_input("السعر (د.ع):", min_value=0.0, step=500.0)
-    quantity = st.number_input(
-        "الكمية المتوفرة:", min_value=0, step=1
-    )
-    stock_status = st.selectbox("الوفـرة:", ["متوفر في المخزن", "نفذت الكمية"])
+# --- 1. تبويب إدارة المخزون والبطاقات ---
+if menu == "📦 إدارة المخزون والبطاقات":
+    st.header("📦 إدارة المخزون وبطاقات المواد (ربح وخسارة)")
+    
+    if products:
+        cols = st.columns(3)
+        for idx, item in enumerate(products):
+            buy = float(item.get('buy_price', 0))
+            sell = float(item.get('sell_price', 0))
+            diff = sell - buy
+            qty = int(item.get('quantity', 0))
+            
+            with cols[idx % 3]:
+                st.markdown(f"""
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px;">
+                    <h4>📦 {item.get('product_name')}</h4>
+                    <p>الشراء: <b>{buy}</b> | البيع: <b>{sell}</b></p>
+                """, unsafe_allow_html=True)
+                
+                if diff >  0:
+                    st.success(f"🟢 ربح بالقطعة: +{diff} د.ع")
+                elif diff < 0:
+                    st.error(f"🔴 خسارة بالقطعة: {diff} د.ع")
+                else:
+                    st.info("⚪ بدون هامش ربح")
+                    
+                st.markdown(f"<p>الكمية المتوفرة: <b style='color:green;'>{qty}</b></p>", unsafe_allow_html=True)
+                
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    if st.button("🛒 بيع (-1)", key=f"sell_{item.get('id')}"):
+                        if qty > 0:
+                            sb_update_qty(item.get('id'), qty - 1)
+                            st.success("تم البيع وخصم قطعة!")
+                            st.rerun()
+                        else:
+                            st.warning("الكمية نفذت!")
+                with col_btn2:
+                    if st.button("🗑️ حذف", key=f"del_{item.get('id')}"):
+                        sb_delete("products", item.get('id'))
+                        st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.info("لا توجد مواد مضافة في المخزون حالياً.")
 
-    if st.button("حفظ المنتج الجديد"):
-        if product_name:
-            st.success(
-                f"تم حفظ المنتج ({product_name}) والكمية ({quantity}) بنجاح!"
-            )
+# --- 2. تبويب إضافة مادة جديدة ---
+elif menu == "➕ إضافة مادة جديدة":
+    st.header("➕ إضافة مادة جديدة إلى المخزون")
+    
+    with st.form("add_product_form"):
+        p_name = st.text_input("اسم المادة / المنتج")
+        c1, c2 = st.columns(2)
+        with c1:
+            p_buy = st.number_input("سعر الشراء (د.ع)", min_value=0.0, value=0.0, step=0.5)
+        with c2:
+            p_sell = st.number_input("سعر البيع (د.ع)", min_value=0.0, value=0.0, step=0.5)
+        p_qty = st.number_input("الكمية المتوفرة", min_value=1, value=1)
+        
+        submitted_p = st.form_submit_button("حفظ المادة في المخزون")
+        if submitted_p:
+            if p_name.strip():
+                payload = {
+                    "product_name": p_name.strip(),
+                    "buy_price": p_buy,
+                    "sell_price": p_sell,
+                    "quantity": p_qty
+                }
+                if sb_insert("products", payload):
+                    st.success("تمت إضافة المادة بنجاح!")
+                    st.rerun()
+                else:
+                    st.error("حدث خطأ أثناء الإضافة بقاعدة البيانات.")
+            else:
+                st.warning("الرجاء كتابة اسم المادة.")
+
+# --- 3. تبويب العملاء ---
+elif menu == "👥 العملاء":
+    st.header("👥 إدارة العملاء")
+    
+    with st.form("add_customer_form"):
+        c_name = st.text_input("اسم العميل")
+        c_phone = st.text_input("رقم الهاتف")
+        c_address = st.text_input("العنوان / المنطقة")
+        submitted_c = st.form_submit_button("حفظ العميل")
+        
+        if submitted_c:
+            if c_name.strip():
+                payload = {
+                    "name": c_name.strip(),
+                    "phone": c_phone.strip(),
+                    "address": c_address.strip(),
+                    "city": "العراق"
+                }
+                if sb_insert("customers", payload):
+                    st.success("تم حفظ العميل بنجاح!")
+                    st.rerun()
+                else:
+                    st.error("حدث خطأ أثناء حفظ العميل.")
+            else:
+                st.warning("اسم العميل مطلوب.")
+
+    st.subheader("قائمة العملاء المسجلين:")
+    if customers:
+        st.table(customers)
+    else:
+        st.info("لا يوجد عملاء مسجلين بعد.")
+
+# --- 4. تبويب سلة المبيعات والفاتورة ---
+elif menu == "🛒 سلة المبيعات والفاتورة":
+    st.header("🛒 سلة المبيعات والفاتورة")
+    
+    if products:
+        with st.form("cart_form"):
+            prod_options = {p['product_name'] + f" (المتوفر: {p['quantity']} | السعر: {p['sell_price']})": p for p in products}
+            selected_label = st.selectbox("اختر المادة:", list(prod_options.keys()))
+            cart_qty = st.number_input("الكمية المطلوبة للبيع", min_value=1, value=1)
+            
+            add_to_cart_btn = st.form_submit_button("➕ إضافة إلى السلة")
+            if add_to_cart_btn:
+                target_prod = prod_options[selected_label]
+                st.session_state.cart.append({
+                    "id": target_prod['id'],
+                    "product_name": target_prod['product_name'],
+                    "sell_price": float(target_prod['sell_price']),
+                    "quantity": cart_qty
+                })
+                st.success("تمت الإضافة للسلة!")
+                st.rerun()
+    else:
+        st.warning("لا توجد مواد في المخزون لتخويل البيع منها.")
+
+    if st.session_state.cart:
+        st.subheader("محتويات السلة الحالية:")
+        total_price = 0
+        for i, c_item in enumerate(st.session_state.cart):
+            sub = c_item['sell_price'] * c_item['quantity']
+            total_price += sub
+            col_a, col_b, col_c = st.columns([3, 1, 1])
+            col_a.write(f"<b>{c_item['product_name']}</b> - السعر: {c_item['sell_price']} × الكمية: {c_item['quantity']}")
+            col_b.write(f"المجموع: {sub} د.ع")
+            if col_c.button("حذف", key=f"cart_del_{i}"):
+                st.session_state.cart.pop(i)
+                st.rerun()
+                
+        st.markdown(f"### الإجمالي الكلي للفاتورة: <span style='color:green;'>{total_price} د.ع</span>", unsafe_allow_html=True)
+        
+        if customers:
+            cust_names = [c['name'] for c in customers]
+            chosen_cust = st.selectbox("اختر اسم العميل للفاتورة:", cust_names)
+            
+            if st.button("✅ إتمام البيع وخصم الكميات من المخزون"):
+                success_checkout = True
+                for c_item in st.session_state.cart:
+                    p_id = c_item['id']
+                    bought_q = c_item['quantity']
+                    # البحث عن الكمية الحالية لتحديثها
+                    current_item = next((p for p in products if p['id'] == p_id), None)
+                    if current_item:
+                        new_q = max(0, int(current_item['quantity']) - bought_q)
+                        if not sb_update_qty(p_id, new_q):
+                            success_checkout = False
+                
+                if success_checkout:
+                    st.success(f"تمت عملية البيع بنجاح للعميل ({chosen_cust}) وتم خصم المواد من المخزون!")
+                    st.session_state.cart = []
+                    st.rerun()
+                else:
+                    st.error("حدث خطأ أثناء خصم الكميات.")
         else:
-            st.warning("يرجى إدخال اسم المنتج على الأقل.")
+            st.warning("يرجى إضافة عميل أولاً من تبويب 'العملاء' لتتمكن من إتمام الفاتورة.")
+    else:
+        st.info("السلة فارغة حالياً.")
 
-# 3. إضافة عميل جديد
-elif menu == "إضافة عميل جديد":
-    st.header("👥 إضافة عميل جديد")
+# --- 5. تبويب دليل الاستخدام والشرح ---
+elif menu == "📖 دليل الاستخدام والشرح":
+    st.header("📖 دليل استخدام نظام ياسر ويب")
+    st.markdown("""
+    أهلاً بك يا غالي في الدليل الشامل لجميع تبويبات النظام:
+    1. **📦 إدارة المخزون والبطاقات:** تعرض لك كل موادك مع مؤشرات دقيقة للربح والخسارة بالقطعة، مع إمكانية بيع قطعة واحدة أو حذف المادة.
+    2. **➕ إضافة مادة جديدة:** لإدخال المنتجات الجديدة مع أسعار الشراء والبيع والكميات الأولية.
+    3. **👥 العملاء:** لتسجيل معلومات الزباين والهواتف والعناوين الخاصة بهم.
+    4. **🛒 سلة المبيعات والفاتورة:** لتجميع المنتجات المباعة، اختيار العميل، وإتمام عملية البيع بضغطة زر مع **الخصم التلقائي الفوري** من المخزون.
+    5. **📸 التواصل وإنستجرام:** لمعرفة روابط الدعم والمطور وحسابات التواصل الاجتماعي.
+    """)
 
-    client_name = st.text_input("اسم العميل:")
-    client_phone = st.text_input("رقم الهاتف:")
-    client_address = st.text_input("العنوان (منطقة / الشارع):")
-
-    if st.button("حفظ بيانات العميل"):
-        if client_name:
-            st.success(f"تم تسجيل العميل ({client_name}) بنجاح!")
-        else:
-            st.warning("يرجى إدخال اسم العميل على الأقل.")
-
-# 4. قسم السداد والبيع
-elif menu == "قسم السداد والبيع":
-    st.header("💳 قسم السداد وإتمام البيع")
-    st.write("تسجيل عمليات البيع والدفع المباشر.")
-
-    bill_client = st.selectbox(
-        "اختر العميل:", ["زبون نقدي (عام)", "محمد علي", "أحمد حسين"]
-    )
-    paid_amount = st.number_input("المبلغ المدفوع (د.ع):", min_value=0.0)
-
-    if st.button("إتمام عملية السداد"):
-        st.success("تم إتمام عملية السداد وحفظ الفاتورة بنجاح!")
-
-# 5. عرض وإدارة المنتجات (بيع ونقص الكميات)
-elif menu == "عرض وإدارة المنتجات (بيع وتعديل)":
-    st.header("🛒 عرض المخزن - خصم وبيع المنتجات")
-    st.write(
-        "من هنا يمكنك استعراض المنتجات الحالية وخصم الكميات عند البيع مباشرة:"
-    )
-
-    # محاكاة لعرض منتج مع زر خصم الكمية
-    st.markdown("---")
-    col1, col2, col3 = st.columns([3, 2, 2])
-    with col1:
-        st.write("**اسم المنتج:** جهاز هاتف ذكي (مثال)")
-    with col2:
-        st.write("الكمية المتبقية: **5**")
-    with col3:
-        if st.button("بيع / خصم قطعة"):
-            st.success("تم خصم قطعة واحدة بنجاح! المتبقي: 4")
-
-# 6. الفواتير والتقارير
-elif menu == "الفواتير والتقارير":
-    st.header("📄 الفواتير والتقارير السابقة")
-    st.write("عرض تفاصيل الفواتير والعمليات اليومية.")
+# --- 6. تبويب التواصل وإنستجرام ---
+elif menu == "📸 التواصل وإنستجرام":
+    st.header("📸 حسابات التواصل والدعم")
+    st.markdown("يمكنك متابعة وتوثيق أعمال وتطبيقات نظام ياسر ويب عبر المنصات التالية:")
+    st.markdown("- **حساب إنستجرام الرسمي:** [اضغط هنا للمتابعة](https://instagram.com)")
+    st.markdown("- **تطوير وبرمجة:** نظام ياسر ويب المتكامل لإدارة المبيعات والمخازن 2026.")
