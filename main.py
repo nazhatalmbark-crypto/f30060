@@ -1,7 +1,7 @@
 import streamlit as st
 import urllib.request
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # إعدادات الصفحة متوافقة مع التليفون والحاسبة وألوان مريحة للعين
 st.set_page_config(page_title="نظام ياسر ويب المتكامل", page_icon="🛍️", layout="wide")
@@ -89,25 +89,23 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'shop_name' not in st.session_state:
     st.session_state.shop_name = ""
-if 'sub_type' not in st.session_state:
-    st.session_state.sub_type = "النسخة المجانية"
-if 'sub_expiry_date' not in st.session_state:
-    st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
+if 'role' not in st.session_state:
+    st.session_state.role = "مدير / مسؤول"
 if 'cart' not in st.session_state:
     st.session_state.cart = []
 
-# --- واجهة تسجيل الدخول المحدثة ---
+# --- واجهة تسجيل الدخول بصلاحيات (مدير / كاشير) ---
 if not st.session_state.logged_in:
     st.markdown("<h2 style='text-align: center; color: #2c3e50;'>🏷️ تسجيل دخول نظام ياسر ويب</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #555;'>أدخل اسم المحل وحدد الصلاحية المطلوبة للبدء</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #555;'>أدخل اسم المحل وحدد الصلاحية الوظيفية للبدء</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login_form"):
             s_name = st.text_input("اسم المحل أو المستخدم:")
-            selected_privilege = st.selectbox("حدد الصلاحية / نوع النسخة:", [
-                "النسخة المجانية (افتراضي)", 
-                "النسخة المدفوعة 🌟 (صلاحيات كاملة)"
+            selected_role = st.selectbox("الصلاحية الوظيفية:", [
+                "مدير / مسؤول (صلاحيات كاملة لإدارة المخزون والتقارير)", 
+                "كاشير (مخصص للبيع وإصدار الفواتير وتسديد الديون فقط)"
             ])
             submitted = st.form_submit_button("دخول إلى النظام")
             
@@ -115,46 +113,41 @@ if not st.session_state.logged_in:
                 if s_name.strip():
                     st.session_state.logged_in = True
                     st.session_state.shop_name = s_name.strip()
-                    if "المدفوعة" in selected_privilege:
-                        st.session_state.sub_type = "النسخة المدفوعة 🌟"
-                        st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
+                    if "مدير" in selected_role:
+                        st.session_state.role = "مدير / مسؤول"
                     else:
-                        st.session_state.sub_type = "النسخة المجانية"
-                        st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
+                        st.session_state.role = "كاشير"
                     st.rerun()
                 else:
                     st.error("الرجاء إدخال اسم المحل بشكل صحيح.")
     st.stop()
 
-# --- فحص انتهاء ال30 يوم (حفظ البضاعة بالكامل عند التوقف) ---
-remaining_days = (st.session_state.sub_expiry_date - datetime.now()).days
-if remaining_days < 0 and "المدفوعة" in st.session_state.sub_type:
-    st.warning("⚠️ انتهت صلاحية الاشتراك (30 يوماً). تم إيقاف النظام مؤقتاً لحين تجديد الاشتراك، مع العلم أن كافة بضاعتك ومخزونك وعملائك محفوظة بأمان تام ولن تنحذف.")
-    st.markdown("### يرجى مراجعة الدعم الفني أو إدخال كود التجديد في تبويب الإعدادات.")
-    if st.button("⚙️ الانتقال لإدخال كود التجديد"):
-        st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
-        st.rerun()
-    st.stop()
-
-# --- القائمة الجانبية ---
+# --- القائمة الجانبية مع مراعاة الصلاحيات ---
 st.sidebar.markdown(f"### 🏪 المحل: {st.session_state.shop_name}")
-st.sidebar.markdown(f"📦 النوع: **{st.session_state.sub_type}**")
-st.sidebar.markdown(f"⏳ المتبقي من الاشتراك: **{max(0, remaining_days)} يوم**")
+st.sidebar.markdown(f"👤 الصلاحية: **{st.session_state.role}**")
 st.sidebar.markdown("---")
 
-menu = st.sidebar.radio("اختر التبويب المطلوبة:", [
-    "1️⃣ إدارة المخزون والبطاقات",
-    "2️⃣ إضافة مادة جديدة",
-    "3️⃣ زيادة كمية لمادة موجودة ➕",
-    "4️⃣ إدارة العملاء",
-    "5️⃣ سلة المبيعات والفاتورة",
-    "6️⃣ وصل سداد وتسديد الديون",
-    "7️⃣ سجل الديون والذمم",
-    "8️⃣ المصاريف اليومية",
-    "9️⃣ تقارير الأرباح والخسائر",
-    "🔟 دليل الاستخدام والدعم 📖",
-    "1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة"
-])
+if st.session_state.role == "مدير / مسؤول":
+    menu = st.sidebar.radio("اختر التبويب المطلوبة:", [
+        "1️⃣ إدارة المخزون والبطاقات",
+        "2️⃣ إضافة مادة جديدة",
+        "3️⃣ زيادة كمية لمادة موجودة ➕",
+        "4️⃣ إدارة العملاء",
+        "5️⃣ سلة المبيعات والفاتورة",
+        "6️⃣ وصل سداد وتسديد الديون",
+        "7️⃣ سجل الديون والذمم",
+        "8️⃣ المصاريف اليومية",
+        "9️⃣ تقارير الأرباح والخسائر",
+        "🔟 دليل الاستخدام والدعم 📖"
+    ])
+else:
+    # قائمة الكاشير المحدودة (بيع، سداد، عملاء، دليل) مع حجب صلاحيات الإدارة والتقارير
+    menu = st.sidebar.radio("اختر التبويب المطلوبة (صلاحية كاشير):", [
+        "5️⃣ سلة المبيعات والفاتورة",
+        "6️⃣ وصل سداد وتسديد الديون",
+        "4️⃣ إدارة العملاء",
+        "🔟 دليل الاستخدام والدعم 📖"
+    ])
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🚪 تسجيل الخروج"):
@@ -169,7 +162,7 @@ all_customers = sb_select("customers")
 products = [p for p in all_products if p.get('shop_name') == current_shop_id]
 customers = [c for c in all_customers if c.get('shop_name') == current_shop_id]
 
-# --- 1️⃣ إدارة المخزون والبطاقات ---
+# --- 1️⃣ إدارة المخزون والبطاقات (للمدير فقط) ---
 if menu == "1️⃣ إدارة المخزون والبطاقات":
     st.header("📦 إدارة المخزون وبطاقات المواد")
     if products:
@@ -201,7 +194,7 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
                     if st.button("🛒 بيع (-1)", key=f"sell_{item.get('id')}"):
                         if qty > 0:
                             sb_update("products", item.get('id'), {"quantity": qty - 1})
-                            st.success("تم البيع وخصم الكمية!")
+                            st.success("تم البيع وخصم الكمية المتزامنة!")
                             st.rerun()
                         else:
                             st.warning("الكمية نفذت!")
@@ -213,7 +206,7 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
     else:
         st.info("لا توجد مواد مضافة في مخزونك الحالي.")
 
-# --- 2️⃣ إضافة مادة جديدة ---
+# --- 2️⃣ إضافة مادة جديدة (للمدير فقط) ---
 elif menu == "2️⃣ إضافة مادة جديدة":
     st.header("➕ إضافة مادة جديدة إلى المخزون")
     with st.form("add_product_form"):
@@ -237,7 +230,7 @@ elif menu == "2️⃣ إضافة مادة جديدة":
                         "shop_name": current_shop_id
                     }
                     if sb_insert("products", payload):
-                        st.success("تمت إضافة المادة بنجاح لمخزونك الخاص!")
+                        st.success("تمت إضافة المادة بنجاح وتظهر الآن فوراً عند الكاشير!")
                         st.rerun()
                     else:
                         st.error("حدث خطأ أثناء الإضافة.")
@@ -261,7 +254,7 @@ elif menu == "3️⃣ زيادة كمية لمادة موجودة ➕":
                 try:
                     new_total_q = int(target_product['quantity']) + int(added_qty_str)
                     if sb_update("products", target_product['id'], {"quantity": new_total_q}):
-                        st.success("تمت إضافة الكمية بنجاح!")
+                        st.success("تمت زيادة الكمية وتحديثها بالتزامن مع النظام!")
                         st.rerun()
                     else:
                         st.error("خطأ في التحديث.")
@@ -291,7 +284,7 @@ elif menu == "4️⃣ إدارة العملاء":
                     "shop_name": current_shop_id
                 }
                 if sb_insert("customers", payload):
-                    st.success("تم حفظ العميل في سجلك الخاص!")
+                    st.success("تم حفظ العميل في السجل المشترك!")
                     st.rerun()
                 else:
                     st.error("خطأ في الحفظ.")
@@ -304,7 +297,7 @@ elif menu == "4️⃣ إدارة العملاء":
     else:
         st.info("لا يوجد عملاء مسجلون لديك بعد.")
 
-# --- 5️⃣ سلة المبيعات والفاتورة ---
+# --- 5️⃣ سلة المبيعات والفاتورة (متاحة للكاشير والمدير مع تزامن المبيعات والمخزون) ---
 elif menu == "5️⃣ سلة المبيعات والفاتورة":
     st.header("🛒 سلة المبيعات وإصدار الفواتير")
     if products:
@@ -349,7 +342,7 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
             chosen_cust = st.selectbox("اختر العميل للفاتورة:", cust_names)
             is_debt_sale = st.checkbox("تسجيل المبلغ كدين على العميل؟")
             
-            if st.button("✅ إتمام البيع وخصم المخزون"):
+            if st.button("✅ إتمام البيع وخصم المخزون بالتزامن"):
                 for c_item in st.session_state.cart:
                     current_item = next((p for p in products if p['id'] == c_item['id']), None)
                     if current_item:
@@ -362,7 +355,7 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
                         new_debt = float(target_c_obj.get('debt', 0) or 0) + total_price
                         sb_update("customers", target_c_obj['id'], {"debt": new_debt})
 
-                st.success("تمت عملية البيع بنجاح!")
+                st.success("تمت عملية البيع بنجاح وتم خصم الكميات والمبالغ فوراً عند المسؤول والكاشير!")
                 st.session_state.cart = []
                 st.rerun()
         else:
@@ -389,14 +382,14 @@ elif menu == "6️⃣ وصل سداد وتسديد الديون":
                 try:
                     remaining_debt = max(0.0, current_client_debt - float(paid_amount_str))
                     sb_update("customers", selected_cust_data['id'], {"debt": remaining_debt})
-                    st.success(f"تم تسديد المبلغ بنجاح! الدين الباقي: {remaining_debt} د.ع")
+                    st.success(f"تم تسديد المبلغ بنجاح وتحديث الحسابات بالتزامن! الدين الباقي: {remaining_debt} د.ع")
                     st.rerun()
                 except ValueError:
                     st.warning("أدخل مبلغاً صحيحاً.")
     else:
         st.info("لا توجد عملاء مسجلون.")
 
-# --- 7️⃣ سجل الديون والذمم ---
+# --- 7️⃣ سجل الديون والذمم (للمدير فقط) ---
 elif menu == "7️⃣ سجل الديون والذمم":
     st.header("📋 سجل الديون والذمم")
     if customers:
@@ -408,7 +401,7 @@ elif menu == "7️⃣ سجل الديون والذمم":
     else:
         st.info("لا توجد بيانات.")
 
-# --- 8️⃣ المصاريف اليومية ---
+# --- 8️⃣ المصاريف اليومية (للمدير فقط) ---
 elif menu == "8️⃣ المصاريف اليومية":
     st.header("💸 تسجيل المصاريف اليومية")
     with st.form("expenses_form"):
@@ -417,7 +410,7 @@ elif menu == "8️⃣ المصاريف اليومية":
         if st.form_submit_button("حفظ المصروف"):
             st.success("تم تسجيل المصروف بنجاح.")
 
-# --- 9️⃣ تقارير الأرباح والخسائر ---
+# --- 9️⃣ تقارير الأرباح والخسائر (للمدير فقط) ---
 elif menu == "9️⃣ تقارير الأرباح والخسائر":
     st.header("📊 تقارير الأرباح والخسائر")
     if products:
@@ -482,25 +475,3 @@ elif menu == "🔟 دليل الاستخدام والدعم 📖":
     st.markdown("<hr style='border: 2px solid #d4ac0d;'>", unsafe_allow_html=True)
     
     st.markdown("✨ **تطوير البرمجة: نظام ياسر ويب | انستغرام:** yaser120120120120 2026©")
-
-# --- 1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة ---
-elif menu == "1️⃣1️⃣ إعدادات النظام والنسخة المدفوعة":
-    st.header("⚙️ إعدادات النظام والاشتراك (30 يوماً)")
-    st.write(f"اسم المحل: **{st.session_state.shop_name}**")
-    st.write(f"النسخة الحالية: **{st.session_state.sub_type}**")
-    st.write(f"الأيام المتبقية للاشتراك: **{max(0, remaining_days)} يوم**")
-    st.markdown("---")
-    
-    with st.form("activation_form"):
-        st.markdown("### تفعيل أو تجديد الاشتراك لمدة 30 يوماً:")
-        activation_code_input = st.text_input("أدخل كود التفعيل للنسخة المدفوعة:", type="password")
-        submit_activation = st.form_submit_button("تفعيل الاشتراك وبدء العد التنازلي")
-        
-        if submit_activation:
-            if activation_code_input.strip() == "YASER2026VIP" or activation_code_input.strip() == "ياسر2026":
-                st.session_state.sub_type = "النسخة المدفوعة 🌟"
-                st.session_state.sub_expiry_date = datetime.now() + timedelta(days=30)
-                st.success("تم تفعيل النسخة المدفوعة بنجاح! تم احتساب 30 يوماً جديدة.")
-                st.rerun()
-            else:
-                st.error("كود التفعيل غير صحيح.")
