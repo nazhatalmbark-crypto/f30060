@@ -141,7 +141,6 @@ if st.session_state.role == "مدير / مسؤول":
         "🔟 دليل الاستخدام والدعم 📖"
     ])
 else:
-    # قائمة الكاشير المحدودة (بيع، سداد، عملاء، دليل) مع حجب صلاحيات الإدارة والتقارير
     menu = st.sidebar.radio("اختر التبويب المطلوبة (صلاحية كاشير):", [
         "5️⃣ سلة المبيعات والفاتورة",
         "6️⃣ وصل سداد وتسديد الديون",
@@ -162,7 +161,7 @@ all_customers = sb_select("customers")
 products = [p for p in all_products if p.get('shop_name') == current_shop_id]
 customers = [c for c in all_customers if c.get('shop_name') == current_shop_id]
 
-# --- 1️⃣ إدارة المخزون والبطاقات (للمدير فقط) ---
+# --- 1️⃣ إدارة المخزون والبطاقات ---
 if menu == "1️⃣ إدارة المخزون والبطاقات":
     st.header("📦 إدارة المخزون وبطاقات المواد")
     if products:
@@ -206,7 +205,7 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
     else:
         st.info("لا توجد مواد مضافة في مخزونك الحالي.")
 
-# --- 2️⃣ إضافة مادة جديدة (للمدير فقط) ---
+# --- 2️⃣ إضافة مادة جديدة ---
 elif menu == "2️⃣ إضافة مادة جديدة":
     st.header("➕ إضافة مادة جديدة إلى المخزون")
     with st.form("add_product_form"):
@@ -297,7 +296,7 @@ elif menu == "4️⃣ إدارة العملاء":
     else:
         st.info("لا يوجد عملاء مسجلون لديك بعد.")
 
-# --- 5️⃣ سلة المبيعات والفاتورة (متاحة للكاشير والمدير مع تزامن المبيعات والمخزون) ---
+# --- 5️⃣ سلة المبيعات والفاتورة (مع وصل مبيعات رسمي واحترافي) ---
 elif menu == "5️⃣ سلة المبيعات والفاتورة":
     st.header("🛒 سلة المبيعات وإصدار الفواتير")
     if products:
@@ -339,10 +338,10 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
         
         if customers:
             cust_names = [c['name'] for c in customers]
-            chosen_cust = st.selectbox("اختر العميل للفاتورة:", cust_names)
+            chosen_cust = st.selectbox("اختر العميل للفاتورة (من قاعدة البيانات):", cust_names)
             is_debt_sale = st.checkbox("تسجيل المبلغ كدين على العميل؟")
             
-            if st.button("✅ إتمام البيع وخصم المخزون بالتزامن"):
+            if st.button("✅ إتمام البيع وعرض الفاتورة الرسمية"):
                 for c_item in st.session_state.cart:
                     current_item = next((p for p in products if p['id'] == c_item['id']), None)
                     if current_item:
@@ -355,20 +354,61 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
                         new_debt = float(target_c_obj.get('debt', 0) or 0) + total_price
                         sb_update("customers", target_c_obj['id'], {"debt": new_debt})
 
-                st.success("تمت عملية البيع بنجاح وتم خصم الكميات والمبالغ فوراً عند المسؤول والكاشير!")
+                st.success("تمت عملية البيع بنجاح وتحديث المخزون والذمم بالتزامن!")
+                
+                # --- عرض وصل المبيعات الرسمي والجاهز للطباعة ---
+                st.markdown("---")
+                st.markdown(f"""
+                <div style="background: #ffffff; padding: 25px; border-radius: 10px; border: 2px solid #2c3e50; font-family: Tahoma; direction: rtl;">
+                    <h2 style="text-align: center; color: #2c3e50; margin-bottom: 5px;">🏪 {st.session_state.shop_name}</h2>
+                    <p style="text-align: center; color: #7f8c8d; margin-top: 0;">وصل مبيعات رسمي وموثق</p>
+                    <hr style="border: 1px dashed #bdc3c7;">
+                    <p><b>📅 التاريخ والوقت:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    <p><b>👤 اسم العميل:</b> {chosen_cust}</p>
+                    <p><b>🏷️ طريقة البيع:</b> {'دين على الحساب' if is_debt_sale else 'نقدي'}</p>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px;">
+                        <thead>
+                            <tr style="background: #f8f9f9; border-bottom: 2px solid #2c3e50;">
+                                <th style="padding: 8px; text-align: right;">المادة</th>
+                                <th style="padding: 8px; text-align: center;">الكمية</th>
+                                <th style="padding: 8px; text-align: center;">السعر المفرد</th>
+                                <th style="padding: 8px; text-align: left;">المجموع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                """, unsafe_allow_html=True)
+                
+                for item in st.session_state.cart:
+                    st.markdown(f"""
+                            <tr style="border-bottom: 1px solid #ecf0f1;">
+                                <td style="padding: 8px; text-align: right;">{item['product_name']}</td>
+                                <td style="padding: 8px; text-align: center;">{item['quantity']}</td>
+                                <td style="padding: 8px; text-align: center;">{item['sell_price']} د.ع</td>
+                                <td style="padding: 8px; text-align: left;">{item['sell_price'] * item['quantity']} د.ع</td>
+                            </tr>
+                    """, unsafe_allow_html=True)
+                    
+                st.markdown(f"""
+                        </tbody>
+                    </table>
+                    <hr style="border: 1px dashed #bdc3c7;">
+                    <h3 style="text-align: left; color: #27ae60;">الإجمالي الكلي: {total_price} د.ع</h3>
+                    <p style="text-align: center; font-size: 12px; color: #95a5a6; margin-top: 20px;">شكراً لتعاملكم معنا | تطوير: نظام ياسر ويب</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
                 st.session_state.cart = []
-                st.rerun()
         else:
             st.warning("أضف عميلاً أولاً.")
     else:
         st.info("السلة فارغة.")
 
-# --- 6️⃣ وصل سداد وتسديد الديون ---
+# --- 6️⃣ وصل سداد وتسديد الديون (مع وصل سداد رسمي ومربوط بالعملاء المسجلين حصراً) ---
 elif menu == "6️⃣ وصل سداد وتسديد الديون":
     st.header("🧾 وصل سداد وتصفير ديون العملاء")
     if customers:
         cust_map = {c['name'] + f" (الدين: {c.get('debt', 0)} د.ع)": c for c in customers}
-        chosen_receipt_cust_label = st.selectbox("اختر العميل:", list(cust_map.keys()))
+        chosen_receipt_cust_label = st.selectbox("اختر العميل (من قاعدة البيانات المسجلة):", list(cust_map.keys()))
         selected_cust_data = cust_map[chosen_receipt_cust_label]
         current_client_debt = float(selected_cust_data.get('debt', 0) or 0)
         
@@ -376,20 +416,40 @@ elif menu == "6️⃣ وصل سداد وتسديد الديون":
         
         with st.form("pay_debt_form"):
             paid_amount_str = st.text_input("المبلغ المدفوع للتسديد:", value=str(current_client_debt))
-            submit_payment = st.form_submit_button("✅ إصدار وصل السداد وتصفير الحساب")
+            submit_payment = st.form_submit_button("✅ إصدار وصل السداد الرسمي وتصفير الحساب")
             
             if submit_payment:
                 try:
-                    remaining_debt = max(0.0, current_client_debt - float(paid_amount_str))
+                    paid_val = float(paid_amount_str)
+                    remaining_debt = max(0.0, current_client_debt - paid_val)
                     sb_update("customers", selected_cust_data['id'], {"debt": remaining_debt})
                     st.success(f"تم تسديد المبلغ بنجاح وتحديث الحسابات بالتزامن! الدين الباقي: {remaining_debt} د.ع")
-                    st.rerun()
+                    
+                    # --- عرض وصل السداد الرسمي والموثق بالعميل الحقيقي ---
+                    st.markdown("---")
+                    st.markdown(f"""
+                    <div style="background: #ffffff; padding: 25px; border-radius: 10px; border: 2px solid #27ae60; font-family: Tahoma; direction: rtl;">
+                        <h2 style="text-align: center; color: #27ae60; margin-bottom: 5px;">📜 سند قبض وتسديد ديون</h2>
+                        <p style="text-align: center; color: #7f8c8d; margin-top: 0;">محل: {st.session_state.shop_name}</p>
+                        <hr style="border: 1px dashed #bdc3c7;">
+                        <p><b>📅 تاريخ الوصل:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                        <p><b>👤 اسم العميل (من النظام):</b> <span style="color: #2980b9; font-weight: bold;">{selected_cust_data['name']}</span></p>
+                        <p><b>📞 رقم الهاتف:</b> {selected_cust_data.get('phone', 'غير متوفر')}</p>
+                        <p><b>📍 العنوان:</b> {selected_cust_data.get('address', 'غير متوفر')} - {selected_cust_data.get('city', 'البصرة')}</p>
+                        <hr style="border: 1px dashed #bdc3c7;">
+                        <p style="font-size: 16px;">مستلم من العميل أعلاه مبلغ وقدره: <b style="color: #27ae60; font-size: 18px;">{paid_val} د.ع</b></p>
+                        <p style="font-size: 16px;">الرصيد المتبقي (الدين الحالي): <b style="color: #c0392b; font-size: 18px;">{remaining_debt} د.ع</b></p>
+                        <hr style="border: 1px dashed #bdc3c7;">
+                        <p style="text-align: center; font-size: 12px; color: #95a5a6; margin-top: 20px;">تم السداد بنجاح وإصدار السند الآلي | نظام ياسر ويب</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
                 except ValueError:
                     st.warning("أدخل مبلغاً صحيحاً.")
     else:
-        st.info("لا توجد عملاء مسجلون.")
+        st.info("لا توجد عملاء مسجلون في قاعدة البيانات.")
 
-# --- 7️⃣ سجل الديون والذمم (للمدير فقط) ---
+# --- 7️⃣ سجل الديون والذمم ---
 elif menu == "7️⃣ سجل الديون والذمم":
     st.header("📋 سجل الديون والذمم")
     if customers:
@@ -401,7 +461,7 @@ elif menu == "7️⃣ سجل الديون والذمم":
     else:
         st.info("لا توجد بيانات.")
 
-# --- 8️⃣ المصاريف اليومية (للمدير فقط) ---
+# --- 8️⃣ المصاريف اليومية ---
 elif menu == "8️⃣ المصاريف اليومية":
     st.header("💸 تسجيل المصاريف اليومية")
     with st.form("expenses_form"):
@@ -410,7 +470,7 @@ elif menu == "8️⃣ المصاريف اليومية":
         if st.form_submit_button("حفظ المصروف"):
             st.success("تم تسجيل المصروف بنجاح.")
 
-# --- 9️⃣ تقارير الأرباح والخسائر (للمدير فقط) ---
+# --- 9️⃣ تقارير الأرباح والخسائر ---
 elif menu == "9️⃣ تقارير الأرباح والخسائر":
     st.header("📊 تقارير الأرباح والخسائر")
     if products:
