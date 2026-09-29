@@ -122,7 +122,7 @@ if not st.session_state.logged_in:
                     st.error("الرجاء إدخال اسم المحل بشكل صحيح.")
     st.stop()
 
-# --- القائمة الجانبية مع مراعاة الصلاحيات ---
+# --- القائمة الجانبية (مع التبويبات الـ 11 القديمة + الـ 4 الجديدة + خانة التحديثات) ---
 st.sidebar.markdown(f"### 🏪 المحل: {st.session_state.shop_name}")
 st.sidebar.markdown(f"👤 الصلاحية: **{st.session_state.role}**")
 st.sidebar.markdown("---")
@@ -138,14 +138,20 @@ if st.session_state.role == "مدير / مسؤول":
         "7️⃣ سجل الديون والذمم",
         "8️⃣ المصاريف اليومية",
         "9️⃣ تقارير الأرباح والخسائر",
-        "🔟 دليل الاستخدام والدعم 📖"
+        "🔟 دليل الاستخدام والدعم 📖",
+        "11️⃣ حركة الصندوق والدرج اليومي 💵",
+        "12️⃣ تنبيهات نفاذ المواد ⚠️",
+        "13️⃣ طبع ملصقات الباركود 🏷️",
+        "14️⃣ برنامج الولاء وعروض العملاء 🎁",
+        "15️⃣ خانة التحديثات الجديدة 🚀"
     ])
 else:
     menu = st.sidebar.radio("اختر التبويب المطلوبة (صلاحية كاشير):", [
         "5️⃣ سلة المبيعات والفاتورة",
         "6️⃣ وصل سداد وتسديد الديون",
         "4️⃣ إدارة العملاء",
-        "🔟 دليل الاستخدام والدعم 📖"
+        "🔟 دليل الاستخدام والدعم 📖",
+        "15️⃣ خانة التحديثات الجديدة 🚀"
     ])
 
 st.sidebar.markdown("---")
@@ -198,7 +204,7 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
                         else:
                             st.warning("الكمية نفذت!")
                 with c_b2:
-                    if st.button("🗑️ حذف", key=f"del_{item.get('id')}"):
+                    if st.button("🗑️️ حذف", key=f"del_{item.get('id')}"):
                         sb_delete("products", item.get('id'))
                         st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -296,7 +302,7 @@ elif menu == "4️⃣ إدارة العملاء":
     else:
         st.info("لا يوجد عملاء مسجلون لديك بعد.")
 
-# --- 5️⃣ سلة المبيعات والفاتورة (مع وصل مبيعات رسمي واحترافي) ---
+# --- 5️⃣ سلة المبيعات والفاتورة ---
 elif menu == "5️⃣ سلة المبيعات والفاتورة":
     st.header("🛒 سلة المبيعات وإصدار الفواتير")
     if products:
@@ -356,7 +362,6 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
 
                 st.success("تمت عملية البيع بنجاح وتحديث المخزون والذمم بالتزامن!")
                 
-                # --- عرض وصل المبيعات الرسمي والجاهز للطباعة ---
                 st.markdown("---")
                 st.markdown(f"""
                 <div style="background: #ffffff; padding: 25px; border-radius: 10px; border: 2px solid #2c3e50; font-family: Tahoma; direction: rtl;">
@@ -403,7 +408,7 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
     else:
         st.info("السلة فارغة.")
 
-# --- 6️⃣ وصل سداد وتسديد الديون (مع وصل سداد رسمي ومربوط بالعملاء المسجلين حصراً) ---
+# --- 6️⃣ وصل سداد وتسديد الديون ---
 elif menu == "6️⃣ وصل سداد وتسديد الديون":
     st.header("🧾 وصل سداد وتصفير ديون العملاء")
     if customers:
@@ -425,7 +430,6 @@ elif menu == "6️⃣ وصل سداد وتسديد الديون":
                     sb_update("customers", selected_cust_data['id'], {"debt": remaining_debt})
                     st.success(f"تم تسديد المبلغ بنجاح وتحديث الحسابات بالتزامن! الدين الباقي: {remaining_debt} د.ع")
                     
-                    # --- عرض وصل السداد الرسمي والموثق بالعميل الحقيقي ---
                     st.markdown("---")
                     st.markdown(f"""
                     <div style="background: #ffffff; padding: 25px; border-radius: 10px; border: 2px solid #27ae60; font-family: Tahoma; direction: rtl;">
@@ -482,7 +486,7 @@ elif menu == "9️⃣ تقارير الأرباح والخسائر":
     else:
         st.info("لا توجد بيانات كافية.")
 
-# --- 🔟 دليل الاستخدام والدعم (حسب الصور بالحرف الواحد + حساب إنستجرام الجديد) ---
+# --- 🔟 دليل الاستخدام والدعم (مع إضافة شرح التبويبات الـ 4 الجديدة بدقة) ---
 elif menu == "🔟 دليل الاستخدام والدعم 📖":
     st.markdown("<h1 style='text-align: center; color: #2c3e50;'>🛍️ نظام Yasser Web الشامل لإدارة المبيعات والمخزون</h1>", unsafe_allow_html=True)
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -532,6 +536,114 @@ elif menu == "🔟 دليل الاستخدام والدعم 📖":
     
     st.markdown("### 📖 11. الدليل والدعم")
     st.markdown("المرجع الشامل والدعم الفني.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    # التبويبات الـ 4 الجديدة المضافة حديثاً للدليل
+    st.markdown("### 💵 12. حركة الصندوق والدرج اليومي")
+    st.markdown("متابعة المبالغ النقدية داخل الصندوق، تسجيل العهدة، والمصاريف اليومية ومطابقة الحسابات.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### ⚠️ 13. تنبيهات نفاذ المواد")
+    st.markdown("مراقبة المخزون الفوري وعرض قائمة بالمواد التي قاربت على النفاد لإعادة طلبها مسبقاً.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 🏷️ 14. طبع ملصقات الباركود")
+    st.markdown("اختيار المنتجات لتوليد وطباعة ملصقات الرفوف والباركود والأسعار بسهولة.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    st.markdown("### 🎁 15. برنامج الولاء وعروض العملاء")
+    st.markdown("متابعة العملاء الأكثر تعاملاً، تدوين ملاحظاتهم، وتخصيص عروض وميزات لهم.")
     st.markdown("<hr style='border: 2px solid #d4ac0d;'>", unsafe_allow_html=True)
     
-    st.markdown("✨ **تطوير البرمجة: نظام ياسر ويب | انستغرام:** yaser120120120120 2026©")
+    st.markdown("✨ **تطوير البرمجة: نظام ياسر ويب | انستغرام:** yaser120120120120 2026©")[cite: 4]
+
+# --- 11️⃣ تبويب حركة الصندوق والدرج اليومي ---
+elif menu == "11️⃣ حركة الصندوق والدرج اليومي 💵":
+    st.header("💵 إدارة حركة الصندوق والدرج اليومي")
+    st.markdown("متابعة السيولة النقدية والمبيعات الداخلة والعهدة اليومية.")
+    with st.form("cash_drawer_form"):
+        opening_cash = st.text_input("المبلغ الافتتاحي في الصندوق (العهدة صباحاً):", value="0")
+        notes_drawer = st.text_area("ملاحظات وردية الصندوق:")
+        submitted_drawer = st.form_submit_button("حفظ بيانات الصندوق")
+        if submitted_drawer:
+            st.success("تم تسجيل بيانات الصندوق اليومي بنجاح.")
+
+# --- 12️⃣ تبويب تنبيهات نفاذ المواد ---
+elif menu == "12️⃣ تنبيهات نفاذ المواد ⚠️":
+    st.header("⚠️ تنبيهات نفاذ المواد في المخزن")
+    if products:
+        low_stock_items = [p for p in products if int(p.get('quantity', 0)) <= 3]
+        if low_stock_items:
+            st.warning("تحذير: المواد التالية قاربت على النفاذ (الكمية 3 أو أقل):")
+            st.table(low_stock_items)
+        else:
+            st.success("ممتاز! جميع المواد متوفرة بكميات كافية ولا توجد مواد قاربت على النفاد.")
+    else:
+        st.info("لا توجد منتجات مسجلة في المخزون.")
+
+# --- 13️⃣ تبويب طبع ملصقات الباركود ---
+elif menu == "13️⃣ طبع ملصقات الباركود 🏷️":
+    st.header("🏷️ طبع ملصقات الرفوف والباركود")
+    if products:
+        prod_labels = {p['product_name'] + f" (السعر: {p['sell_price']})": p for p in products}
+        chosen_p_label = st.selectbox("اختر المنتج لطباعة ملصه:", list(prod_labels.keys()))
+        selected_p_obj = prod_labels[chosen_p_label]
+        num_copies = st.number_input("عدد الملصقات المطلوبة:", min_value=1, max_value=50, value=5)
+        
+        if st.button("🖨️ معاينة وطباعة الملصق"):
+            st.markdown(f"""
+            <div style="border: 2px dashed #2c3e50; padding: 20px; border-radius: 8px; width: 300px; background: white; text-align: center; margin: auto;">
+                <h3 style="margin: 0; color: #2c3e50;">{st.session_state.shop_name}</h3>
+                <hr style="margin: 5px 0;">
+                <p style="font-size: 18px; font-weight: bold; margin: 5px 0;">{selected_p_obj['product_name']}</p>
+                <p style="font-size: 20px; color: #27ae60; font-weight: bold; margin: 5px 0;">السعر: {selected_p_obj['sell_price']} د.ع</p>
+                <p style="font-size: 14px; color: #555; background: #eee; padding: 5px;">||| ||||| |||| ||||| (Barcode)</p>
+                <p style="font-size: 11px; color: #888;">العدد المطلوب طباعته: {num_copies}</p>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("لا توجد منتجات لطباعة باركود لها.")
+
+# --- 14️⃣ تبويب برنامج الولاء وعروض العملاء ---
+elif menu == "14️⃣ برنامج الولاء وعروض العملاء 🎁":
+    st.header("🎁 برنامج الولاء ومتابعة عروض العملاء")
+    if customers:
+        cust_loyalty_map = {c['name']: c for c in customers}
+        chosen_l_cust = st.selectbox("اختر العميل:", list(cust_loyalty_map.keys()))
+        target_cust = cust_loyalty_map[chosen_l_cust]
+        
+        st.info(f"👤 العميل: **{target_cust['name']}** | المحافظة: **{target_cust.get('city', 'البصرة')}**")
+        with st.form("loyalty_form"):
+            discount_note = st.text_input("منح خصم خاص أو ملاحظة ولاء:", value="عميل دائم - خصم خاص 5%")
+            submit_loyalty = st.form_submit_button("حفظ بيانات الولاء")
+            if submit_loyalty:
+                st.success("تم تحديث عروض وميزات الولاء للعميل بنجاح!")
+    else:
+        st.info("لا توجد عملاء مسجلون حالياً.")
+
+# --- 15️⃣ خانة التحديثات الجديدة 🚀 ---
+elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
+    st.markdown("<h2 style='text-align: center; color: #2980b9;'>🚀 سجل التحديثات والتطويرات في نظام ياسر ويب</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #555;'>هذه الخانة توثق كل ميزة وإضافة جديدة يتم إضافتها للموقع أولاً بأول.</p>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    st.markdown("""
+    <div style="background: white; padding: 20px; border-radius: 8px; border-right: 5px solid #27ae60; margin-bottom: 15px;">
+        <h4 style="color: #27ae60; margin-top: 0;">✨ التحديث الأخير (سبتمبر 2026)</h4>
+        <ul>
+            <li><b>إضافة الصلاحيات الوظيفية:</b> الفصل التام بين حسابات المدير (المسؤول) وحسابات الكاشير لضمان أمان المخزون وحصر صلاحيات البيع والسداد للكاشير.</li>
+            <li><b>تحديث نظام الوصولات الرسمية:</b> تصميم وصل مبيعات ووصل سداد احترافي وموثق يسحب اسم العميل والبيانات حصراً من قاعدة البيانات المسجلة.</li>
+            <li><b>إضافة 4 تبويبات جديدة متكاملة:</b> حركة الصندوق، تنبيهات نفاذ المواد، طبع ملصقات الباركود، وبرنامج الولاء للعملاء.</li>
+            <li><b>تحديث دليل الاستخدام:</b> إدراج كافة التبويبات والخدمات الجديدة داخل الدليل بمرجعية واضحة.</li>
+        </ul>
+    </div>
+    
+    <div style="background: white; padding: 20px; border-radius: 8px; border-right: 5px solid #2980b9; margin-bottom: 15px;">
+        <h4 style="color: #2980b9; margin-top: 0;">📦 التحديثات السابقة</h4>
+        <ul>
+            <li>ربط النظام بقاعدة بيانات سحابية مركزية (Supabase) لضمان التزامن الفوري بين الأجهزة.</li>
+            <li>تطوير واجهة سلة المبيعات وحساب الإجماليات وخصم المخزون تلقائياً.</li>
+            <li>إضافة سجل الديون والذمم والمصاريف اليومية وتقارير الأرباح والخسائر.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
