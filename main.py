@@ -11,6 +11,12 @@ st.markdown("""
     .stApp {
         background-color: #f4f6f9;
     }
+    /* حل مشكلة الحقول السوداء على الموبايل لتكون بيضاء وواضحة تماماً */
+    input[type="text"], input[type="number"], textarea, div[data-baseweb="input"] input {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+    }
     div.stButton > button {
         background-color: #2c3e50;
         color: white;
@@ -122,7 +128,7 @@ if not st.session_state.logged_in:
                     st.error("الرجاء إدخال اسم المحل بشكل صحيح.")
     st.stop()
 
-# --- القائمة الجانبية (مع التبويبات الـ 11 القديمة + الـ 4 الجديدة + خانة التحديثات) ---
+# --- القائمة الجانبية (التبويبات الـ 15 كاملة) ---
 st.sidebar.markdown(f"### 🏪 المحل: {st.session_state.shop_name}")
 st.sidebar.markdown(f"👤 الصلاحية: **{st.session_state.role}**")
 st.sidebar.markdown("---")
@@ -204,7 +210,7 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
                         else:
                             st.warning("الكمية نفذت!")
                 with c_b2:
-                    if st.button("🗑️️ حذف", key=f"del_{item.get('id')}"):
+                    if st.button("🗑 حذف", key=f"del_{item.get('id')}"):
                         sb_delete("products", item.get('id'))
                         st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -486,7 +492,7 @@ elif menu == "9️⃣ تقارير الأرباح والخسائر":
     else:
         st.info("لا توجد بيانات كافية.")
 
-# --- 🔟 دليل الاستخدام والدعم (مع إضافة شرح التبويبات الـ 4 الجديدة بدقة) ---
+# --- 🔟 دليل الاستخدام والدعم ---
 elif menu == "🔟 دليل الاستخدام والدعم 📖":
     st.markdown("<h1 style='text-align: center; color: #2c3e50;'>🛍️ نظام Yasser Web الشامل لإدارة المبيعات والمخزون</h1>", unsafe_allow_html=True)
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -538,7 +544,6 @@ elif menu == "🔟 دليل الاستخدام والدعم 📖":
     st.markdown("المرجع الشامل والدعم الفني.")
     st.markdown("<hr>", unsafe_allow_html=True)
     
-    # التبويبات الـ 4 الجديدة المضافة حديثاً للدليل
     st.markdown("### 💵 12. حركة الصندوق والدرج اليومي")
     st.markdown("متابعة المبالغ النقدية داخل الصندوق، تسجيل العهدة، والمصاريف اليومية ومطابقة الحسابات.")
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -555,7 +560,7 @@ elif menu == "🔟 دليل الاستخدام والدعم 📖":
     st.markdown("متابعة العملاء الأكثر تعاملاً، تدوين ملاحظاتهم، وتخصيص عروض وميزات لهم.")
     st.markdown("<hr style='border: 2px solid #d4ac0d;'>", unsafe_allow_html=True)
     
-    st.markdown("✨ **تطوير البرمجة: نظام ياسر ويب | انستغرام:** yaser120120120120 2026©")[cite: 4]
+    st.markdown("✨ **تطوير البرمجة: نظام ياسر ويب | انستغرام:** yaser120120120120 2026©")
 
 # --- 11️⃣ تبويب حركة الصندوق والدرج اليومي ---
 elif menu == "11️⃣ حركة الصندوق والدرج اليومي 💵":
@@ -628,22 +633,19 @@ elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
     st.markdown("---")
     
     st.markdown("""
-    <div style="background: white; padding: 20px; border-radius: 8px; border-right: 5px solid #27ae60; margin-bottom: 15px;">
-        <h4 style="color: #27ae60; margin-top: 0;">✨ التحديث الأخير (سبتمبر 2026)</h4>
+    <div style="background: white; padding: 20px; border-radius: 8px; border-right: 5px solid #e74c3c; margin-bottom: 15px;">
+        <h4 style="color: #e74c3c; margin-top: 0;">🔧 تحديث اصلاح حقول التليفون</h4>
         <ul>
-            <li><b>إضافة الصلاحيات الوظيفية:</b> الفصل التام بين حسابات المدير (المسؤول) وحسابات الكاشير لضمان أمان المخزون وحصر صلاحيات البيع والسداد للكاشير.</li>
-            <li><b>تحديث نظام الوصولات الرسمية:</b> تصميم وصل مبيعات ووصل سداد احترافي وموثق يسحب اسم العميل والبيانات حصراً من قاعدة البيانات المسجلة.</li>
-            <li><b>إضافة 4 تبويبات جديدة متكاملة:</b> حركة الصندوق، تنبيهات نفاذ المواد، طبع ملصقات الباركود، وبرنامج الولاء للعملاء.</li>
-            <li><b>تحديث دليل الاستخدام:</b> إدراج كافة التبويبات والخدمات الجديدة داخل الدليل بمرجعية واضحة.</li>
+            <li><b>حل مشكلة الحقول السوداء:</b> تم تعديل ألوان حقول الإدخال والكتابة على شاشة التليفون لتكون بخلفية بيضاء وكتابة واضحة ومقروءة بشكل كامل دون أي تأثير على واجهة الحاسبة.</li>
         </ul>
     </div>
     
-    <div style="background: white; padding: 20px; border-radius: 8px; border-right: 5px solid #2980b9; margin-bottom: 15px;">
-        <h4 style="color: #2980b9; margin-top: 0;">📦 التحديثات السابقة</h4>
+    <div style="background: white; padding: 20px; border-radius: 8px; border-right: 5px solid #27ae60; margin-bottom: 15px;">
+        <h4 style="color: #27ae60; margin-top: 0;">✨ التحديثات السابقة (سبتمبر 2026)</h4>
         <ul>
-            <li>ربط النظام بقاعدة بيانات سحابية مركزية (Supabase) لضمان التزامن الفوري بين الأجهزة.</li>
-            <li>تطوير واجهة سلة المبيعات وحساب الإجماليات وخصم المخزون تلقائياً.</li>
-            <li>إضافة سجل الديون والذمم والمصاريف اليومية وتقارير الأرباح والخسائر.</li>
+            <li>إضافة الصلاحيات الوظيفية (مدير / كاشير).</li>
+            <li>تحديث نظام الوصولات الرسمية وسندات القبض.</li>
+            <li>إضافة 4 تبويبات جديدة (حركة الصندوق، تنبيهات النفاذ، الباركود، الولاء).</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
