@@ -3,19 +3,26 @@ import urllib.request
 import json
 from datetime import datetime
 
-# إعدادات الصفحة متوافقة مع التليفون والحاسبة وألوان مريحة للعين
+# إعدادات الصفحة متوافقة مع التليفون والحاسبة
 st.set_page_config(page_title="نظام ياسر ويب المتكامل", page_icon="🛍️", layout="wide")
 
 st.markdown("""
     <style>
+    /* تثبيت المظهر الفاتح الواضح وتجنب اختفاء النصوص في الدارك مود للهواتف */
     .stApp {
-        background-color: #f4f6f9;
+        background-color: #f8f9fa !important;
+        color: #111111 !important;
     }
-    /* حل مشكلة الحقول السوداء على الموبايل لتكون بيضاء وواضحة تماماً */
+    /* إجبار كل العناوين والنصوص فوق الحقول أن تكون بلون أسود غامق وواضح */
+    label, .stTextInput label, .stSelectbox label, .stNumberInput label, p, span, h1, h2, h3, h4 {
+        color: #111111 !important;
+    }
+    /* حل مشكلة الحقول لتكون بيضاء وكتابتها واضحة تماماً */
     input[type="text"], input[type="number"], textarea, div[data-baseweb="input"] input {
         background-color: #ffffff !important;
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
+        border: 1px solid #ced4da !important;
     }
     div.stButton > button {
         background-color: #2c3e50;
@@ -103,7 +110,7 @@ if 'cart' not in st.session_state:
 # --- واجهة تسجيل الدخول بصلاحيات (مدير / كاشير) ---
 if not st.session_state.logged_in:
     st.markdown("<h2 style='text-align: center; color: #2c3e50;'>🏷️ تسجيل دخول نظام ياسر ويب</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #555;'>أدخل اسم المحل وحدد الصلاحية الوظيفية للبدء</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #333;'>أدخل اسم المحل وحدد الصلاحية الوظيفية للبدء</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -187,8 +194,8 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
             with cols[idx % 3]:
                 st.markdown(f"""
                 <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px;">
-                    <h4>📦 {item.get('product_name')}</h4>
-                    <p>الشراء: <b>{buy}</b> | البيع: <b>{sell}</b></p>
+                    <h4 style="color:#000;">📦 {item.get('product_name')}</h4>
+                    <p style="color:#000;">الشراء: <b>{buy}</b> | البيع: <b>{sell}</b></p>
                 """, unsafe_allow_html=True)
                 
                 if diff > 0:
@@ -198,7 +205,7 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
                 else:
                     st.info("⚪ بدون هامش ربح")
                     
-                st.markdown(f"<p>الكمية المتوفرة: <b style='color:green;'>{qty}</b></p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color:#000;'>الكمية المتوفرة: <b style='color:green;'>{qty}</b></p>", unsafe_allow_html=True)
                 
                 c_b1, c_b2 = st.columns(2)
                 with c_b1:
@@ -374,16 +381,16 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
                     <h2 style="text-align: center; color: #2c3e50; margin-bottom: 5px;">🏪 {st.session_state.shop_name}</h2>
                     <p style="text-align: center; color: #7f8c8d; margin-top: 0;">وصل مبيعات رسمي وموثق</p>
                     <hr style="border: 1px dashed #bdc3c7;">
-                    <p><b>📅 التاريخ والوقت:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-                    <p><b>👤 اسم العميل:</b> {chosen_cust}</p>
-                    <p><b>🏷️ طريقة البيع:</b> {'دين على الحساب' if is_debt_sale else 'نقدي'}</p>
+                    <p style="color:#000;"><b>📅 التاريخ والوقت:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    <p style="color:#000;"><b>👤 اسم العميل:</b> {chosen_cust}</p>
+                    <p style="color:#000;"><b>🏷️ طريقة البيع:</b> {'دين على الحساب' if is_debt_sale else 'نقدي'}</p>
                     <table style="width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px;">
                         <thead>
                             <tr style="background: #f8f9f9; border-bottom: 2px solid #2c3e50;">
-                                <th style="padding: 8px; text-align: right;">المادة</th>
-                                <th style="padding: 8px; text-align: center;">الكمية</th>
-                                <th style="padding: 8px; text-align: center;">السعر المفرد</th>
-                                <th style="padding: 8px; text-align: left;">المجموع</th>
+                                <th style="padding: 8px; text-align: right; color:#000;">المادة</th>
+                                <th style="padding: 8px; text-align: center; color:#000;">الكمية</th>
+                                <th style="padding: 8px; text-align: center; color:#000;">السعر المفرد</th>
+                                <th style="padding: 8px; text-align: left; color:#000;">المجموع</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -392,10 +399,10 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
                 for item in st.session_state.cart:
                     st.markdown(f"""
                             <tr style="border-bottom: 1px solid #ecf0f1;">
-                                <td style="padding: 8px; text-align: right;">{item['product_name']}</td>
-                                <td style="padding: 8px; text-align: center;">{item['quantity']}</td>
-                                <td style="padding: 8px; text-align: center;">{item['sell_price']} د.ع</td>
-                                <td style="padding: 8px; text-align: left;">{item['sell_price'] * item['quantity']} د.ع</td>
+                                <td style="padding: 8px; text-align: right; color:#000;">{item['product_name']}</td>
+                                <td style="padding: 8px; text-align: center; color:#000;">{item['quantity']}</td>
+                                <td style="padding: 8px; text-align: center; color:#000;">{item['sell_price']} د.ع</td>
+                                <td style="padding: 8px; text-align: left; color:#000;">{item['sell_price'] * item['quantity']} د.ع</td>
                             </tr>
                     """, unsafe_allow_html=True)
                     
@@ -404,7 +411,7 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
                     </table>
                     <hr style="border: 1px dashed #bdc3c7;">
                     <h3 style="text-align: left; color: #27ae60;">الإجمالي الكلي: {total_price} د.ع</h3>
-                    <p style="text-align: center; font-size: 12px; color: #95a5a6; margin-top: 20px;">شكراً لتعاملكم معنا | تطوير: نظام ياسر ويب</p>
+                    <p style="text-align: center; font-size: 12px; color: #555; margin-top: 20px;">شكراً لتعاملكم معنا | تطوير: نظام ياسر ويب</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -440,17 +447,17 @@ elif menu == "6️⃣ وصل سداد وتسديد الديون":
                     st.markdown(f"""
                     <div style="background: #ffffff; padding: 25px; border-radius: 10px; border: 2px solid #27ae60; font-family: Tahoma; direction: rtl;">
                         <h2 style="text-align: center; color: #27ae60; margin-bottom: 5px;">📜 سند قبض وتسديد ديون</h2>
-                        <p style="text-align: center; color: #7f8c8d; margin-top: 0;">محل: {st.session_state.shop_name}</p>
+                        <p style="text-align: center; color: #555; margin-top: 0;">محل: {st.session_state.shop_name}</p>
                         <hr style="border: 1px dashed #bdc3c7;">
-                        <p><b>📅 تاريخ الوصل:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-                        <p><b>👤 اسم العميل (من النظام):</b> <span style="color: #2980b9; font-weight: bold;">{selected_cust_data['name']}</span></p>
-                        <p><b>📞 رقم الهاتف:</b> {selected_cust_data.get('phone', 'غير متوفر')}</p>
-                        <p><b>📍 العنوان:</b> {selected_cust_data.get('address', 'غير متوفر')} - {selected_cust_data.get('city', 'البصرة')}</p>
+                        <p style="color:#000;"><b>📅 تاريخ الوصل:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                        <p style="color:#000;"><b>👤 اسم العميل (من النظام):</b> <span style="color: #2980b9; font-weight: bold;">{selected_cust_data['name']}</span></p>
+                        <p style="color:#000;"><b>📞 رقم الهاتف:</b> {selected_cust_data.get('phone', 'غير متوفر')}</p>
+                        <p style="color:#000;"><b>📍 العنوان:</b> {selected_cust_data.get('address', 'غير متوفر')} - {selected_cust_data.get('city', 'البصرة')}</p>
                         <hr style="border: 1px dashed #bdc3c7;">
-                        <p style="font-size: 16px;">مستلم من العميل أعلاه مبلغ وقدره: <b style="color: #27ae60; font-size: 18px;">{paid_val} د.ع</b></p>
-                        <p style="font-size: 16px;">الرصيد المتبقي (الدين الحالي): <b style="color: #c0392b; font-size: 18px;">{remaining_debt} د.ع</b></p>
+                        <p style="font-size: 16px; color:#000;">مستلم من العميل أعلاه مبلغ وقدره: <b style="color: #27ae60; font-size: 18px;">{paid_val} د.ع</b></p>
+                        <p style="font-size: 16px; color:#000;">الرصيد المتبقي (الدين الحالي): <b style="color: #c0392b; font-size: 18px;">{remaining_debt} د.ع</b></p>
                         <hr style="border: 1px dashed #bdc3c7;">
-                        <p style="text-align: center; font-size: 12px; color: #95a5a6; margin-top: 20px;">تم السداد بنجاح وإصدار السند الآلي | نظام ياسر ويب</p>
+                        <p style="text-align: center; font-size: 12px; color: #555; margin-top: 20px;">تم السداد بنجاح وإصدار السند الآلي | نظام ياسر ويب</p>
                     </div>
                     """, unsafe_allow_html=True)
                     
@@ -497,7 +504,7 @@ elif menu == "🔟 دليل الاستخدام والدعم 📖":
     st.markdown("<h1 style='text-align: center; color: #2c3e50;'>🛍️ نظام Yasser Web الشامل لإدارة المبيعات والمخزون</h1>", unsafe_allow_html=True)
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center; color: #b7950b;'>✨ دليل استخدام نظام ياسر ويب الشامل</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #555;'>المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #333;'>المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة</p>", unsafe_allow_html=True)
     st.markdown("<hr>", unsafe_allow_html=True)
     
     st.markdown("### ➕ 1. إضافة مادة جديدة")
@@ -600,10 +607,10 @@ elif menu == "13️⃣ طبع ملصقات الباركود 🏷️":
             <div style="border: 2px dashed #2c3e50; padding: 20px; border-radius: 8px; width: 300px; background: white; text-align: center; margin: auto;">
                 <h3 style="margin: 0; color: #2c3e50;">{st.session_state.shop_name}</h3>
                 <hr style="margin: 5px 0;">
-                <p style="font-size: 18px; font-weight: bold; margin: 5px 0;">{selected_p_obj['product_name']}</p>
+                <p style="font-size: 18px; font-weight: bold; margin: 5px 0; color:#000;">{selected_p_obj['product_name']}</p>
                 <p style="font-size: 20px; color: #27ae60; font-weight: bold; margin: 5px 0;">السعر: {selected_p_obj['sell_price']} د.ع</p>
                 <p style="font-size: 14px; color: #555; background: #eee; padding: 5px;">||| ||||| |||| ||||| (Barcode)</p>
-                <p style="font-size: 11px; color: #888;">العدد المطلوب طباعته: {num_copies}</p>
+                <p style="font-size: 11px; color: #555;">العدد المطلوب طباعته: {num_copies}</p>
             </div>
             """, unsafe_allow_html=True)
     else:
@@ -634,9 +641,9 @@ elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
     
     st.markdown("""
     <div style="background: white; padding: 20px; border-radius: 8px; border-right: 5px solid #e74c3c; margin-bottom: 15px;">
-        <h4 style="color: #e74c3c; margin-top: 0;">🔧 تحديث اصلاح حقول التليفون</h4>
+        <h4 style="color: #e74c3c; margin-top: 0;">🔧 تحديث اصلاح النصوص والعناوين المختفية بالموبايل</h4>
         <ul>
-            <li><b>حل مشكلة الحقول السوداء:</b> تم تعديل ألوان حقول الإدخال والكتابة على شاشة التليفون لتكون بخلفية بيضاء وكتابة واضحة ومقروءة بشكل كامل دون أي تأثير على واجهة الحاسبة.</li>
+            <li><b>منع تأثير الوضع الداكن (Dark Mode):</b> تم إضافة كود تصميمي يثبت ألوان العناوين وأسماء الحقول باللون الأسود الواضح على خلفية بيضاء نقية، لتظهر كافة العناوين (اسم المادة، سعر الشراء، إلخ) بوضوح تام على الهواتف.</li>
         </ul>
     </div>
     
