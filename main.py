@@ -3,41 +3,8 @@ import urllib.request
 import json
 from datetime import datetime
 
-# إعدادات الصفحة متوافقة مع التليفون والحاسبة
+# إعدادات الصفحة
 st.set_page_config(page_title="نظام ياسر ويب المتكامل", page_icon="🛍️", layout="wide")
-
-st.markdown("""
-    <style>
-    /* تثبيت المظهر الفاتح الواضح وتجنب اختفاء النصوص في الدارك مود للهواتف */
-    .stApp {
-        background-color: #f8f9fa !important;
-        color: #111111 !important;
-    }
-    /* إجبار كل العناوين والنصوص فوق الحقول أن تكون بلون أسود غامق وواضح */
-    label, .stTextInput label, .stSelectbox label, .stNumberInput label, p, span, h1, h2, h3, h4 {
-        color: #111111 !important;
-    }
-    /* حل مشكلة الحقول لتكون بيضاء وكتابتها واضحة تماماً */
-    input[type="text"], input[type="number"], textarea, div[data-baseweb="input"] input {
-        background-color: #ffffff !important;
-        color: #000000 !important;
-        -webkit-text-fill-color: #000000 !important;
-        border: 1px solid #ced4da !important;
-    }
-    div.stButton > button {
-        background-color: #2c3e50;
-        color: white;
-        border-radius: 6px;
-        border: none;
-        padding: 8px 16px;
-        font-weight: bold;
-    }
-    div.stButton > button:hover {
-        background-color: #34495e;
-        color: white;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -109,8 +76,8 @@ if 'cart' not in st.session_state:
 
 # --- واجهة تسجيل الدخول ---
 if not st.session_state.logged_in:
-    st.markdown("<h2 style='text-align: center; color: #2c3e50;'>🏷️ تسجيل دخول نظام ياسر ويب</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #333;'>أدخل اسم المحل وحدد الصلاحية الوظيفية للبدء</p>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>🏷️ تسجيل دخول نظام ياسر ويب</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>أدخل اسم المحل وحدد الصلاحية الوظيفية للبدء</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -135,7 +102,7 @@ if not st.session_state.logged_in:
                     st.error("الرجاء إدخال اسم المحل بشكل صحيح.")
     st.stop()
 
-# --- القائمة الجانبية (رجعت كل التبويبات الـ 15 كاملة ومضبوطة) ---
+# --- القائمة الجانبية الأساسية (رجعت بمكانها الطبيعي وبدون أي مشاكل) ---
 st.sidebar.markdown(f"### 🏪 المحل: {st.session_state.shop_name}")
 st.sidebar.markdown(f"👤 الصلاحية: **{st.session_state.role}**")
 st.sidebar.markdown("---")
@@ -183,11 +150,8 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
             qty = int(item.get('quantity', 0))
             
             with cols[idx % 3]:
-                st.markdown(f"""
-                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px;">
-                    <h4 style="color:#000;">📦 {item.get('product_name')}</h4>
-                    <p style="color:#000;">الشراء: <b>{buy}</b> | البيع: <b>{sell}</b></p>
-                """, unsafe_allow_html=True)
+                st.subheader(f"📦 {item.get('product_name')}")
+                st.write(f"الشراء: **{buy}** | البيع: **{sell}**")
                 
                 if diff > 0:
                     st.success(f"🟢 ربح القطعة: +{diff} د.ع")
@@ -196,14 +160,14 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
                 else:
                     st.info("⚪ بدون هامش ربح")
                     
-                st.markdown(f"<p style='color:#000;'>الكمية المتوفرة: <b style='color:green;'>{qty}</b></p>", unsafe_allow_html=True)
+                st.write(f"الكمية المتوفرة: 🟢 **{qty}**")
                 
                 c_b1, c_b2 = st.columns(2)
                 with c_b1:
                     if st.button("🛒 بيع (-1)", key=f"sell_{item.get('id')}"):
                         if qty > 0:
                             sb_update("products", item.get('id'), {"quantity": qty - 1})
-                            st.success("تم البيع وخصم الكمية المتزامنة!")
+                            st.success("تم البيع وخصم الكمية!")
                             st.rerun()
                         else:
                             st.warning("الكمية نفذت!")
@@ -211,7 +175,7 @@ if menu == "1️⃣ إدارة المخزون والبطاقات":
                     if st.button("🗑 حذف", key=f"del_{item.get('id')}"):
                         sb_delete("products", item.get('id'))
                         st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("---")
     else:
         st.info("لا توجد مواد مضافة في مخزونك الحالي.")
 
@@ -239,7 +203,7 @@ elif menu == "2️⃣ إضافة مادة جديدة":
                         "shop_name": current_shop_id
                     }
                     if sb_insert("products", payload):
-                        st.success("تمت إضافة المادة بنجاح وتظهر الآن فوراً عند الكاشير!")
+                        st.success("تمت إضافة المادة بنجاح وتظهر الآن فوراً!")
                         st.rerun()
                     else:
                         st.error("حدث خطأ أثناء الإضافة.")
@@ -263,7 +227,7 @@ elif menu == "3️⃣ زيادة كمية لمادة موجودة ➕":
                 try:
                     new_total_q = int(target_product['quantity']) + int(added_qty_str)
                     if sb_update("products", target_product['id'], {"quantity": new_total_q}):
-                        st.success("تمت زيادة الكمية وتحديثها بالتزامن مع النظام!")
+                        st.success("تمت زيادة الكمية وتحديثها بنجاح!")
                         st.rerun()
                     else:
                         st.error("خطأ في التحديث.")
@@ -293,7 +257,7 @@ elif menu == "4️⃣ إدارة العملاء":
                     "shop_name": current_shop_id
                 }
                 if sb_insert("customers", payload):
-                    st.success("تم حفظ العميل في السجل المشترك!")
+                    st.success("تم حفظ العميل بنجاح!")
                     st.rerun()
                 else:
                     st.error("خطأ في الحفظ.")
@@ -338,17 +302,17 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
             sub = c_item['sell_price'] * c_item['quantity']
             total_price += sub
             col_a, col_b, col_c = st.columns([3, 1, 1])
-            col_a.write(f"<b>{c_item['product_name']}</b> - {c_item['sell_price']} × {c_item['quantity']}")
+            col_a.write(f"**{c_item['product_name']}** - {c_item['sell_price']} × {c_item['quantity']}")
             col_b.write(f"{sub} د.ع")
             if col_c.button("حذف", key=f"cart_del_{i}"):
                 st.session_state.cart.pop(i)
                 st.rerun()
                 
-        st.markdown(f"### الإجمالي: <span style='color:green;'>{total_price} د.ع</span>", unsafe_allow_html=True)
+        st.markdown(f"### الإجمالي: {total_price} د.ع")
         
         if customers:
             cust_names = [c['name'] for c in customers]
-            chosen_cust = st.selectbox("اختر العميل للفاتورة (من قاعدة البيانات):", cust_names)
+            chosen_cust = st.selectbox("اختر العميل للفاتورة:", cust_names)
             is_debt_sale = st.checkbox("تسجيل المبلغ كدين على العميل؟")
             
             if st.button("✅ إتمام البيع وعرض الفاتورة الرسمية"):
@@ -364,45 +328,27 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
                         new_debt = float(target_c_obj.get('debt', 0) or 0) + total_price
                         sb_update("customers", target_c_obj['id'], {"debt": new_debt})
 
-                st.success("تمت عملية البيع بنجاح وتحديث المخزون والذمم بالتزامن!")
+                st.success("تمت عملية البيع بنجاح وتحديث المخزون!")
                 
                 st.markdown("---")
                 st.markdown(f"""
-                <div style="background: #ffffff; padding: 25px; border-radius: 10px; border: 2px solid #2c3e50; font-family: Tahoma; direction: rtl;">
-                    <h2 style="text-align: center; color: #2c3e50; margin-bottom: 5px;">🏪 {st.session_state.shop_name}</h2>
-                    <p style="text-align: center; color: #7f8c8d; margin-top: 0;">وصل مبيعات رسمي وموثق</p>
-                    <hr style="border: 1px dashed #bdc3c7;">
-                    <p style="color:#000;"><b>📅 التاريخ والوقت:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-                    <p style="color:#000;"><b>👤 اسم العميل:</b> {chosen_cust}</p>
-                    <p style="color:#000;"><b>🏷️ طريقة البيع:</b> {'دين على الحساب' if is_debt_sale else 'نقدي'}</p>
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px;">
-                        <thead>
-                            <tr style="background: #f8f9f9; border-bottom: 2px solid #2c3e50;">
-                                <th style="padding: 8px; text-align: right; color:#000;">المادة</th>
-                                <th style="padding: 8px; text-align: center; color:#000;">الكمية</th>
-                                <th style="padding: 8px; text-align: center; color:#000;">السعر المفرد</th>
-                                <th style="padding: 8px; text-align: left; color:#000;">المجموع</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <div style="background: #ffffff; padding: 20px; border-radius: 10px; border: 2px solid #2c3e50; font-family: Tahoma; direction: rtl; color: black;">
+                    <h2 style="text-align: center; color: #2c3e50;">🏪 {st.session_state.shop_name}</h2>
+                    <p style="text-align: center; color: #555;">وصل مبيعات رسمي وموثق</p>
+                    <hr>
+                    <p><b>📅 التاريخ والوقت:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    <p><b>👤 اسم العميل:</b> {chosen_cust}</p>
+                    <p><b>🏷️ طريقة البيع:</b> {'دين على الحساب' if is_debt_sale else 'نقدي'}</p>
+                    <hr>
                 """, unsafe_allow_html=True)
                 
                 for item in st.session_state.cart:
-                    st.markdown(f"""
-                            <tr style="border-bottom: 1px solid #ecf0f1;">
-                                <td style="padding: 8px; text-align: right; color:#000;">{item['product_name']}</td>
-                                <td style="padding: 8px; text-align: center; color:#000;">{item['quantity']}</td>
-                                <td style="padding: 8px; text-align: center; color:#000;">{item['sell_price']} د.ع</td>
-                                <td style="padding: 8px; text-align: left; color:#000;">{item['sell_price'] * item['quantity']} د.ع</td>
-                            </tr>
-                    """, unsafe_allow_html=True)
+                    st.write(f"- {item['product_name']} | العدد: {item['quantity']} | السعر: {item['sell_price']} د.ع | المجموع: {item['sell_price'] * item['quantity']} د.ع")
                     
                 st.markdown(f"""
-                        </tbody>
-                    </table>
-                    <hr style="border: 1px dashed #bdc3c7;">
-                    <h3 style="text-align: left; color: #27ae60;">الإجمالي الكلي: {total_price} د.ع</h3>
-                    <p style="text-align: center; font-size: 12px; color: #555; margin-top: 20px;">شكراً لتعاملكم معنا | تطوير: نظام ياسر ويب</p>
+                    <hr>
+                    <h3 style="color: green;">الإجمالي الكلي: {total_price} د.ع</h3>
+                    <p style="text-align: center; font-size: 12px; color: #555;">شكراً لتعاملكم معنا | تطوير: نظام ياسر ويب</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -417,7 +363,7 @@ elif menu == "6️⃣ وصل سداد وتسديد الديون":
     st.header("🧾 وصل سداد وتصفير ديون العملاء")
     if customers:
         cust_map = {c['name'] + f" (الدين: {c.get('debt', 0)} د.ع)": c for c in customers}
-        chosen_receipt_cust_label = st.selectbox("اختر العميل (من قاعدة البيانات المسجلة):", list(cust_map.keys()))
+        chosen_receipt_cust_label = st.selectbox("اختر العميل:", list(cust_map.keys()))
         selected_cust_data = cust_map[chosen_receipt_cust_label]
         current_client_debt = float(selected_cust_data.get('debt', 0) or 0)
         
@@ -432,23 +378,22 @@ elif menu == "6️⃣ وصل سداد وتسديد الديون":
                     paid_val = float(paid_amount_str)
                     remaining_debt = max(0.0, current_client_debt - paid_val)
                     sb_update("customers", selected_cust_data['id'], {"debt": remaining_debt})
-                    st.success(f"تم تسديد المبلغ بنجاح وتحديث الحسابات بالتزامن! الدين الباقي: {remaining_debt} د.ع")
+                    st.success(f"تم تسديد المبلغ بنجاح! الدين الباقي: {remaining_debt} د.ع")
                     
                     st.markdown("---")
                     st.markdown(f"""
-                    <div style="background: #ffffff; padding: 25px; border-radius: 10px; border: 2px solid #27ae60; font-family: Tahoma; direction: rtl;">
-                        <h2 style="text-align: center; color: #27ae60; margin-bottom: 5px;">📜 سند قبض وتسديد ديون</h2>
-                        <p style="text-align: center; color: #555; margin-top: 0;">محل: {st.session_state.shop_name}</p>
-                        <hr style="border: 1px dashed #bdc3c7;">
-                        <p style="color:#000;"><b>📅 تاريخ الوصل:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-                        <p style="color:#000;"><b>👤 اسم العميل (من النظام):</b> <span style="color: #2980b9; font-weight: bold;">{selected_cust_data['name']}</span></p>
-                        <p style="color:#000;"><b>📞 رقم الهاتف:</b> {selected_cust_data.get('phone', 'غير متوفر')}</p>
-                        <p style="color:#000;"><b>📍 العنوان:</b> {selected_cust_data.get('address', 'غير متوفر')} - {selected_cust_data.get('city', 'البصرة')}</p>
-                        <hr style="border: 1px dashed #bdc3c7;">
-                        <p style="font-size: 16px; color:#000;">مستلم من العميل أعلاه مبلغ وقدره: <b style="color: #27ae60; font-size: 18px;">{paid_val} د.ع</b></p>
-                        <p style="font-size: 16px; color:#000;">الرصيد المتبقي (الدين الحالي): <b style="color: #c0392b; font-size: 18px;">{remaining_debt} د.ع</b></p>
-                        <hr style="border: 1px dashed #bdc3c7;">
-                        <p style="text-align: center; font-size: 12px; color: #555; margin-top: 20px;">تم السداد بنجاح وإصدار السند الآلي | نظام ياسر ويب</p>
+                    <div style="background: #ffffff; padding: 20px; border-radius: 10px; border: 2px solid #27ae60; font-family: Tahoma; direction: rtl; color: black;">
+                        <h2 style="text-align: center; color: #27ae60;">📜 سند قبض وتسديد ديون</h2>
+                        <p style="text-align: center; color: #555;">محل: {st.session_state.shop_name}</p>
+                        <hr>
+                        <p><b>📅 تاريخ الوصل:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                        <p><b>👤 اسم العميل:</b> {selected_cust_data['name']}</p>
+                        <p><b>📞 رقم الهاتف:</b> {selected_cust_data.get('phone', 'غير متوفر')}</p>
+                        <hr>
+                        <p>المبلغ المستلم: <b>{paid_val} د.ع</b></p>
+                        <p>الرصيد المتبقي (الدين الحالي): <b style="color: red;">{remaining_debt} د.ع</b></p>
+                        <hr>
+                        <p style="text-align: center; font-size: 12px; color: #555;">نظام ياسر ويب</p>
                     </div>
                     """, unsafe_allow_html=True)
                     
@@ -492,87 +437,21 @@ elif menu == "9️⃣ تقارير الأرباح والخسائر":
 
 # --- 🔟 دليل الاستخدام والدعم ---
 elif menu == "🔟 دليل الاستخدام والدعم 📖":
-    st.markdown("<h1 style='text-align: center; color: #2c3e50;'>🛍️ نظام Yasser Web الشامل لإدارة المبيعات والمخزون</h1>", unsafe_allow_html=True)
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #b7950b;'>✨ دليل استخدام نظام ياسر ويب الشامل</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #333;'>المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة</p>", unsafe_allow_html=True)
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### ➕ 1. إضافة مادة جديدة")
-    st.markdown("إدخال البضائع الجديدة للمخزن وتحديد أسعار الشراء والبيع والكميات بدقة.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 📦 2. جرد المخزن والباركود")
-    st.markdown("عرض المواد والمنتجات مع الألوان، القياسات، الباركود، وطباعة الرموز.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 👥 3. العملاء والديون")
-    st.markdown("تسجيل بيانات الزبائن ومعلومات التواصل ومتابعة حركة الديون المرتبطة بفواتيرهم.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 💵 4. تسداد الديون")
-    st.markdown("إدخال الدفعات النقدية المسددة وتحديث أرصدة العملاء وتصفير الذمم.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 🏬 5. الموردين")
-    st.markdown("تسجيل بيانات الموردين وأرقام هواتفهم والتخصصات المرتبطة بتوريد البضائع.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 🛒 6. البيع والفواتير")
-    st.markdown("نافذة سلة المبيعات لتجميع المواد وتحديد الكميات وحساب المبالغ تلقائياً.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 📄 7. سجل الفواتير")
-    st.markdown("عرض الفواتير الصادرة، تحميلها للطباعة المباشرة، أو إرسالها عبر الواتساب.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 💰 8. المصاريف")
-    st.markdown("تسجيل النثريات والمصروفات اليومية لحساب صافي الصندوق بدقة.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 📊 9. التقارير")
-    st.markdown("تحليلات مالية دقيقة لإجمالي المبيعات، صافي الأرباح، والديون المعلقة.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 📜 10. سجل النشاطات")
-    st.markdown("سجل رقابي متكامل يوثق جميع عمليات المستخدمين بدقة عالية.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 📖 11. الدليل والدعم")
-    st.markdown("المرجع الشامل والدعم الفني.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 💵 12. حركة الصندوق والدرج اليومي")
-    st.markdown("متابعة المبالغ النقدية داخل الصندوق، تسجيل العهدة، والمصاريف اليومية ومطابقة الحسابات.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### ⚠️ 13. تنبيهات نفاذ المواد")
-    st.markdown("مراقبة المخزون الفوري وعرض قائمة بالمواد التي قاربت على النفاد لإعادة طلبها مسبقاً.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 🏷️ 14. طبع ملصقات الباركود")
-    st.markdown("اختيار المنتجات لتوليد وطباعة ملصقات الرفوف والباركود والأسعار بسهولة.")
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    st.markdown("### 🎁 15. برنامج الولاء وعروض العملاء")
-    st.markdown("متابعة العملاء الأكثر تعاملاً، تدوين ملاحظاتهم، وتخصيص عروض وميزات لهم.")
-    st.markdown("<hr style='border: 2px solid #d4ac0d;'>", unsafe_allow_html=True)
-    
+    st.markdown("<h1>🛍️ دليل استخدام نظام ياسر ويب الشامل</h1>", unsafe_allow_html=True)
+    st.markdown("المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة.")
     st.markdown("✨ **تطوير البرمجة: نظام ياسر ويب | انستغرام:** yaser120120120120 2026©")
 
 # --- 11️⃣ حركة الصندوق والدرج اليومي ---
 elif menu == "11️⃣ حركة الصندوق والدرج اليومي 💵":
     st.header("💵 إدارة حركة الصندوق والدرج اليومي")
-    st.markdown("متابعة السيولة النقدية والمبيعات الداخلة والعهدة اليومية.")
     with st.form("cash_drawer_form"):
         opening_cash = st.text_input("المبلغ الافتتاحي في الصندوق (العهدة صباحاً):", value="0")
         notes_drawer = st.text_area("ملاحظات وردية الصندوق:")
-        submitted_drawer = st.form_submit_button("حفظ بيانات الصندوق")
-        if submitted_drawer:
+        if st.form_submit_button("حفظ بيانات الصندوق"):
             st.success("تم تسجيل بيانات الصندوق اليومي بنجاح.")
 
 # --- 12️⃣ تنبيهات نفاذ المواد ---
-elif menu == "12️⃣ تنبيهات نفاذ المواد ⚠️️":
+elif menu == "12️⃣ تنبيهات نفاذ المواد ⚠️":
     st.header("⚠️ تنبيهات نفاذ المواد في المخزن")
     if products:
         low_stock_items = [p for p in products if int(p.get('quantity', 0)) <= 3]
@@ -580,7 +459,7 @@ elif menu == "12️⃣ تنبيهات نفاذ المواد ⚠️️":
             st.warning("تحذير: المواد التالية قاربت على النفاذ (الكمية 3 أو أقل):")
             st.table(low_stock_items)
         else:
-            st.success("ممتاز! جميع المواد متوفرة بكميات كافية ولا توجد مواد قاربت على النفاد.")
+            st.success("ممتاز! جميع المواد متوفرة بكميات كافية.")
     else:
         st.info("لا توجد منتجات مسجلة في المخزون.")
 
@@ -589,21 +468,21 @@ elif menu == "13️⃣ طبع ملصقات الباركود 🏷️":
     st.header("🏷️ طبع ملصقات الرفوف والباركود")
     if products:
         prod_labels = {p['product_name'] + f" (السعر: {p['sell_price']})": p for p in products}
-        chosen_p_label = st.selectbox("اختر المنتج لطباعة ملصه:", list(prod_labels.keys()))
+        chosen_p_label = st.selectbox("اختر المنتج لطباعة ملصقه:", list(prod_labels.keys()))
         selected_p_obj = prod_labels[chosen_p_label]
         num_copies = st.number_input("عدد الملصقات المطلوبة:", min_value=1, max_value=50, value=5)
         
         if st.button("🖨️ معاينة وطباعة الملصق"):
             st.markdown(f"""
-            <div style="border: 2px dashed #2c3e50; padding: 20px; border-radius: 8px; width: 300px; background: white; text-align: center; margin: auto;">
-                <h3 style="margin: 0; color: #2c3e50;">{st.session_state.shop_name}</h3>
-                <hr style="margin: 5px 0;">
-                <p style="font-size: 18px; font-weight: bold; margin: 5px 0; color:#000;">{selected_p_obj['product_name']}</p>
-                <p style="font-size: 20px; color: #27ae60; font-weight: bold; margin: 5px 0;">السعر: {selected_p_obj['sell_price']} د.ع</p>
-                <p style="font-size: 14px; color: #555; background: #eee; padding: 5px;">||| ||||| |||| ||||| (Barcode)</p>
-                <p style="font-size: 11px; color: #555;">العدد المطلوب طباعته: {num_copies}</p>
+            <div style="border: 2px dashed #2c3e50; padding: 20px; border-radius: 8px; width: 300px; background: white; text-align: center; margin: auto; color: black;">
+                <h3>{st.session_state.shop_name}</h3>
+                <hr>
+                <p style="font-size: 18px; font-weight: bold;">{selected_p_obj['product_name']}</p>
+                <p style="font-size: 20px; color: #27ae60; font-weight: bold;">السعر: {selected_p_obj['sell_price']} د.ع</p>
+                <p style="font-size: 14px; color: #555;">||| ||||| |||| ||||| (Barcode)</p>
+                <p style="font-size: 11px; color: #555;">العدد المطلوب: {num_copies}</p>
             </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html+True)
     else:
         st.info("لا توجد منتجات لطباعة باركود لها.")
 
@@ -615,27 +494,16 @@ elif menu == "14️⃣ برنامج الولاء وعروض العملاء 🎁"
         chosen_l_cust = st.selectbox("اختر العميل:", list(cust_loyalty_map.keys()))
         target_cust = cust_loyalty_map[chosen_l_cust]
         
-        st.info(f"👤 العميل: **{target_cust['name']}** | المحافظة: **{target_cust.get('city', 'البصرة')}**")
+        st.info(f"👤 العميل: **{target_cust['name']}**")
         with st.form("loyalty_form"):
             discount_note = st.text_input("منح خصم خاص أو ملاحظة ولاء:", value="عميل دائم - خصم خاص 5%")
-            submit_loyalty = st.form_submit_button("حفظ بيانات الولاء")
-            if submit_loyalty:
+            if st.form_submit_button("حفظ بيانات الولاء"):
                 st.success("تم تحديث عروض وميزات الولاء للعميل بنجاح!")
     else:
         st.info("لا توجد عملاء مسجلون حالياً.")
 
 # --- 15️⃣ خانة التحديثات الجديدة 🚀 ---
 elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
-    st.markdown("<h2 style='text-align: center; color: #2980b9;'>🚀 سجل التحديثات والتطويرات في نظام ياسر ويب</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #555;'>هذه الخانة توثق كل ميزة وإضافة جديدة يتم إضافتها للموقع أولاً بأول.</p>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>🚀 سجل التحديثات والتطويرات في نظام ياسر ويب</h2>", unsafe_allow_html=True)
     st.markdown("---")
-    
-    st.markdown("""
-    <div style="background: white; padding: 20px; border-radius: 8px; border-right: 5px solid #27ae60; margin-bottom: 15px;">
-        <h4 style="color: #27ae60; margin-top: 0;">✨ التحديثات والحالة الحالية</h4>
-        <ul>
-            <li><b>استعادة كافة التبويبات الـ 15:</b> تم إعادة جميع تبويبات النظام وإصلاح ظهورها بالكامل.</li>
-            <li><b>حل مشكلة الحقول والنصوص:</b> الحقول والعناوين ظاهرة بوضوح تام على الهواتف وبخلفية بيضاء نقية تتجاوز الوضع الداكن.</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    st.write("- تم استعادة القائمة الجانبية والتبويبات الـ 15 بالكامل وجعل التطبيق يفتح بسلاسة تامة على الهواتف والواتساب بدون أي تقطيع.")
