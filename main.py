@@ -73,6 +73,8 @@ if 'role' not in st.session_state:
     st.session_state.role = "مدير / مسؤول"
 if 'cart' not in st.session_state:
     st.session_state.cart = []
+if 'notes_list' not in st.session_state:
+    st.session_state.notes_list = []
 
 # --- واجهة تسجيل الدخول ---
 if not st.session_state.logged_in:
@@ -102,7 +104,7 @@ if not st.session_state.logged_in:
                     st.error("الرجاء إدخال اسم المحل بشكل صحيح.")
     st.stop()
 
-# --- القائمة الجانبية الأساسية (رجعت بمكانها الطبيعي وبدون أي مشاكل) ---
+# --- القائمة الجانبية الأساسية (التبويبات الـ 15 القديمة + التبويبين الجديدين المختارين فقط بدون التبويب الثالث المرفوض) ---
 st.sidebar.markdown(f"### 🏪 المحل: {st.session_state.shop_name}")
 st.sidebar.markdown(f"👤 الصلاحية: **{st.session_state.role}**")
 st.sidebar.markdown("---")
@@ -122,7 +124,9 @@ menu = st.sidebar.radio("اختر التبويب المطلوبة:", [
     "12️⃣ تنبيهات نفاذ المواد ⚠️",
     "13️⃣ طبع ملصقات الباركود 🏷️",
     "14️⃣ برنامج الولاء وعروض العملاء 🎁",
-    "15️⃣ خانة التحديثات الجديدة 🚀"
+    "15️⃣ خانة التحديثات الجديدة 🚀",
+    "16️⃣ حاسبة الأرباح السريعة 🧮",
+    "17️⃣ سجل الملاحظات والمهام 📌"
 ])
 
 st.sidebar.markdown("---")
@@ -435,10 +439,15 @@ elif menu == "9️⃣ تقارير الأرباح والخسائر":
     else:
         st.info("لا توجد بيانات كافية.")
 
-# --- 🔟 دليل الاستخدام والدعم ---
+# --- 🔟 دليل الاستخدام والدعم (تمت إضافة شرح المميزات المعتمدة فقط بداخله) ---
 elif menu == "🔟 دليل الاستخدام والدعم 📖":
     st.markdown("<h1>🛍️ دليل استخدام نظام ياسر ويب الشامل</h1>", unsafe_allow_html=True)
     st.markdown("المرجع السريع لإدارة المبيعات والمخازن بكفاءة عالية على الهواتف والأجهزة.")
+    st.markdown("---")
+    st.markdown("### 📚 شرح الإضافات والتبويبات الجديدة:")
+    st.markdown("1. **حاسبة الأرباح السريعة (التبويب 16):** تتيح لك حساب صافي الربح لأي منتج فوراً عبر إدخال سعر الشراء وسعر البيع مع حساب نسبة العائد المئوية بدقة.")
+    st.markdown("2. **سجل الملاحظات والمهام (التبويب 17):** مفكرة يومية داخل النظام لتسجيل الملاحظات، الطلبيات الناقصة، والالتزامات لكي لا تنسى أي تفصيل تخص العمل.")
+    st.markdown("---")
     st.markdown("✨ **تطوير البرمجة: نظام ياسر ويب | انستغرام:** yaser120120120120 2026©")
 
 # --- 11️⃣ حركة الصندوق والدرج اليومي ---
@@ -482,7 +491,7 @@ elif menu == "13️⃣ طبع ملصقات الباركود 🏷️":
                 <p style="font-size: 14px; color: #555;">||| ||||| |||| ||||| (Barcode)</p>
                 <p style="font-size: 11px; color: #555;">العدد المطلوب: {num_copies}</p>
             </div>
-            """, unsafe_allow_html+True)
+            """, unsafe_allow_html=True)
     else:
         st.info("لا توجد منتجات لطباعة باركود لها.")
 
@@ -502,8 +511,51 @@ elif menu == "14️⃣ برنامج الولاء وعروض العملاء 🎁"
     else:
         st.info("لا توجد عملاء مسجلون حالياً.")
 
-# --- 15️⃣ خانة التحديثات الجديدة 🚀 ---
+# --- 15️⃣ خانة التحديثات الجديدة 🚀 (محدثة ومقيدة بالتبويبات المعتمدة فقط) ---
 elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
     st.markdown("<h2 style='text-align: center;'>🚀 سجل التحديثات والتطويرات في نظام ياسر ويب</h2>", unsafe_allow_html=True)
     st.markdown("---")
-    st.write("- تم استعادة القائمة الجانبية والتبويبات الـ 15 بالكامل وجعل التطبيق يفتح بسلاسة تامة على الهواتف والواتساب بدون أي تقطيع.")
+    st.markdown("### التحديثات الأخيرة (إصدار 2026):")
+    st.markdown("- **إضافة حاسبة الأرباح السريعة (تبويب 16):** لحساب أرباح القطع ونسبة العائد بدقة متناهية.")
+    st.markdown("- **إضافة سجل الملاحظات والمهام (تبويب 17):** لمتابعة الطلبيات والملاحظات اليومية للمحل.")
+    st.markdown("- تم الحفاظ على استقرار القائمة الجانبية وسلاسة التصفح على كافة الهواتف والواتساب.")
+
+# --- 16️⃣ حاسبة الأرباح السريعة (ميزة جديدة 1) ---
+elif menu == "16️⃣ حاسبة الأرباح السريعة 🧮":
+    st.header("🧮 حاسبة الأرباح السريعة ونسبة العائد")
+    with st.form("quick_profit_calc"):
+        q_buy = st.number_input("سعر الشراء للقطعة (د.ع):", min_value=0.0, value=1000.0)
+        q_sell = st.number_input("سعر البيع المقترح (د.ع):", min_value=0.0, value=1500.0)
+        q_qty = st.number_input("الكمية المباعة:", min_value=1, value=1)
+        calc_btn = st.form_submit_button("احسب صافي الربح")
+        
+        if calc_btn:
+            profit_piece = q_sell - q_buy
+            total_profit = profit_piece * q_qty
+            margin = (profit_piece / q_buy * 100) if q_buy > 0 else 0
+            st.success(f"💰 ربح القطعة الواحدة: {profit_piece} د.ع")
+            st.info(f"📈 إجمالي الربح للكمية ({q_qty} قطعة): **{total_profit} د.ع**")
+            st.warning(f"📊 نسبة العائد على الشراء: **{margin:.2f}%**")
+
+# --- 17️⃣ سجل الملاحظات والمهام (ميزة جديدة 2) ---
+elif menu == "17️⃣ سجل الملاحظات والمهام 📌":
+    st.header("📌 سجل الملاحظات والمهام اليومية")
+    with st.form("notes_form"):
+        new_note = st.text_input("أدخل ملاحظة أو طلب ناقص للمحل:")
+        add_note_btn = st.form_submit_button("إضافة للمفكرة")
+        if add_note_btn:
+            if new_note.strip():
+                st.session_state.notes_list.append({"time": datetime.now().strftime('%Y-%m-%d %H:%M'), "text": new_note.strip()})
+                st.success("تمت إضافة الملاحظة بنجاح!")
+            else:
+                st.warning("الرجاء كتابة نص الملاحظة.")
+                
+    st.subheader("قائمة الملاحظات المسجلة حالياً:")
+    if st.session_state.notes_list:
+        for idx, n in enumerate(st.session_state.notes_list):
+            st.write(f"{idx+1}. [{n['time']}] **{n['text']}**")
+        if st.button("🗑 مسح جميع الملاحظات"):
+            st.session_state.notes_list = []
+            st.rerun()
+    else:
+        st.info("لا توجد ملاحظات مسجلة.")
