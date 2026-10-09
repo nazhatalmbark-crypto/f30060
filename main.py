@@ -31,11 +31,15 @@ def sb_insert(table, data):
             "Content-Type": "application/json",
             "Prefer": "return=representation"
         }, method="POST")
-        with urllib.request.urlopen(req):
+        with urllib.request.urlopen(req) as res:
             return True
+    except urllib.error.HTTPError as e:
+        error_message = e.read().decode()
+        print("Supabase HTTP Error:", error_message)
+        return error_message
     except Exception as e:
-        print("Supabase Insert Error:", e)
-        return False
+        print("Supabase Insert Error:", str(e))
+        return str(e)
 
 def sb_delete(table, item_id):
     try:
@@ -139,7 +143,6 @@ current_shop_id = f"id_{st.session_state.shop_name}"
 all_products = sb_select("products")
 all_customers = sb_select("customers")
 
-# تعديل التصفية لضمان ظهور المنتجات حتى لو كانت مسجلة باسم المحل بشكل مباشر أو مع المعرف
 clean_shop_name = st.session_state.shop_name.strip()
 products = [p for p in all_products if p.get('shop_name') in [current_shop_id, clean_shop_name, f"id_{clean_shop_name}"]]
 customers = [c for c in all_customers if c.get('shop_name') in [current_shop_id, clean_shop_name, f"id_{clean_shop_name}"]]
@@ -208,11 +211,12 @@ elif menu == "2️⃣ إضافة مادة جديدة":
                         "quantity": int(p_qty_str),
                         "shop_name": current_shop_id
                     }
-                    if sb_insert("products", payload):
+                    result = sb_insert("products", payload)
+                    if result is True:
                         st.success("تمت إضافة المادة بنجاح وتظهر الآن في المخزون!")
                         st.rerun()
                     else:
-                        st.error("حدث خطأ أثناء الإضافة. تأكد من صحة المدخلات.")
+                        st.error(f"خطأ في قاعدة البيانات: {result}")
                 except ValueError:
                     st.warning("الرجاء إدخال أرقام صحيحة للأسعار والكمية.")
             else:
@@ -262,11 +266,12 @@ elif menu == "4️⃣ إدارة العملاء":
                     "debt": 0.0,
                     "shop_name": current_shop_id
                 }
-                if sb_insert("customers", payload):
+                res = sb_insert("customers", payload)
+                if res is True:
                     st.success("تم حفظ العميل بنجاح!")
                     st.rerun()
                 else:
-                    st.error("خطأ في الحفظ.")
+                    st.error(f"خطأ في الحفظ: {res}")
             else:
                 st.warning("اسم العميل مطلوب.")
 
@@ -535,7 +540,7 @@ elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
     st.markdown("---")
     st.markdown("### التحديثات الأخيرة (إصدار 2026):")
     st.markdown("- **إضافة سجل الملاحظات والمهام (تبويب 16):** لمتابعة الطلبيات والملاحظات اليومية للمحل.")
-    st.markdown("- **إصلاح عرض المنتجات:** ضمان ظهور جميع المواد المخزنة في المحل بشكل دائم وفوري دون اختفاء.")
+    st.markdown("- **معالجة أخطاء الإدخال في قاعدة البيانات:** عرض تفاصيل أي خطأ في الإضافة لتلافي أي ضياع للمواد.")
 
 # --- 16️⃣ سجل الملاحظات والمهام 📌 ---
 elif menu == "16️⃣ سجل الملاحظات والمهام 📌":
