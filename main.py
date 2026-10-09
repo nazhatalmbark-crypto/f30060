@@ -29,12 +29,12 @@ def sb_insert(table, data):
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {SUPABASE_KEY}",
             "Content-Type": "application/json",
-            "Prefer": "return=minimal"
+            "Prefer": "return=representation"
         }, method="POST")
         with urllib.request.urlopen(req):
             return True
     except Exception as e:
-        print("Insert Error:", e)
+        print("Supabase Insert Error:", e)
         return False
 
 def sb_delete(table, item_id):
@@ -139,8 +139,10 @@ current_shop_id = f"id_{st.session_state.shop_name}"
 all_products = sb_select("products")
 all_customers = sb_select("customers")
 
-products = [p for p in all_products if p.get('shop_name') == current_shop_id]
-customers = [c for c in all_customers if c.get('shop_name') == current_shop_id]
+# تعديل التصفية لضمان ظهور المنتجات حتى لو كانت مسجلة باسم المحل بشكل مباشر أو مع المعرف
+clean_shop_name = st.session_state.shop_name.strip()
+products = [p for p in all_products if p.get('shop_name') in [current_shop_id, clean_shop_name, f"id_{clean_shop_name}"]]
+customers = [c for c in all_customers if c.get('shop_name') in [current_shop_id, clean_shop_name, f"id_{clean_shop_name}"]]
 
 # --- 1️⃣ إدارة المخزون والبطاقات ---
 if menu == "1️⃣ إدارة المخزون والبطاقات":
@@ -207,10 +209,10 @@ elif menu == "2️⃣ إضافة مادة جديدة":
                         "shop_name": current_shop_id
                     }
                     if sb_insert("products", payload):
-                        st.success("تمت إضافة المادة بنجاح وتظهر الآن فوراً!")
+                        st.success("تمت إضافة المادة بنجاح وتظهر الآن في المخزون!")
                         st.rerun()
                     else:
-                        st.error("حدث خطأ أثناء الإضافة. تأكد من اتصال القاعدة أو صحة المدخلات.")
+                        st.error("حدث خطأ أثناء الإضافة. تأكد من صحة المدخلات.")
                 except ValueError:
                     st.warning("الرجاء إدخال أرقام صحيحة للأسعار والكمية.")
             else:
@@ -533,7 +535,7 @@ elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
     st.markdown("---")
     st.markdown("### التحديثات الأخيرة (إصدار 2026):")
     st.markdown("- **إضافة سجل الملاحظات والمهام (تبويب 16):** لمتابعة الطلبيات والملاحظات اليومية للمحل.")
-    st.markdown("- **إصلاح مشكلة الإضافة في قاعدة البيانات:** معالجة أخطاء الإدخال وضمان حفظ المواد بسلاسة تامة.")
+    st.markdown("- **إصلاح عرض المنتجات:** ضمان ظهور جميع المواد المخزنة في المحل بشكل دائم وفوري دون اختفاء.")
 
 # --- 16️⃣ سجل الملاحظات والمهام 📌 ---
 elif menu == "16️⃣ سجل الملاحظات والمهام 📌":
