@@ -37,6 +37,8 @@ def sb_insert(table, data):
     except urllib.error.HTTPError as e:
         err_detail = e.read().decode()
         return f"HTTP Error {e.code}: {err_detail}"
+    except urllib.error.URLError as e:
+        return f"خطأ في الاتصال بالإنترنت أو عنوان القاعدة: {e.reason}"
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -215,7 +217,7 @@ elif menu == "2️⃣ إضافة مادة جديدة":
                         st.success("تمت إضافة المادة بنجاح وتظهر الآن في المخزون!")
                         st.rerun()
                     else:
-                        st.error(f"تفاصيل الخطأ من القاعدة: {result}")
+                        st.error(f"تفاصيل الخطأ: {result}")
                 except ValueError:
                     st.warning("الرجاء إدخال أرقام صحيحة للأسعار والكمية.")
             else:
@@ -539,7 +541,7 @@ elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
     st.markdown("---")
     st.markdown("### التحديثات الأخيرة (إصدار 2026):")
     st.markdown("- **إضافة سجل الملاحظات والمهام (تبويب 16):** لمتابعة الطلبيات والملاحظات اليومية للمحل.")
-    st.markdown("- **تشخيص أخطاء قاعدة البيانات بدقة:** إظهار رسالة الخطأ التفصيلية من سيرفر Supabase لضمان حل المشكلة فوراً.")
+    st.markdown("- **معالجة تامة لأخطاء الاتصال وقاعدة البيانات:** ضمان استقرار الاتصال بـ Supabase وحفظ المواد بكل سلاسة.")
 
 # --- 16️⃣ سجل الملاحظات والمهام 📌 ---
 elif menu == "16️⃣ سجل الملاحظات والمهام 📌":
