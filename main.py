@@ -34,9 +34,11 @@ def sb_insert(table, data):
         with urllib.request.urlopen(req, timeout=10) as res:
             res.read()
             return True
+    except urllib.error.HTTPError as e:
+        err_detail = e.read().decode()
+        return f"HTTP Error {e.code}: {err_detail}"
     except Exception as e:
-        print("Insert Error:", e)
-        return False
+        return f"Error: {str(e)}"
 
 def sb_delete(table, item_id):
     try:
@@ -208,11 +210,12 @@ elif menu == "2️⃣ إضافة مادة جديدة":
                         "quantity": int(p_qty_str),
                         "shop_name": current_shop_id
                     }
-                    if sb_insert("products", payload):
-                        st.success("تمت إضافة المادة بنجاح وتنحفظ بقاعدة البيانات فوراً!")
+                    result = sb_insert("products", payload)
+                    if result is True:
+                        st.success("تمت إضافة المادة بنجاح وتظهر الآن في المخزون!")
                         st.rerun()
                     else:
-                        st.error("فشل الحفظ في قاعدة البيانات. تأكد من الاتصال.")
+                        st.error(f"تفاصيل الخطأ من القاعدة: {result}")
                 except ValueError:
                     st.warning("الرجاء إدخال أرقام صحيحة للأسعار والكمية.")
             else:
@@ -262,11 +265,12 @@ elif menu == "4️⃣ إدارة العملاء":
                     "debt": 0.0,
                     "shop_name": current_shop_id
                 }
-                if sb_insert("customers", payload):
+                res = sb_insert("customers", payload)
+                if res is True:
                     st.success("تم حفظ العميل بنجاح!")
                     st.rerun()
                 else:
-                    st.error("خطأ في حفظ العميل.")
+                    st.error(f"خطأ في الحفظ: {res}")
             else:
                 st.warning("اسم العميل مطلوب.")
 
@@ -535,7 +539,7 @@ elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
     st.markdown("---")
     st.markdown("### التحديثات الأخيرة (إصدار 2026):")
     st.markdown("- **إضافة سجل الملاحظات والمهام (تبويب 16):** لمتابعة الطلبيات والملاحظات اليومية للمحل.")
-    st.markdown("- **إصلاح عملية الحفظ الفوري للمنتجات:** ضمان وصول البيانات إلى قاعدة البيانات وتسجيلها بشكل تام دون اختفاء.")
+    st.markdown("- **تشخيص أخطاء قاعدة البيانات بدقة:** إظهار رسالة الخطأ التفصيلية من سيرفر Supabase لضمان حل المشكلة فوراً.")
 
 # --- 16️⃣ سجل الملاحظات والمهام 📌 ---
 elif menu == "16️⃣ سجل الملاحظات والمهام 📌":
