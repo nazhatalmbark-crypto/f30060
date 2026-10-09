@@ -16,7 +16,7 @@ def sb_select(table):
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {SUPABASE_KEY}"
         })
-        with urllib.request.urlopen(req) as res:
+        with urllib.request.urlopen(req, timeout=10) as res:
             return json.loads(res.read().decode())
     except:
         return []
@@ -31,7 +31,7 @@ def sb_insert(table, data):
             "Content-Type": "application/json",
             "Prefer": "return=representation"
         }, method="POST")
-        with urllib.request.urlopen(req) as res:
+        with urllib.request.urlopen(req, timeout=10) as res:
             return True
     except urllib.error.HTTPError as e:
         error_message = e.read().decode()
@@ -49,7 +49,7 @@ def sb_delete(table, item_id):
             "Authorization": f"Bearer {SUPABASE_KEY}",
             "Prefer": "return=minimal"
         }, method="DELETE")
-        with urllib.request.urlopen(req):
+        with urllib.request.urlopen(req, timeout=10):
             return True
     except:
         return False
@@ -64,7 +64,7 @@ def sb_update(table, item_id, payload):
             "Content-Type": "application/json",
             "Prefer": "return=minimal"
         }, method="PATCH")
-        with urllib.request.urlopen(req):
+        with urllib.request.urlopen(req, timeout=10):
             return True
     except:
         return False
@@ -540,7 +540,7 @@ elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
     st.markdown("---")
     st.markdown("### التحديثات الأخيرة (إصدار 2026):")
     st.markdown("- **إضافة سجل الملاحظات والمهام (تبويب 16):** لمتابعة الطلبيات والملاحظات اليومية للمحل.")
-    st.markdown("- **معالجة أخطاء الإدخال في قاعدة البيانات:** عرض تفاصيل أي خطأ في الإضافة لتلافي أي ضياع للمواد.")
+    st.markdown("- **إصلاح اتصالات الشبكة وقاعدة البيانات:** معالجة أخطاء الـ DNS والاتصال بـ Supabase لضمان استقرار العمليات.")
 
 # --- 16️⃣ سجل الملاحظات والمهام 📌 ---
 elif menu == "16️⃣ سجل الملاحظات والمهام 📌":
