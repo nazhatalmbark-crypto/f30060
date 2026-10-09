@@ -366,45 +366,59 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
                 sale_type_str = "دين على الحساب" if is_debt_sale else "نقدي مباشر"
                 border_color = "#e74c3c" if is_debt_sale else "#27ae60"
                 
+                # بناء النص الحراري الخاص بالطابعة
+                raw_receipt = f"==========================\n"
+                raw_receipt += f"    {st.session_state.shop_name}\n"
+                raw_receipt += f"  ({sale_type_str})\n"
+                raw_receipt += f"==========================\n"
+                raw_receipt += f"التاريخ: {datetime.now().strftime('%Y-%m-%d | %I:%M %p')}\n"
+                raw_receipt += f"العميل: {chosen_cust}\n"
+                raw_receipt += f"--------------------------\n"
+                for item in st.session_state.cart:
+                    raw_receipt += f"{item['product_name']} x{item['quantity']} = {item['sell_price'] * item['quantity']}د.ع\n"
+                raw_receipt += f"--------------------------\n"
+                raw_receipt += f"المجموع الكلي: {total_price} د.ع\n"
+                raw_receipt += f"==========================\n"
+                raw_receipt += f"  شكراً لتعاملكم معنا\n"
+
                 invoice_record = {
                     "time": datetime.now().strftime('%Y-%m-%d | %I:%M %p'),
                     "customer": chosen_cust,
                     "type": sale_type_str,
                     "total": total_price,
                     "color": border_color,
-                    "items": list(st.session_state.cart)
+                    "items": list(st.session_state.cart),
+                    "raw": raw_receipt
                 }
                 st.session_state.invoices_history.insert(0, invoice_record)
 
                 st.success("تمت عملية البيع بنجاح وتحديث المخزون وأرشفة الوصل!")
                 
-                # قالب مخصص للطباعة الحرارية البلوتوث (Thermal Receipt Format)
-                items_html = ""
-                for item in st.session_state.cart:
-                    items_html += f"<tr><td>{item['product_name']}</td><td style='text-align:center;'>{item['quantity']}</td><td style='text-align:left;'>{item['sell_price'] * item['quantity']}</td></tr>"
-
                 st.markdown("---")
-                thermal_html = f"""
-                <div id="print_receipt" style="background: #ffffff; padding: 15px; border-radius: 10px; border: 3px solid {border_color}; font-family: 'Courier New', Courier, monospace; direction: rtl; color: black; max-width: 350px; margin: auto;">
+                st.markdown(f"""
+                <div style="background: #ffffff; padding: 20px; border-radius: 10px; border: 3px solid {border_color}; font-family: 'Courier New', Courier, monospace; direction: rtl; color: black; max-width: 380px; margin: auto;">
                     <h3 style="text-align: center; color: {border_color}; margin: 0;">🏪 {st.session_state.shop_name}</h3>
-                    <p style="text-align: center; font-size: 11px; color: #555; margin: 2px 0;">وصل مبيعات حراري ({sale_type_str})</p>
+                    <p style="text-align: center; font-size: 12px; color: #555; margin: 3px 0;">وصل مبيعات حراري ({sale_type_str})</p>
                     <hr style="border: 1px dashed #000;">
-                    <p style="font-size: 12px; margin: 3px 0;"><b>التاريخ:</b> {invoice_record['time']}</p>
-                    <p style="font-size: 12px; margin: 3px 0;"><b>العميل:</b> {chosen_cust}</p>
+                    <p style="font-size: 12px; margin: 3px 0;"><b>📅 التاريخ:</b> {invoice_record['time']}</p>
+                    <p style="font-size: 12px; margin: 3px 0;"><b>👤 العميل:</b> {chosen_cust}</p>
                     <hr style="border: 1px dashed #000;">
-                    <table style="width: 100%; font-size: 12px;">
-                        <tr style="border-bottom: 1px solid #000;"><th>المادة</th><th style='text-align:center;'>العدد</th><th style='text-align:left;'>المبلغ</th></tr>
-                        {items_html}
-                    </table>
+                """, unsafe_allow_html=True)
+                
+                for item in st.session_state.cart:
+                    st.write(f"- {item['product_name']} | العدد: {item['quantity']} | السعر: {item['sell_price'] * item['quantity']} د.ع")
+                    
+                st.markdown(f"""
                     <hr style="border: 1px dashed #000;">
-                    <h3 style="text-align: center; color: {border_color}; margin: 5px 0;">المجموع الكلي: {total_price} د.ع</h3>
-                    <p style="text-align: center; font-size: 10px; color: #555; margin: 5px 0;">شكراً لتعاملكم معنا | نظام ياسر ويب</p>
+                    <h3 style="text-align: center; color: {border_color}; margin: 5px 0;">الإجمالي: {total_price} د.ع</h3>
+                    <p style="text-align: center; font-size: 10px; color: #555; margin: 3px 0;">نظام ياسر ويب</p>
                 </div>
-                <div style="text-align: center; margin-top: 10px;">
-                    <button onclick="window.print()" style="background-color: {border_color}; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px;">🖨️ طباعة الوصل (للطابعات الحرارية والبلوتوث)</button>
-                </div>
-                """
-                st.markdown(thermal_html, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+                
+                # صندوق النص الحراري الجاهز للنسخ إلى تطبيقات طابعات البلوتوث (مثل RawBT)
+                st.markdown("### 🖨️ نص الوصل الحراري (انسخه وألصقه في تطبيق طابعة البلوتوث):")
+                st.code(raw_receipt, language="text")
+                
                 st.session_state.cart = []
         else:
             st.warning("أضف عميلاً أولاً.")
@@ -414,7 +428,7 @@ elif menu == "5️⃣ سلة المبيعات والفاتورة":
 # --- 6️⃣ سجل الفواتير والوصلات المطبوعة ---
 elif menu == "6️⃣ سجل الفواتير والوصلات المطبوعة 📑":
     st.header("📑 أرشيف وسجل الفواتير والوصلات السابقة")
-    st.markdown("ملاحظة: الوصلات النقدية تظهر بإطار **أخضر** 🟢، ووصلات الدين تظهر بإطار **أحمر** 🔴، ويمكنك طباعتها بأي وقت.")
+    st.markdown("ملاحظة: الوصلات النقدية تظهر بإطار **أخضر** 🟢، ووصلات الدين تظهر بإطار **أحمر** 🔴، ويمكنك نسخ نصها الحراري للطباعة الفورية عبر البلوتوث.")
     st.markdown("---")
     
     if st.session_state.invoices_history:
@@ -429,35 +443,26 @@ elif menu == "6️⃣ سجل الفواتير والوصلات المطبوعة 
                 </div>
                 """, unsafe_allow_html=True)
             with col_box2:
-                if st.button(f"👁️ عرض وطباعة", key=f"view_inv_{idx}"):
+                if st.button(f"👁️ عرض الوصل", key=f"view_inv_{idx}"):
                     st.session_state[f"show_details_{idx}"] = not st.session_state.get(f"show_details_{idx}", False)
             
             if st.session_state.get(f"show_details_{idx}", False):
-                with st.expander(f"تفاصيل وصل رقم #{len(st.session_state.invoices_history) - idx}", expanded=True):
-                    items_html_exp = ""
-                    for prod in inv['items']:
-                        items_html_exp += f"<tr><td>{prod['product_name']}</td><td style='text-align:center;'>{prod['quantity']}</td><td style='text-align:left;'>{prod['sell_price'] * prod['quantity']}</td></tr>"
-                    
-                    thermal_exp_html = f"""
-                    <div style="background: #ffffff; padding: 15px; border-radius: 5px; border: 2px dashed {inv['color']}; font-family: 'Courier New', Courier, monospace; color: black; direction: rtl; max-width: 350px; margin: auto;">
+                with st.expander(f"تفاصيل وطباعة وصل رقم #{len(st.session_state.invoices_history) - idx}", expanded=True):
+                    st.markdown(f"""
+                    <div style="background: #ffffff; padding: 15px; border-radius: 5px; border: 2px dashed {inv['color']}; font-family: 'Courier New', Courier, monospace; color: black; direction: rtl; max-width: 380px; margin: auto;">
                         <h3 style="text-align: center; color: {inv['color']}; margin: 0;">🏪 {st.session_state.shop_name}</h3>
                         <p style="text-align: center; font-size: 11px; color: #555;">وصل مؤرشف ({inv['type']})</p>
                         <hr style="border: 1px dashed #000;">
                         <p style="font-size: 12px; margin: 3px 0;"><b>التاريخ:</b> {inv['time']}</p>
                         <p style="font-size: 12px; margin: 3px 0;"><b>العميل:</b> {inv['customer']}</p>
                         <hr style="border: 1px dashed #000;">
-                        <table style="width: 100%; font-size: 12px;">
-                            <tr style="border-bottom: 1px solid #000;"><th>المادة</th><th style='text-align:center;'>العدد</th><th style='text-align:left;'>المبلغ</th></tr>
-                            {items_html_exp}
-                        </table>
-                        <hr style="border: 1px dashed #000;">
-                        <h3 style="text-align: center; color: {inv['color']}; margin: 5px 0;">المجموع الكلي: {inv['total']} د.ع</h3>
-                    </div>
-                    <div style="text-align: center; margin-top: 10px;">
-                        <button onclick="window.print()" style="background-color: {inv['color']}; color: white; padding: 8px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 13px;">🖨️ طباعة هذا الوصل الآن</button>
-                    </div>
-                    """
-                    st.markdown(thermal_exp_html, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+                    for prod in inv['items']:
+                        st.write(f"- {prod['product_name']} | العدد: {prod['quantity']} | السعر: {prod['sell_price'] * prod['quantity']} د.ع")
+                    st.markdown(f"<hr style='border: 1px dashed #000;'><h4 style='text-align: center; color: {inv['color']};'>المجموع: {inv['total']} د.ع</h4></div>", unsafe_allow_html=True)
+                    
+                    st.markdown("##### 📋 انسخ النص أدناه والصقه في تطبيق الطابعة الحرارية (Bluetooth Printer):")
+                    st.code(inv.get('raw', f"فاتورة {inv['customer']} - المجموع: {inv['total']}"), language="text")
             st.markdown("---")
         
         if st.button("🗑️ مسح سجل الفواتير بالكامل"):
@@ -488,9 +493,20 @@ elif menu == "7️⃣ وصل سداد وتسديد الديون":
                     sb_update("customers", selected_cust_data['id'], {"debt": remaining_debt})
                     st.success(f"تم تسديد المبلغ بنجاح! الدين الباقي: {remaining_debt} د.ع")
                     
+                    raw_debt_receipt = f"==========================\n"
+                    raw_debt_receipt += f"    {st.session_state.shop_name}\n"
+                    raw_debt_receipt += f"     (سند قبض وتسديد دين)\n"
+                    raw_debt_receipt += f"==========================\n"
+                    raw_debt_receipt += f"التاريخ: {datetime.now().strftime('%Y-%m-%d | %I:%M %p')}\n"
+                    raw_debt_receipt += f"العميل: {selected_cust_data['name']}\n"
+                    raw_debt_receipt += f"--------------------------\n"
+                    raw_debt_receipt += f"المبلغ المستلم: {paid_val} د.ع\n"
+                    raw_debt_receipt += f"المتبقي (الدين): {remaining_debt} د.ع\n"
+                    raw_debt_receipt += f"==========================\n"
+                    
                     st.markdown("---")
                     st.markdown(f"""
-                    <div style="background: #ffffff; padding: 20px; border-radius: 10px; border: 2px solid #27ae60; font-family: 'Courier New', Courier, monospace; direction: rtl; color: black; max-width: 350px; margin: auto;">
+                    <div style="background: #ffffff; padding: 20px; border-radius: 10px; border: 2px solid #27ae60; font-family: 'Courier New', Courier, monospace; direction: rtl; color: black; max-width: 380px; margin: auto;">
                         <h3 style="text-align: center; color: #27ae60; margin: 0;">📜 سند قبض وتسديد ديون</h3>
                         <p style="text-align: center; font-size: 11px; color: #555;">محل: {st.session_state.shop_name}</p>
                         <hr style="border: 1px dashed #000;">
@@ -499,13 +515,11 @@ elif menu == "7️⃣ وصل سداد وتسديد الديون":
                         <hr style="border: 1px dashed #000;">
                         <p style="font-size: 13px;">المبلغ المستلم: <b style="color: green;">{paid_val} د.ع</b></p>
                         <p style="font-size: 13px;">المتبقي (الدين): <b style="color: red;">{remaining_debt} د.ع</b></p>
-                        <hr style="border: 1px dashed #000;">
-                        <p style="text-align: center; font-size: 10px; color: #555;">نظام ياسر ويب</p>
-                    </div>
-                    <div style="text-align: center; margin-top: 10px;">
-                        <button onclick="window.print()" style="background-color: #27ae60; color: white; padding: 8px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🖨️ طباعة سند القبض</button>
                     </div>
                     """, unsafe_allow_html=True)
+                    
+                    st.markdown("### 📋 انسخ النص أدناه للطباعة عبر طابعة البلوتوث:")
+                    st.code(raw_debt_receipt, language="text")
                     
                 except ValueError:
                     st.warning("أدخل مبلغاً صحيحاً.")
@@ -555,9 +569,9 @@ elif menu == "11️⃣ دليل الاستخدام والدعم 📖":
     st.markdown("2. **إضافة مادة جديدة:** لإدخال منتجات جديدة للمخزون مع أسعار الشراء والبيع والكمية.")
     st.markdown("3. **زيادة كمية لمادة موجودة:** لتحديث رصيد المنتجات الحالية وزيادتها بسهولة.")
     st.markdown("4. **إدارة العملاء:** لتسجيل معلومات العملاء، أرقامهم، وعناوينهم.")
-    st.markdown("5. **سلة المبيعات والفاتورة:** لإضافة المواد للسلة وإصدار وصل بيع مخصص للطباعة الحرارية عبر البلوتوث.")
-    st.markdown("6. **سجل الفواتير والوصلات المطبوعة:** لعرض أرشيف الوصلات السابقة بألوان مميزة (أخضر للنقد، أحمر للدين) مع زر طباعة حرارية مباشر.")
-    st.markdown("7. **وصل سداد وتسديد الديون:** لتسديد الديون وإصدار سند قبض قابل للطباعة.")
+    st.markdown("5. **سلة المبيعات والفاتورة:** لإضافة المواد للسلة وإصدار وصل بيع مع نص حراري جاهز للنسخ إلى طابعات البلوتوث.")
+    st.markdown("6. **سجل الفواتير والوصلات المطبوعة:** لعرض أرشيف الوصلات السابقة بألوان مميزة (أخضر للنقد، أحمر للدين) مع إمكانية نسخ النص الحراري للطباعة.")
+    st.markdown("7. **وصل سداد وتسديد الديون:** لتسديد الديون وإصدار سند قبض قابل للنسخ والطباعة.")
     st.markdown("8. **سجل الديون والذمم:** لمتابعة العملاء الذين عليهم ديون متراكمة للمحل.")
     st.markdown("9. **المصاريف اليومية:** لتسجيل المصروفات والنثريات اليومية.")
     st.markdown("10. **تقارير الأرباح والخسائر:** لمعرفة القيمة الإجمالية للمخزون والأرباح التقديرية.")
@@ -639,7 +653,7 @@ elif menu == "16️⃣ خانة التحديثات الجديدة 🚀":
     st.markdown("<h2 style='text-align: center;'>🚀 سجل التحديثات والتطويرات في نظام ياسر ويب</h2>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("### التحديثات الأخيرة (إصدار 2026):")
-    st.markdown("- **تفعيل الطباعة الحرارية المباشرة:** دعم كامل لطباعة الفواتير والوصلات عبر طابعات البلوتوث الحرارية من خلال زر طباعة مخصص.")
+    st.markdown("- **دعم طابعات البلوتوث الحرارية:** توفير نظام تنسيق ونسخ النصوص الحرارية (Raw Text) لتتوافق مع تطبيقات طباعة البلوتوث الحرارية بسهولة مطلقة.")
     st.markdown("- **أرشيف الوصلات بالألوان:** تلوين الفواتير (أخضر للنقد، أحمر للدين) لتسهيل تمييزها بصرياً.")
 
 # --- 17️⃣ سجل الملاحظات والمهام 📌 ---
