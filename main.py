@@ -32,14 +32,11 @@ def sb_insert(table, data):
             "Prefer": "return=representation"
         }, method="POST")
         with urllib.request.urlopen(req, timeout=10) as res:
+            res.read()
             return True
-    except urllib.error.HTTPError as e:
-        error_message = e.read().decode()
-        print("Supabase HTTP Error:", error_message)
-        return error_message
     except Exception as e:
-        print("Supabase Insert Error:", str(e))
-        return str(e)
+        print("Insert Error:", e)
+        return False
 
 def sb_delete(table, item_id):
     try:
@@ -211,12 +208,11 @@ elif menu == "2️⃣ إضافة مادة جديدة":
                         "quantity": int(p_qty_str),
                         "shop_name": current_shop_id
                     }
-                    result = sb_insert("products", payload)
-                    if result is True:
-                        st.success("تمت إضافة المادة بنجاح وتظهر الآن في المخزون!")
+                    if sb_insert("products", payload):
+                        st.success("تمت إضافة المادة بنجاح وتنحفظ بقاعدة البيانات فوراً!")
                         st.rerun()
                     else:
-                        st.error(f"خطأ في قاعدة البيانات: {result}")
+                        st.error("فشل الحفظ في قاعدة البيانات. تأكد من الاتصال.")
                 except ValueError:
                     st.warning("الرجاء إدخال أرقام صحيحة للأسعار والكمية.")
             else:
@@ -266,12 +262,11 @@ elif menu == "4️⃣ إدارة العملاء":
                     "debt": 0.0,
                     "shop_name": current_shop_id
                 }
-                res = sb_insert("customers", payload)
-                if res is True:
+                if sb_insert("customers", payload):
                     st.success("تم حفظ العميل بنجاح!")
                     st.rerun()
                 else:
-                    st.error(f"خطأ في الحفظ: {res}")
+                    st.error("خطأ في حفظ العميل.")
             else:
                 st.warning("اسم العميل مطلوب.")
 
@@ -540,7 +535,7 @@ elif menu == "15️⃣ خانة التحديثات الجديدة 🚀":
     st.markdown("---")
     st.markdown("### التحديثات الأخيرة (إصدار 2026):")
     st.markdown("- **إضافة سجل الملاحظات والمهام (تبويب 16):** لمتابعة الطلبيات والملاحظات اليومية للمحل.")
-    st.markdown("- **إصلاح اتصالات الشبكة وقاعدة البيانات:** معالجة أخطاء الـ DNS والاتصال بـ Supabase لضمان استقرار العمليات.")
+    st.markdown("- **إصلاح عملية الحفظ الفوري للمنتجات:** ضمان وصول البيانات إلى قاعدة البيانات وتسجيلها بشكل تام دون اختفاء.")
 
 # --- 16️⃣ سجل الملاحظات والمهام 📌 ---
 elif menu == "16️⃣ سجل الملاحظات والمهام 📌":
