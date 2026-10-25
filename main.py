@@ -424,4 +424,51 @@ elif st.session_state.active_page == "المخزن":
     else:
         try:
             res_all_p = supabase.table("products").select("id, product_name, quantity").eq("username", username).execute()
-            existing_prods = res_all_p.data if res_
+            existing_prods = res_all_p.data if res_all_p.data else []
+        except:
+            existing_prods = []
+            
+        if existing_prods:
+            with st.form("restock_form"):
+                p_opts = {f"{p['product_name']} (المتوفر: {p['quantity']})": p['id'] for p in existing_prods}
+                chosen_p = st.selectbox("اختر المادة لتوريد كمية فوقها:", list(p_opts.keys()))
+                add_q_str = st.text_input("الكمية المراد إضافتها:", "1")
+                if st.form_submit_button("تحديث وزيادة الكمية", type="primary"):
+                    try:
+                        add_amt = int(add_q_str.strip())
+                        pid = p_opts[chosen_p]
+                        item_obj = next(x for x in existing_prods if x['id'] == pid)
+                        new_tot = item_obj['quantity'] + add_amt
+                        supabase.table("products").update({"quantity": new_tot}).eq("id", pid).execute()
+                        st.success(f"تم تحديث الكمية بنجاح! الإجمالي الجديد: {new_tot}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"خطأ: {e}")
+        else:
+            st.info("لا توجد مواد مسجلة لتوريد كميات لها.")
+
+elif st.session_state.active_page == "العملاء والديون":
+    st.subheader("👥 إدارة العملاء والذمم والديون")
+    cust_mode = st.radio("العملية:", ["إضافة عميل جديد", "عرض العملاء وسداد الديون"], horizontal=True)
+    
+    if cust_mode == "إضافة عميل جديد":
+        with st.form("cust_form_tab", clear_on_submit=True):
+            cn = st.text_input("اسم العميل (حضرة السيد):")
+            cp = st.text_input("رقم الهاتف:")
+            ca = st.text_input("العنوان / المنطقة:")
+            if st.form_submit_button("حفظ العميل"):
+                if cn and cp:
+                    try:
+                        supabase.table("customers").insert({
+                            "username": str(username),
+                            "customer_name": str(cn.strip()),
+                            "phone": str(cp.strip()),
+                            "address": str(ca.strip() if ca else "غير محدد"),
+                            "created_at": str(datetime.datetime.now().strftime('%Y-%m-%d'))
+                        }).execute()
+                        st.success(f"تم حفظ العميل {cn} بنجاح!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"خطأ: {e}")
+                else:
+                    st.warning("أدخل اسم العميل ورقم الهاتف
