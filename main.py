@@ -12,9 +12,9 @@ def init_supabase() -> Client:
 
 supabase = init_supabase()
 
-st.set_page_config(page_title="ياسر بوس - YASSER POS", layout="centered")
+st.set_page_config(page_title="ياسر ويب - YASSER WEB", layout="centered")
 
-# **تنسيق CSS دقيق لضمان وضوح النصوص تماماً وإطار موبايل احترافي مطابق لطلبك**
+# **تنسيق CSS دقيق يطابق واجهات TOFA وبإطار موبايل احترافي متجاوب**
 st.markdown("""
     <style>
     /* خلفية التطبيق الخارجية */
@@ -25,28 +25,28 @@ st.markdown("""
         font-family: system-ui, -apple-system, sans-serif;
     }
     
-    /* إطار التطبيق الداخلي ليشبه الموبايل بدقة */
+    /* إطار التطبيق الداخلي ليشبه الموبايل بدقة متناهية */
     .block-container {
         max-width: 420px !important;
         background: #f8f6fc !important;
-        border-radius: 30px !important;
-        padding: 25px 20px !important;
+        border-radius: 32px !important;
+        padding: 25px 18px !important;
         margin: 15px auto !important;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.35) !important;
         border: 6px solid #2d1a4e !important;
     }
 
-    /* ضمان وضوح جميع النصوص والعناوين باللون الداكن المريح للعين */
+    /* وضوح النصوص والعناوين باللون الداكن المريح */
     p, span, label, h1, h2, h3, h4, .stTextInput label, .stSelectbox label {
         color: #2d1a4e !important;
         font-weight: 600;
     }
 
-    /* حقول الإدخال لتكون واضحة وبكتابة سوداء صريحة وبدون أي اختفاء */
+    /* حقول الإدخال واضحة وبكتابة سوداء صريحة */
     input, select, textarea {
         color: #000000 !important;
         background: #ffffff !important;
-        border: 1px solid #c4b5fd !important;
+        border: 1px solid #dcd6f7 !important;
         border-radius: 12px !important;
         text-align: right !important;
         direction: rtl !important;
@@ -71,7 +71,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# **تصفير الجلسات تماماً لبدء بيانات نظيفة**
+# **تهيئة الجلسات نظيفة تماماً (صفر بيانات مسبقة)**
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
@@ -121,7 +121,7 @@ def generate_html_invoice(inv):
     <body>
         <div class="invoice-box">
             <div class="header">
-                <h2>ياسر بوس - فاتورة طلبية رسمية</h2>
+                <h2>ياسر ويب - فاتورة طلبية رسمية</h2>
                 <p>التاريخ والوقت: {inv['created_date']}</p>
             </div>
             <div class="info">
@@ -138,15 +138,15 @@ def generate_html_invoice(inv):
                 <p>المبلغ الواصل: {inv['paid_amount']:,} د.ع</p>
                 <p>المتبقي (الدين): {inv['remaining_amount']:,} د.ع</p>
             </div>
-            <div class="footer"><p>شكراً لتعاملكم معنا - ياسر بوس</p></div>
+            <div class="footer"><p>شكراً لتعاملكم معنا - ياسر ويب</p></div>
         </div>
     </body>
     </html>
     """
 
-# **شاشة تسجيل الدخول المرتبة وواضحة الحقول تماماً**
+# **شاشة تسجيل الدخول**
 if not st.session_state.logged_in_user:
-    st.markdown("<h2 style='text-align: center; font-size: 18px; margin-bottom: 20px; color: #2d1a4e;'>🔐 تسجيل الدخول لنظام (ياسر بوس)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-size: 18px; margin-bottom: 20px; color: #2d1a4e;'>🔐 تسجيل الدخول لنظام (ياسر ويب)</h2>", unsafe_allow_html=True)
     with st.form("login_modern_form"):
         login_user = st.text_input("اسم المستخدم أو المحل:")
         login_role = st.selectbox("الصلاحية:", ["مشرف النظام", "كاشير", "مسؤول مبيعات"])
@@ -177,7 +177,7 @@ if not st.session_state.logged_in_user:
 username = st.session_state.logged_in_user
 user_role = st.session_state.user_role
 
-# **شريط علوي احترافي**
+# **شريط علوي داخل إطار الموبايل**
 top_c1, top_c2, top_c3 = st.columns([1, 3, 1])
 with top_c1:
     if st.session_state.active_page != "الرئيسية":
@@ -185,7 +185,7 @@ with top_c1:
             st.session_state.active_page = "الرئيسية"
             st.rerun()
 with top_c2:
-    st.markdown(f"<h3 style='text-align: center; margin: 0; font-size: 16px; color: #2d1a4e;'>ياسر بوس</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0; font-size: 16px; color: #2d1a4e;'>ياسر ويب</h3>", unsafe_allow_html=True)
 with top_c3:
     if st.button("🚪 خروج"):
         st.session_state.logged_in_user = None
@@ -195,7 +195,7 @@ with top_c3:
 
 st.divider()
 
-# ================= الشاشة الرئيسية: عرض الـ 11 تبويب ببطاقات بيضاء واضحة =================
+# ================= الشاشة الرئيسية: عرض الـ 11 تبويب ببطاقات بيضاء مطابقة =================
 if st.session_state.active_page == "الرئيسية":
     st.markdown("<p style='text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; color: #553c9a;'>إدارة المبيعات والعمليات</p>", unsafe_allow_html=True)
     
@@ -258,7 +258,7 @@ if st.session_state.active_page == "الرئيسية":
             st.write("الحسابات المالية")
             if st.button("فتح التقارير", key="t10"): st.session_state.active_page = "📊 التقارير والأرباح"; st.rerun()
 
-    st.markdown("<br><p style='text-align: center; font-size: 11px; color: #7c6f9f;'>ياسر بوس - الإصدار 4.3.0</p>", unsafe_allow_html=True)
+    st.markdown("<br><p style='text-align: center; font-size: 11px; color: #7c6f9f;'>ياسر ويب - الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
 # ================= تشغيل الـ 11 تبويب بالكامل =================
 
