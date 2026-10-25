@@ -14,41 +14,57 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="ياسر بوس - YASSER POS", layout="centered")
 
-# **تصميم مريح جداً ومطابق لواجهة التطبيق (خلفية فاتحة وبطاقات بيضاء نقية)**
+# **تنسيق CSS متطور يجعل الموقع يظهر حصراً كإطار تطبيق موبايل أنيق (مطابق لصور TOFA)**
 st.markdown("""
     <style>
+    /* خلفية الشاشة الخارجية */
     .stApp {
-        background: linear-gradient(135deg, #f3f0fb 0%, #e9e4f5 100%);
+        background: linear-gradient(135deg, #553c9a 0%, #3b2375 100%) !important;
         direction: rtl;
         text-align: right;
         font-family: system-ui, -apple-system, sans-serif;
-        color: #2d1a4e;
     }
+    
+    /* إطار الموبايل المركزي الذي يحوي التطبيق ليظهر مرتباً بكل الأجهزة */
+    .block-container {
+        max-width: 420px !important;
+        background: #f8f6fc !important;
+        border-radius: 35px !important;
+        padding: 25px 20px !important;
+        margin: 20px auto !important;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.4) !important;
+        border: 8px solid #2d1a4e !important;
+    }
+
+    /* تنسيق الحقول والنصوص داخل التطبيق */
     input, select, textarea {
-        direction: rtl;
-        text-align: right;
-        border-radius: 14px !important;
+        direction: rtl !important;
+        text-align: right !important;
+        border-radius: 12px !important;
+        background: #ffffff !important;
         border: 1px solid #dcd6f7 !important;
     }
+
+    /* أزرار النظام الأنيقة */
     .stButton > button {
-        background-color: #6b46c1;
-        color: white;
-        border-radius: 12px;
-        border: none;
-        padding: 8px 14px;
-        font-weight: bold;
-        width: 100%;
-        font-size: 13px;
+        background-color: #6b46c1 !important;
+        color: white !important;
+        border-radius: 12px !important;
+        border: none !important;
+        padding: 8px 16px !important;
+        font-weight: bold !important;
+        width: 100% !important;
+        font-size: 14px !important;
         box-shadow: 0 4px 10px rgba(107, 70, 193, 0.2);
     }
     .stButton > button:hover {
-        background-color: #553c9a;
-        color: #fff;
+        background-color: #483185 !important;
+        color: #fff !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# **تصفير الجلسات تماماً**
+# **تصفير الجلسات تماماً لبدء العمل بنظافة**
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
@@ -121,50 +137,48 @@ def generate_html_invoice(inv):
     </html>
     """
 
-# **شاشة تسجيل الدخول**
+# **شاشة تسجيل الدخول المترتبة داخل إطار الموبايل**
 if not st.session_state.logged_in_user:
-    st.markdown("<h2 style='text-align: center; color: #2d1a4e;'>🔐 تسجيل الدخول لنظام (ياسر بوس)</h2>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        with st.form("login_modern_form"):
-            login_user = st.text_input("اسم المستخدم أو المحل:")
-            login_role = st.selectbox("الصلاحية:", ["مشرف النظام", "كاشير", "مسؤول مبيعات"])
-            sub_log = st.form_submit_button("دخول للنظام", type="primary")
-            if sub_log:
-                if login_user.strip():
-                    try:
-                        res = supabase.table("users").select("*").eq("username", login_user.strip()).execute()
-                        if res.data:
-                            user_info = res.data[0]
-                            st.session_state.logged_in_user = str(user_info["username"])
-                            st.session_state.user_role = str(login_role)
-                            log_audit("تسجيل دخول", f"تم الدخول بواسطة {user_info['username']}")
-                            st.success("تم الدخول بنجاح!")
-                            st.rerun()
-                        else:
-                            supabase.table("users").insert({"username": login_user.strip(), "is_paid": False}).execute()
-                            st.session_state.logged_in_user = str(login_user.strip())
-                            st.session_state.user_role = str(login_role)
-                            st.success("تم إنشاء الحساب والدخول بنجاح!")
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
-                else:
-                    st.warning("يرجى إدخال اسم المستخدم.")
+    st.markdown("<h2 style='text-align: center; color: #2d1a4e; font-size: 22px;'>🔐 تسجيل الدخول لنظام ياسر بوس</h2>", unsafe_allow_html=True)
+    with st.form("login_modern_form"):
+        login_user = st.text_input("اسم المستخدم أو المحل:")
+        login_role = st.selectbox("الصلاحية:", ["مشرف النظام", "كاشير", "مسؤول مبيعات"])
+        sub_log = st.form_submit_button("دخول للنظام", type="primary")
+        if sub_log:
+            if login_user.strip():
+                try:
+                    res = supabase.table("users").select("*").eq("username", login_user.strip()).execute()
+                    if res.data:
+                        user_info = res.data[0]
+                        st.session_state.logged_in_user = str(user_info["username"])
+                        st.session_state.user_role = str(login_role)
+                        log_audit("تسجيل دخول", f"تم الدخول بواسطة {user_info['username']}")
+                        st.success("تم الدخول بنجاح!")
+                        st.rerun()
+                    else:
+                        supabase.table("users").insert({"username": login_user.strip(), "is_paid": False}).execute()
+                        st.session_state.logged_in_user = str(login_user.strip())
+                        st.session_state.user_role = str(login_role)
+                        st.success("تم إنشاء الحساب والدخول بنجاح!")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
+            else:
+                st.warning("يرجى إدخال اسم المستخدم.")
     st.stop()
 
 username = st.session_state.logged_in_user
 user_role = st.session_state.user_role
 
-# **شريط علوي مع زر الرجوع والخروج**
-top_c1, top_c2, top_c3 = st.columns([1, 4, 1])
+# **شريط علوي داخل إطار الموبايل**
+top_c1, top_c2, top_c3 = st.columns([1, 3, 1])
 with top_c1:
     if st.session_state.active_page != "الرئيسية":
         if st.button("⬅️ رجوع"):
             st.session_state.active_page = "الرئيسية"
             st.rerun()
 with top_c2:
-    st.markdown(f"<h3 style='text-align: center; margin: 0; color: #2d1a4e;'>ياسر بوس (YASSER POS)</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0; color: #2d1a4e; font-size: 18px;'>ياسر بوس</h3>", unsafe_allow_html=True)
 with top_c3:
     if st.button("🚪 خروج"):
         st.session_state.logged_in_user = None
@@ -174,9 +188,9 @@ with top_c3:
 
 st.divider()
 
-# ================= الشاشة الرئيسية: عرض الـ 11 تبويب كبطاقات بيضاء =================
+# ================= الشاشة الرئيسية: عرض الـ 11 تبويب ببطاقات بيضاء مطابقة تماماً =================
 if st.session_state.active_page == "الرئيسية":
-    st.markdown("<h4 style='text-align: center; color: #553c9a; margin-bottom: 20px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #553c9a; font-size: 13px; font-weight: bold; margin-bottom: 15px;'>إدارة المبيعات والعمليات</p>", unsafe_allow_html=True)
     
     col_a, col_b = st.columns(2)
     
@@ -187,12 +201,12 @@ if st.session_state.active_page == "الرئيسية":
             if st.button("فتح الرئيسية", key="t1"): st.session_state.active_page = "🏠 الرئيسية والشبكة"; st.rerun()
             
         with st.container(border=True):
-            st.markdown("### ➕ إضافة وتوريد كميات")
-            st.write("إضافة بضاعة وتوريد مخزون")
+            st.markdown("### ➕ إضافة وتوريد")
+            st.write("إضافة بضاعة ومخزون")
             if st.button("فتح التوريد", key="t3"): st.session_state.active_page = "➕ إضافة وتوريد كميات"; st.rerun()
             
         with st.container(border=True):
-            st.markdown("### 👥 إدارة العملاء والديون")
+            st.markdown("### 👥 العملاء والديون")
             st.write("إدارة الزبائن والذمم")
             if st.button("فتح العملاء", key="t5"): st.session_state.active_page = "👥 إدارة العملاء والديون"; st.rerun()
             
@@ -203,47 +217,46 @@ if st.session_state.active_page == "الرئيسية":
             
         with st.container(border=True):
             st.markdown("### 💰 الصندوق والمصاريف")
-            st.write("سندات المصروفات والصندوق")
+            st.write("سندات المصروفات")
             if st.button("فتح الصندوق", key="t9"): st.session_state.active_page = "💰 الصندوق والمصاريف"; st.rerun()
             
         with st.container(border=True):
             st.markdown("### 📜 سجل النشاطات")
-            st.write("سجل حركة العمليات")
+            st.write("حركة العمليات")
             if st.button("فتح السجل", key="t11"): st.session_state.active_page = "📜 سجل النشاطات"; st.rerun()
 
     with col_b:
         with st.container(border=True):
-            st.markdown("### 🛒 سلة البيع وإتمام الفاتورة")
-            st.write("مراجعة السلة وإصدار الفاتورة")
+            st.markdown("### 🛒 سلة البيع")
+            st.write("مراجعة السلة والفاتورة")
             if st.button("فتح السلة", key="t2"): st.session_state.active_page = "🛒 سلة البيع وإتمام الفاتورة"; st.rerun()
             
         with st.container(border=True):
             st.markdown("### 📦 جرد المخزن")
-            st.write("عرض رصيد المواد والمخزون")
+            st.write("عرض رصيد المواد")
             if st.button("فتح المخزن", key="t4"): st.session_state.active_page = "📦 جرد المخزن"; st.rerun()
             
         with st.container(border=True):
             st.markdown("### 💵 سداد الديون")
-            st.write("تسديد ديون العملاء والأقساط")
+            st.write("تسديد ديون العملاء")
             if st.button("فتح السداد", key="t6"): st.session_state.active_page = "💵 سداد الديون"; st.rerun()
             
         with st.container(border=True):
-            st.markdown("### 📄 سجل الفواتير وواتساب")
+            st.markdown("### 📄 سجل الفواتير")
             st.write("قائمة الفواتير الرسمية")
             if st.button("فتح الفواتير", key="t8"): st.session_state.active_page = "📄 سجل الفواتير وواتساب"; st.rerun()
             
         with st.container(border=True):
             st.markdown("### 📊 التقارير والأرباح")
-            st.write("الحسابات والأرباح المالية")
+            st.write("الحسابات المالية")
             if st.button("فتح التقارير", key="t10"): st.session_state.active_page = "📊 التقارير والأرباح"; st.rerun()
 
-    st.markdown("<br><p style='text-align: center; color: #7c6f9f; font-size: 12px;'>ياسر بوس - الإصدار 4.3.0</p>", unsafe_allow_html=True)
+    st.markdown("<br><p style='text-align: center; color: #7c6f9f; font-size: 11px;'>ياسر بوس - الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
 # ================= تشغيل الـ 11 تبويب بالكامل =================
 
-# 1. الرئيسية والشبكة (تعرض المواد على شكل شبكة منتجات سريعة كما طلبت)
 elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
-    st.subheader("🏠 شبكة المبيعات السريعة والمنتجات")
+    st.subheader("🏠 شبكة المبيعات السريعة")
     try:
         res = supabase.table("products").select("*").eq("username", username).execute()
         grid_items = res.data if res.data else []
@@ -251,7 +264,6 @@ elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
         grid_items = []
 
     if grid_items:
-        # عرض المنتجات على شكل شبكة عمودين
         g_cols = st.columns(2)
         for idx, item in enumerate(grid_items):
             with g_cols[idx % 2]:
@@ -260,7 +272,7 @@ elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
                     st.markdown(f"💰 السعر: `{int(item['sell_price']):,}` د.ع")
                     st.markdown(f"🔢 المتوفر: `{item['quantity']}` قطعة")
                     if item['quantity'] > 0:
-                        if st.button("➕ إضافة للسلة", key=f"grid_add_{item['id']}"):
+                        if st.button("➕ إضافة", key=f"grid_add_{item['id']}"):
                             found = False
                             for ci in st.session_state.cart:
                                 if ci["id"] == item["id"]:
@@ -277,7 +289,7 @@ elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
                                     "max_qty": item["quantity"],
                                     "qty": 1
                                 })
-                            st.success("تمت الإضافة للسلة!")
+                            st.success("تمت الإضافة!")
                             st.rerun()
                     else:
                         st.error("نفدت الكمية")
@@ -291,7 +303,7 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
         for idx, c_item in enumerate(st.session_state.cart):
             with st.container(border=True):
                 st.write(f"**{c_item['product_name']}**")
-                cols_c = st.columns(3)
+                cols_c = st.columns(2)
                 with cols_c[0]:
                     new_q = st.number_input("العدد", min_value=1, max_value=int(c_item['max_qty']), value=int(c_item['qty']), key=f"c_q_{c_item['id']}")
                     c_item['qty'] = new_q
@@ -299,10 +311,9 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
                     item_sum = c_item['sell_price'] * c_item['qty']
                     total_cart_price += item_sum
                     st.write(f"المجموع: **{int(item_sum):,}**")
-                with cols_c[2]:
-                    if st.button("❌ حذف", key=f"rem_{c_item['id']}"):
-                        st.session_state.cart.pop(idx)
-                        st.rerun()
+                if st.button("❌ حذف", key=f"rem_{c_item['id']}"):
+                    st.session_state.cart.pop(idx)
+                    st.rerun()
 
         st.divider()
         st.markdown(f"### 💵 المجموع الكلي: **{int(total_cart_price):,} د.ع**")
@@ -320,7 +331,7 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
             cust_names = [c["customer_name"] for c in customer_records]
             selected_cust_name = st.selectbox("اسم الزبون:", cust_names)
 
-        paid_str = st.text_input("المبلغ الواصل من الزبون (د.ع):", value=str(int(total_cart_price)))
+        paid_str = st.text_input("المبلغ الواصل (د.ع):", value=str(int(total_cart_price)))
         try:
             paid_val = float(paid_str.strip())
             if paid_val < 0: paid_val = 0
@@ -330,11 +341,11 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
         rem_val = total_cart_price - paid_val
 
         if paid_val >= total_cart_price:
-            pay_status = "🟢 نقد بالكامل (كاش)"
+            pay_status = "🟢 كاش"
         elif paid_val == 0:
-            pay_status = "🔴 دين كامل (آجل)"
+            pay_status = "🔴 دين كامل"
         else:
-            pay_status = "🔵 دفعة جزئية (أقساط)"
+            pay_status = "🔵 دفعة جزئية"
 
         if st.button("💾 بيع وطباعة الفاتورة", type="primary"):
             if not selected_cust_name:
@@ -379,16 +390,16 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
                 except Exception as ex:
                     st.error(f"خطأ: {ex}")
     else:
-        st.info("🛒 السلة فارغة حالياً. أضف مواد من (الرئيسية والشبكة) لتبدأ البيع.")
+        st.info("🛒 السلة فارغة حالياً. أضف مواد من الرئيسية للبدء.")
 
 elif st.session_state.active_page == "➕ إضافة وتوريد كميات":
-    st.subheader("➕ إضافة مادة جديدة أو توريد كميات")
+    st.subheader("➕ إضافة مادة جديدة")
     with st.form("new_p", clear_on_submit=True):
         pn = st.text_input("اسم المادة:")
         pb = st.text_input("سعر الشراء:", "0")
         ps = st.text_input("سعر البيع:", "0")
         pq = st.text_input("الكمية المتوفرة:", "1")
-        if st.form_submit_button("حفظ المادة بالمخزن", type="primary"):
+        if st.form_submit_button("حفظ المادة", type="primary"):
             if pn.strip():
                 try:
                     supabase.table("products").insert({
@@ -399,7 +410,7 @@ elif st.session_state.active_page == "➕ إضافة وتوريد كميات":
                         "quantity": int(pq),
                         "barcode": "بدون"
                     }).execute()
-                    st.success("تم حفظ المادة في قاعدة البيانات بنجاح!")
+                    st.success("تم حفظ المادة بنجاح!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"خطأ: {e}")
@@ -419,7 +430,7 @@ elif st.session_state.active_page == "📦 جرد المخزن":
 elif st.session_state.active_page == "👥 إدارة العملاء والديون":
     st.subheader("👥 إدارة العملاء والذمم")
     with st.form("cust_f", clear_on_submit=True):
-        cn = st.text_input("اسم العميل (حضرة السيد):")
+        cn = st.text_input("اسم العميل:")
         cp = st.text_input("رقم الهاتف:")
         ca = st.text_input("العنوان:")
         if st.form_submit_button("حفظ العميل"):
@@ -449,7 +460,7 @@ elif st.session_state.active_page == "🏭 إدارة الموردين":
         if st.form_submit_button("إضافة المورد"):
             if sn:
                 st.session_state.suppliers_list.append({"اسم المورد": sn, "الهاتف": sp})
-                st.success("تمت إضافة المورد بنجاح!")
+                st.success("تمت الإضافة بنجاح!")
                 st.rerun()
     if st.session_state.suppliers_list:
         st.dataframe(pd.DataFrame(st.session_state.suppliers_list), use_container_width=True)
@@ -469,9 +480,9 @@ elif st.session_state.active_page == "📄 سجل الفواتير وواتسا�
         st.info("لا توجد فواتير مسجلة.")
 
 elif st.session_state.active_page == "💰 الصندوق والمصاريف":
-    st.subheader("💰 صندوق الوردية والمصاريف اليومية")
+    st.subheader("💰 صندوق الوردية والمصاريف")
     with st.form("exp_tab", clear_on_submit=True):
-        et = st.text_input("بيان المصروف أو السند:")
+        et = st.text_input("بيان المصروف:")
         ea = st.text_input("المبلغ (د.ع):", "0")
         if st.form_submit_button("تسجيل المصروف"):
             if et:
@@ -482,7 +493,7 @@ elif st.session_state.active_page == "💰 الصندوق والمصاريف":
         st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
 
 elif st.session_state.active_page == "📊 التقارير والأرباح":
-    st.subheader("📊 التقارير المالية وحساب الأرباح")
+    st.subheader("📊 التقارير والأرباح المالية")
     st.metric("إجمالي المبيعات", "0 د.ع")
     st.metric("صافي الأرباح", "0 د.ع")
 
