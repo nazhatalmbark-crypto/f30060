@@ -14,10 +14,10 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="ياسر بوس - YASSER POS", layout="centered")
 
-# **تنسيق CSS متطور يجعل الموقع يظهر حصراً كإطار تطبيق موبايل أنيق (مطابق لصور TOFA)**
+# **تنسيق CSS دقيق لضمان وضوح النصوص تماماً وإطار موبايل احترافي مطابق لطلبك**
 st.markdown("""
     <style>
-    /* خلفية الشاشة الخارجية */
+    /* خلفية التطبيق الخارجية */
     .stApp {
         background: linear-gradient(135deg, #553c9a 0%, #3b2375 100%) !important;
         direction: rtl;
@@ -25,33 +25,40 @@ st.markdown("""
         font-family: system-ui, -apple-system, sans-serif;
     }
     
-    /* إطار الموبايل المركزي الذي يحوي التطبيق ليظهر مرتباً بكل الأجهزة */
+    /* إطار التطبيق الداخلي ليشبه الموبايل بدقة */
     .block-container {
         max-width: 420px !important;
         background: #f8f6fc !important;
-        border-radius: 35px !important;
+        border-radius: 30px !important;
         padding: 25px 20px !important;
-        margin: 20px auto !important;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.4) !important;
-        border: 8px solid #2d1a4e !important;
+        margin: 15px auto !important;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important;
+        border: 6px solid #2d1a4e !important;
     }
 
-    /* تنسيق الحقول والنصوص داخل التطبيق */
+    /* ضمان وضوح جميع النصوص والعناوين باللون الداكن المريح للعين */
+    p, span, label, h1, h2, h3, h4, .stTextInput label, .stSelectbox label {
+        color: #2d1a4e !important;
+        font-weight: 600;
+    }
+
+    /* حقول الإدخال لتكون واضحة وبكتابة سوداء صريحة وبدون أي اختفاء */
     input, select, textarea {
-        direction: rtl !important;
-        text-align: right !important;
-        border-radius: 12px !important;
+        color: #000000 !important;
         background: #ffffff !important;
-        border: 1px solid #dcd6f7 !important;
+        border: 1px solid #c4b5fd !important;
+        border-radius: 12px !important;
+        text-align: right !important;
+        direction: rtl !important;
     }
 
-    /* أزرار النظام الأنيقة */
+    /* الأزرار بتصميم أنيق وبارز */
     .stButton > button {
         background-color: #6b46c1 !important;
         color: white !important;
         border-radius: 12px !important;
         border: none !important;
-        padding: 8px 16px !important;
+        padding: 10px 16px !important;
         font-weight: bold !important;
         width: 100% !important;
         font-size: 14px !important;
@@ -64,7 +71,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# **تصفير الجلسات تماماً لبدء العمل بنظافة**
+# **تصفير الجلسات تماماً لبدء بيانات نظيفة**
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
@@ -137,9 +144,9 @@ def generate_html_invoice(inv):
     </html>
     """
 
-# **شاشة تسجيل الدخول المترتبة داخل إطار الموبايل**
+# **شاشة تسجيل الدخول المرتبة وواضحة الحقول تماماً**
 if not st.session_state.logged_in_user:
-    st.markdown("<h2 style='text-align: center; color: #2d1a4e; font-size: 22px;'>🔐 تسجيل الدخول لنظام ياسر بوس</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-size: 18px; margin-bottom: 20px; color: #2d1a4e;'>🔐 تسجيل الدخول لنظام (ياسر بوس)</h2>", unsafe_allow_html=True)
     with st.form("login_modern_form"):
         login_user = st.text_input("اسم المستخدم أو المحل:")
         login_role = st.selectbox("الصلاحية:", ["مشرف النظام", "كاشير", "مسؤول مبيعات"])
@@ -170,7 +177,7 @@ if not st.session_state.logged_in_user:
 username = st.session_state.logged_in_user
 user_role = st.session_state.user_role
 
-# **شريط علوي داخل إطار الموبايل**
+# **شريط علوي احترافي**
 top_c1, top_c2, top_c3 = st.columns([1, 3, 1])
 with top_c1:
     if st.session_state.active_page != "الرئيسية":
@@ -178,7 +185,7 @@ with top_c1:
             st.session_state.active_page = "الرئيسية"
             st.rerun()
 with top_c2:
-    st.markdown(f"<h3 style='text-align: center; margin: 0; color: #2d1a4e; font-size: 18px;'>ياسر بوس</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0; font-size: 16px; color: #2d1a4e;'>ياسر بوس</h3>", unsafe_allow_html=True)
 with top_c3:
     if st.button("🚪 خروج"):
         st.session_state.logged_in_user = None
@@ -188,9 +195,9 @@ with top_c3:
 
 st.divider()
 
-# ================= الشاشة الرئيسية: عرض الـ 11 تبويب ببطاقات بيضاء مطابقة تماماً =================
+# ================= الشاشة الرئيسية: عرض الـ 11 تبويب ببطاقات بيضاء واضحة =================
 if st.session_state.active_page == "الرئيسية":
-    st.markdown("<p style='text-align: center; color: #553c9a; font-size: 13px; font-weight: bold; margin-bottom: 15px;'>إدارة المبيعات والعمليات</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; color: #553c9a;'>إدارة المبيعات والعمليات</p>", unsafe_allow_html=True)
     
     col_a, col_b = st.columns(2)
     
@@ -251,7 +258,7 @@ if st.session_state.active_page == "الرئيسية":
             st.write("الحسابات المالية")
             if st.button("فتح التقارير", key="t10"): st.session_state.active_page = "📊 التقارير والأرباح"; st.rerun()
 
-    st.markdown("<br><p style='text-align: center; color: #7c6f9f; font-size: 11px;'>ياسر بوس - الإصدار 4.3.0</p>", unsafe_allow_html=True)
+    st.markdown("<br><p style='text-align: center; font-size: 11px; color: #7c6f9f;'>ياسر بوس - الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
 # ================= تشغيل الـ 11 تبويب بالكامل =================
 
