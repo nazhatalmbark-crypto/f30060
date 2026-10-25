@@ -177,17 +177,23 @@ if not st.session_state.logged_in_user:
 username = st.session_state.logged_in_user
 user_role = st.session_state.user_role
 
-# **شريط علوي داخل إطار الموبايل**
-top_c1, top_c2, top_c3 = st.columns([1, 3, 1])
+# **شريط علوي احترافي يضم أيقونة السلة المتحركة (العداد الفوق)**
+top_c1, top_c2, top_c3, top_c4 = st.columns([1, 2, 1, 1])
 with top_c1:
     if st.session_state.active_page != "الرئيسية":
-        if st.button("⬅️ رجوع"):
+        if st.button("⬅️"):
             st.session_state.active_page = "الرئيسية"
             st.rerun()
 with top_c2:
-    st.markdown(f"<h3 style='text-align: center; margin: 0; font-size: 16px; color: #2d1a4e;'>ياسر ويب</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0; font-size: 15px; color: #2d1a4e;'>ياسر ويب</h3>", unsafe_allow_html=True)
 with top_c3:
-    if st.button("🚪 خروج"):
+    # أيقونة السلة الفوق مع العداد المتحدث
+    total_cart_qty = sum(item['qty'] for item in st.session_state.cart)
+    if st.button(f"🛒 [{total_cart_qty}]"):
+        st.session_state.active_page = "🛒 سلة البيع وإتمام الفاتورة"
+        st.rerun()
+with top_c4:
+    if st.button("🚪"):
         st.session_state.logged_in_user = None
         st.session_state.cart = []
         st.session_state.active_page = "الرئيسية"
@@ -195,7 +201,7 @@ with top_c3:
 
 st.divider()
 
-# ================= الشاشة الرئيسية: عرض الـ 11 تبويب كبطاقات بيضاء =================
+# ================= الشاشة الرئيسية: عرض الـ 10 تبوابات المتبقية (بعد نقل السلة للأعلى) =================
 if st.session_state.active_page == "الرئيسية":
     st.markdown("<p style='text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; color: #553c9a;'>إدارة المبيعات والعمليات</p>", unsafe_allow_html=True)
     
@@ -204,13 +210,8 @@ if st.session_state.active_page == "الرئيسية":
     with col_a:
         with st.container(border=True):
             st.markdown("### 🏠 الرئيسية والشبكة")
-            st.write("عرض شبكة المواد والسلة")
+            st.write("عرض شبكة المواد والضغطة السريعة")
             if st.button("فتح الرئيسية", key="t1"): st.session_state.active_page = "🏠 الرئيسية والشبكة"; st.rerun()
-            
-        with st.container(border=True):
-            st.markdown("### ➕ إضافة وتوريد")
-            st.write("إضافة بضاعة ومخزون")
-            if st.button("فتح التوريد", key="t3"): st.session_state.active_page = "➕ إضافة وتوريد كميات"; st.rerun()
             
         with st.container(border=True):
             st.markdown("### 👥 العملاء والديون")
@@ -233,12 +234,10 @@ if st.session_state.active_page == "الرئيسية":
             if st.button("فتح السجل", key="t11"): st.session_state.active_page = "📜 سجل النشاطات"; st.rerun()
 
     with col_b:
-        # حساب إجمالي عدد القطع بالسلة لعرضه فوق كعداد متحرك
-        total_cart_qty = sum(item['qty'] for item in st.session_state.cart)
         with st.container(border=True):
-            st.markdown(f"### 🛒 سلة البيع 🛒 [{total_cart_qty}]")
-            st.write("مراجعة السلة والفاتورة")
-            if st.button("فتح السلة", key="t2"): st.session_state.active_page = "🛒 سلة البيع وإتمام الفاتورة"; st.rerun()
+            st.markdown("### ➕ إضافة وتوريد")
+            st.write("إضافة بضاعة ومخزون")
+            if st.button("فتح التوريد", key="t3"): st.session_state.active_page = "➕ إضافة وتوريد كميات"; st.rerun()
             
         with st.container(border=True):
             st.markdown("### 📦 جرد المخزن")
@@ -262,12 +261,12 @@ if st.session_state.active_page == "الرئيسية":
 
     st.markdown("<br><p style='text-align: center; font-size: 11px; color: #7c6f9f;'>ياسر ويب - الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
-# ================= تشغيل الـ 11 تبويب بالكامل =================
+# ================= تشغيل الأقسام والتبويبات بالكامل =================
 
-# 1. الرئيسية والشبكة مع زر "إضافة إلى السلة" تحت كل منتج وزيادة العداد الفوق
+# 1. الرئيسية والشبكة مع زر الإضافة تحت كل مادة وزيادة العداد الفوق
 elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
-    total_items_badge = sum(i['qty'] for i in st.session_state.cart)
-    st.subheader(f"🏠 شبكة المبيعات السريعة [السلة: {total_items_badge}]")
+    total_badge = sum(i['qty'] for i in st.session_state.cart)
+    st.subheader(f"🏠 شبكة المبيعات [السلة: {total_badge}]")
     
     try:
         res = supabase.table("products").select("*").eq("username", username).execute()
@@ -284,7 +283,7 @@ elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
                     st.markdown(f"💰 السعر: `{int(item['sell_price']):,}` د.ع")
                     st.markdown(f"🔢 المتوفر: `{item['quantity']}` قطعة")
                     if item['quantity'] > 0:
-                        if st.button("➕ إضافة إلى السلة", key=f"grid_add_{item['id']}"):
+                        if st.button("➕ إضافة", key=f"grid_add_{item['id']}"):
                             found = False
                             for ci in st.session_state.cart:
                                 if ci["id"] == item["id"]:
@@ -308,7 +307,7 @@ elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
     else:
         st.info("لا توجد مواد في المخزن. أضف بضاعة جديدة من قسم (إضافة وتوريد كميات).")
 
-# 2. سلة البيع وإتمام الفاتورة مع اختيار العميل والمعلومات الكاملة
+# 2. سلة البيع وإتمام الفاتورة مع استدعاء معلومات العميل تلقائياً وتخصم من المخزن
 elif st.session_state.active_page == "🛒 سلة البيع وإتمام الفاتورة":
     st.subheader("🛒 سلة البيع وإتمام الفاتورة")
     if st.session_state.cart:
@@ -340,20 +339,18 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
         if not customer_records:
             st.warning("⚠️ يرجى إضافة عميل أولاً من قسم (إدارة العملاء والديون).")
             selected_cust_name = ""
-            selected_cust_phone = ""
-            selected_cust_address = ""
         else:
             cust_names = [c["customer_name"] for c in customer_records]
             selected_cust_name = st.selectbox("اختر اسم العميل:", cust_names)
             
-            # جلب معلومات العميل تلقائياً وعرضها
+            # استدعاء معلومات العميل تلقائياً وعرضها
             chosen_cust_obj = next((c for c in customer_records if c["customer_name"] == selected_cust_name), None)
             if chosen_cust_obj:
-                selected_cust_phone = chosen_cust_obj.get("phone", "غير محدد")
-                selected_cust_address = chosen_cust_obj.get("address", "غير محدد")
-                st.info(f"📍 معلومات العميل - الهاتف: `{selected_cust_phone}` | العنوان: `{selected_cust_address}`")
+                c_phone = chosen_cust_obj.get("phone", "غير محدد")
+                c_address = chosen_cust_obj.get("address", "غير محدد")
+                st.info(f"📍 معلومات العميل - الهاتف: `{c_phone}` | العنوان: `{c_address}`")
 
-        paid_str = st.text_input("المبلغ الواصل (اكتب المبلغ نقد أو حط 0 للأقساط/الدين):", value=str(int(total_cart_price)))
+        paid_str = st.text_input("المبلغ الواصل (اكتب المبلغ نقد أو حط 0 للأقساط):", value=str(int(total_cart_price)))
         try:
             paid_val = float(paid_str.strip())
             if paid_val < 0: paid_val = 0
@@ -380,6 +377,7 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
                         prod_str_list.append(f"{c_item['product_name']} [العدد: {c_item['qty']}]")
                         total_cost_inv += (c_item['buy_price'] * c_item['qty'])
                         
+                        # خصم الكميات من المخزن في قاعدة البيانات تلقائياً
                         res_p_q = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
                         if res_p_q.data:
                             curr_q = res_p_q.data[0]["quantity"]
@@ -405,8 +403,8 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
 
                     supabase.table("invoices").insert(inv_data).execute()
                     log_audit("إتمام بيع", f"فاتورة رقم {inv_code}")
-                    st.session_state.cart = []
-                    st.success("✅ تمت عملية البيع بنجاح!")
+                    st.session_state.cart = [] # تفريغ السلة بعد إتمام البيع
+                    st.success("✅ تمت عملية البيع بنجاح وتحديث المخزن!")
                     st.components.v1.html(generate_html_invoice(inv_data), height=400, scrolling=True)
                     st.balloons()
                 except Exception as ex:
