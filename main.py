@@ -42,8 +42,6 @@ if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
     st.session_state.user_role = "مشرف النظام"
-if "current_view" not in st.session_state:
-    st.session_state.current_view = "dashboard"
 if "suppliers_list" not in st.session_state:
     st.session_state.suppliers_list = []
 if "cart" not in st.session_state:
@@ -148,21 +146,16 @@ if not st.session_state.logged_in_user:
 username = st.session_state.logged_in_user
 user_role = st.session_state.user_role
 
-# **شريط الإعدادات الجانبي**
+# **شريط الإعدادات الجانبي والقائمة الرئيسية المنظمة**
 st.sidebar.title("⚙️ إعدادات الحساب")
 st.sidebar.write(f"👤 المستخدم: **{username}**")
 st.sidebar.write(f"👤 الصلاحية: **{user_role}**")
 cart_total_count = sum(int(item['qty']) for item in st.session_state.cart)
 st.sidebar.info(f"🛒 المواد بالسلة: **{cart_total_count}**")
 
-if st.sidebar.button("تسجيل الخروج"):
-    st.session_state.logged_in_user = None
-    st.session_state.cart = []
-    st.rerun()
+st.sidebar.divider()
+st.sidebar.markdown("### 📌 القائمة الرئيسية")
 
-st.divider()
-
-# **التبويبات الـ 11 كاملة**
 tab_titles = [
     "🏠 الرئيسية والشبكة",
     "🛒 سلة البيع وإتمام الفاتورة",
@@ -177,9 +170,13 @@ tab_titles = [
     "📜 سجل النشاطات"
 ]
 
-selected_tab = st.radio("القائمة الرئيسية:", tab_titles, horizontal=True)
+selected_tab = st.sidebar.radio("اختر القسم:", tab_titles, label_visibility="collapsed")
 
-st.divider()
+st.sidebar.divider()
+if st.sidebar.button("تسجيل الخروج"):
+    st.session_state.logged_in_user = None
+    st.session_state.cart = []
+    st.rerun()
 
 # ================= TAB 1: الرئيسية وشبكة المبيعات =================
 if selected_tab == "🏠 الرئيسية والشبكة":
@@ -528,52 +525,4 @@ elif selected_tab == "📄 سجل الفواتير وواتساب":
         for inv in reversed(all_is):
             with st.container(border=True):
                 st.markdown(f"### فاتورة: `{inv['invoice_code']}` | الزبون: **{inv['customer_name']}**")
-                st.markdown(f"المبلغ الكلي: `{inv['total_price']:,}` د.ع | المتبقي (الدين): `{inv['remaining_amount']:,}` د.ع")
-                with st.expander("🖨️ عرض الفاتورة للطباعة"):
-                    st.components.v1.html(generate_html_invoice(inv), height=400, scrolling=True)
-    else:
-        st.info("لا توجد فواتير مسجلة.")
-
-# ================= TAB 9: الصندوق والمصاريف =================
-elif selected_tab == "💰 الصندوق والمصاريف":
-    st.subheader("💰 صندوق الوردية والمصاريف اليومية")
-    with st.form("exp_f", clear_on_submit=True):
-        et = st.text_input("بيان المصروف:")
-        ea = st.text_input("المبلغ (د.ع):", "0")
-        if st.form_submit_button("تسجيل المصروف"):
-            if et:
-                st.session_state.expenses_list.append({"البيان": et, "المبلغ": float(ea)})
-                st.success("تم تسجيل المصروف!")
-                st.rerun()
-    if st.session_state.expenses_list:
-        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
-
-# ================= TAB 10: التقارير والأرباح =================
-elif selected_tab == "📊 التقارير والأرباح":
-    st.subheader("📊 التقارير المالية وحساب صافي الأرباح")
-    try:
-        res_rep = supabase.table("invoices").select("*").eq("username", username).execute()
-        reps = res_rep.data if res_rep.data else []
-    except:
-        reps = []
-
-    if reps:
-        tot_sales = sum(i['total_price'] for i in reps)
-        tot_cost = sum(i.get('cost_price', 0) for i in reps)
-        tot_profit = tot_sales - tot_cost
-        tot_debt_rem = sum(i['remaining_amount'] for i in reps)
-
-        c1, c2, c3 = st.columns(3)
-        c1.metric("إجمالي المبيعات", f"{tot_sales:,.0f} د.ع")
-        c2.metric("صافي الأرباح", f"{tot_profit:,.0f} د.ع")
-        c3.metric("إجمالي الديون المتبقية", f"{tot_debt_rem:,.0f} د.ع")
-    else:
-        st.info("لا توجد بيانات كافية للتقارير.")
-
-# ================= TAB 11: سجل النشاطات =================
-elif selected_tab == "📜 سجل النشاطات":
-    st.subheader("📜 سجل النشاطات (Audit Trail)")
-    if st.session_state.audit_logs:
-        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
-    else:
-        st.info("لا توجد سجلات نشاط حتى الآن.")
+                st.markdown(f"المبلغ الكلي:
