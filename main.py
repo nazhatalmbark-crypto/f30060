@@ -3,11 +3,6 @@ import streamlit.components.v1 as components
 import pandas as pd
 from supabase import create_client, Client
 import datetime
-import json
-import urllib.parse
-import barcode
-from barcode.writer import ImageWriter
-import io
 
 SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co"
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
@@ -18,22 +13,43 @@ def init_supabase() -> Client:
 
 supabase = init_supabase()
 
-st.set_page_config(page_title="Yasser Web POS", layout="wide")
+st.set_page_config(page_title="Yasser Web POS", layout="centered")
 
-# **التصميم البنفسجي الحديث وواجهة الموبايل**
+# **تصميم عصري متطور يشبه التطبيقات الحديثة**
 st.markdown("""
     <style>
     .stApp {
-        background-color: #553c9a;
+        background: linear-gradient(135deg, #553c9a 0%, #3b2375 100%);
         direction: rtl;
         text-align: right;
         font-family: system-ui, -apple-system, sans-serif;
+        color: #ffffff;
+    }
+    div[data-testid="stSidebar"] {
+        background-color: #483185;
+        color: white;
     }
     input, select, textarea {
         direction: rtl;
         text-align: right;
+        border-radius: 10px !important;
     }
-    .hide-scroll::-webkit-scrollbar { display: none; }
+    .card-box {
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 18px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        color: #333333;
+        margin-bottom: 15px;
+    }
+    .metric-card {
+        background: #f8f5ff;
+        border-right: 5px solid #6b46c1;
+        padding: 15px;
+        border-radius: 12px;
+        color: #333;
+        margin-bottom: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -50,8 +66,6 @@ if "expenses_list" not in st.session_state:
     st.session_state.expenses_list = []
 if "audit_logs" not in st.session_state:
     st.session_state.audit_logs = []
-if "is_vip" not in st.session_state:
-    st.session_state.is_vip = False
 
 def log_audit(action, details):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -112,7 +126,7 @@ def generate_html_invoice(inv):
 
 # **شاشة تسجيل الدخول**
 if not st.session_state.logged_in_user:
-    st.markdown("<h2 style='text-align: center; color: white;'>🔐 بوابة الدخول لحسابات المحلات والنظام</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: white;'>🔐 بوابة الدخول لنظام المبيعات</h2>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login_modern_form"):
@@ -127,7 +141,6 @@ if not st.session_state.logged_in_user:
                             user_info = res.data[0]
                             st.session_state.logged_in_user = str(user_info["username"])
                             st.session_state.user_role = str(login_role)
-                            st.session_state.is_vip = bool(user_info.get("is_paid", False))
                             log_audit("تسجيل دخول", f"تم تسجيل الدخول بواسطة {user_info['username']}")
                             st.success("تم تسجيل الدخول بنجاح!")
                             st.rerun()
@@ -146,25 +159,25 @@ if not st.session_state.logged_in_user:
 username = st.session_state.logged_in_user
 user_role = st.session_state.user_role
 
-# **شريط الإعدادات الجانبي والقائمة الرئيسية المنظمة**
-st.sidebar.title("⚙️ إعدادات الحساب")
+# **شريط الإعدادات الجانبي والقائمة الرئيسية الاحترافية**
+st.sidebar.title("⚙️ إعدادات النظام")
 st.sidebar.write(f"👤 المستخدم: **{username}**")
 st.sidebar.write(f"👤 الصلاحية: **{user_role}**")
 cart_total_count = sum(int(item['qty']) for item in st.session_state.cart)
 st.sidebar.info(f"🛒 المواد بالسلة: **{cart_total_count}**")
 
 st.sidebar.divider()
-st.sidebar.markdown("### 📌 القائمة الرئيسية")
+st.sidebar.markdown("### 📌 الأقسام الرئيسية")
 
 tab_titles = [
     "🏠 الرئيسية والشبكة",
-    "🛒 سلة البيع وإتمام الفاتورة",
+    "🛒 إنشاء فاتورة جديدة",
     "➕ إضافة وتوريد كميات", 
-    "📦 جرد المخزن", 
-    "👥 إدارة العملاء والديون", 
+    "📦 إدارة المخزن", 
+    "👥 العملاء والديون", 
     "💵 سداد الديون",
     "🏭 إدارة الموردين",
-    "📄 سجل الفواتير وواتساب", 
+    "📄 قائمة الفواتير", 
     "💰 الصندوق والمصاريف", 
     "📊 التقارير والأرباح",
     "📜 سجل النشاطات"
@@ -188,60 +201,63 @@ if selected_tab == "🏠 الرئيسية والشبكة":
         grid_items = []
 
     if grid_items:
-        g_cols = st.columns(3)
+        g_cols = st.columns(2)
         for idx, item in enumerate(grid_items):
-            with g_cols[idx % 3]:
-                with st.container(border=True):
-                    st.markdown(f"#### 📦 {item['product_name']}")
-                    st.markdown(f"💰 السعر المفرد: `{int(item['sell_price']):,}` د.ع")
-                    st.markdown(f"🔢 المتوفر بالمخزن: `{item['quantity']}` قطعة")
-                    if item['quantity'] > 0:
-                        if st.button("➕ إضافة للسلة", key=f"fast_add_{item['id']}"):
-                            found = False
-                            for ci in st.session_state.cart:
-                                if ci["id"] == item["id"]:
-                                    if ci["qty"] < item["quantity"]:
-                                        ci["qty"] += 1
-                                    found = True
-                                    break
-                            if not found:
-                                st.session_state.cart.append({
-                                    "id": item["id"],
-                                    "product_name": item["product_name"],
-                                    "color": item.get('color', ''),
-                                    "size": item.get('size', ''),
-                                    "sell_price": item["sell_price"],
-                                    "buy_price": item["buy_price"],
-                                    "max_qty": item["quantity"],
-                                    "qty": 1
-                                })
-                            st.toast("✅ تمت الإضافة للسلة بنجاح!", icon="🛒")
-                            st.rerun()
-                    else:
-                        st.error("نفدت الكمية")
+            with g_cols[idx % 2]:
+                st.markdown(f"""
+                    <div class="card-box">
+                        <h4>📦 {item['product_name']}</h4>
+                        <p>💰 السعر: <b>{int(item['sell_price']):,} د.ع</b></p>
+                        <p>🔢 المتوفر: <b>{item['quantity']}</b> قطعة</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                if item['quantity'] > 0:
+                    if st.button("➕ إضافة للسلة", key=f"fast_add_{item['id']}"):
+                        found = False
+                        for ci in st.session_state.cart:
+                            if ci["id"] == item["id"]:
+                                if ci["qty"] < item["quantity"]:
+                                    ci["qty"] += 1
+                                found = True
+                                break
+                        if not found:
+                            st.session_state.cart.append({
+                                "id": item["id"],
+                                "product_name": item["product_name"],
+                                "color": item.get('color', ''),
+                                "size": item.get('size', ''),
+                                "sell_price": item["sell_price"],
+                                "buy_price": item["buy_price"],
+                                "max_qty": item["quantity"],
+                                "qty": 1
+                            })
+                        st.toast("✅ تمت الإضافة للسلة بنجاح!", icon="🛒")
+                        st.rerun()
+                else:
+                    st.error("نفدت الكمية")
     else:
-        st.info("لا توجد مواد في المخزن. توجه إلى تبويب (إضافة وتوريد كميات) لإضافة بضاعة جديدة.")
+        st.info("لا توجد مواد في المخزن. توجه إلى تبويب (إضافة وتوريد كميات).")
 
 # ================= TAB 2: سلة البيع وإتمام الفاتورة =================
-elif selected_tab == "🛒 سلة البيع وإتمام الفاتورة":
-    st.markdown("### 🛒 مراجعة السلة وإتمام الفاتورة (مع التعبئة التلقائية للعميل)")
+elif selected_tab == "🛒 إنشاء فاتورة جديدة":
+    st.markdown("### 🛒 مراجعة السلة وإتمام الفاتورة")
     if st.session_state.cart:
         total_cart_price = 0
         for idx, c_item in enumerate(st.session_state.cart):
-            cols_c = st.columns([3, 2, 2, 1])
-            with cols_c[0]:
+            with st.container(border=True):
                 st.write(f"**{c_item['product_name']}**")
-            with cols_c[1]:
-                new_q = st.number_input("العدد", min_value=1, max_value=int(c_item['max_qty']), value=int(c_item['qty']), key=f"cart_qty_{c_item['id']}")
-                c_item['qty'] = new_q
-            with cols_c[2]:
-                item_sum = c_item['sell_price'] * c_item['qty']
-                total_cart_price += item_sum
-                st.write(f"المجموع: **{int(item_sum):,}** د.ع")
-            with cols_c[3]:
-                if st.button("❌", key=f"remove_c_{c_item['id']}"):
-                    st.session_state.cart.pop(idx)
-                    st.rerun()
+                cols_c = st.columns(3)
+                with cols_c[0]:
+                    new_q = st.number_input("العدد", min_value=1, max_value=int(c_item['max_qty']), value=int(c_item['qty']), key=f"cart_qty_{c_item['id']}")
+                    c_item['qty'] = new_q
+                with cols_c[1]:
+                    item_sum = c_item['sell_price'] * c_item['qty']
+                    total_cart_price += item_sum
+                    st.write(f"المجموع: **{int(item_sum):,}**")
+                with cols_c[2]:
+                    if st.button("❌ حذف", key=f"remove_c_{c_item['id']}"):
+                        st.session_state.cart.pop(idx)
+                        st.rerun()
 
         st.divider()
         st.markdown(f"### 💵 المجموع الكلي: **{int(total_cart_price):,} د.ع**")
@@ -253,19 +269,16 @@ elif selected_tab == "🛒 سلة البيع وإتمام الفاتورة":
             customer_records = []
 
         if not customer_records:
-            st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (إدارة العملاء والديون) لتتمكن من إتمام الفاتورة!")
+            st.warning("⚠️ يرجى إضافة عميل أولاً من قسم (العملاء والديون).")
             selected_cust_name = ""
         else:
             cust_names = [c["customer_name"] for c in customer_records]
-            selected_cust_name = st.selectbox("اختر اسم الزبون (للتعبئة التلقائية لرقمه وعنوانه):", cust_names)
+            selected_cust_name = st.selectbox("اسم الزبون:", cust_names)
             
             selected_cust_obj = next((c for c in customer_records if c["customer_name"] == selected_cust_name), None)
             if selected_cust_obj:
-                col_f1, col_f2 = st.columns(2)
-                with col_f1:
-                    st.text_input("رقم الهاتف (تلقائي):", value=selected_cust_obj.get("phone", ""), disabled=True)
-                with col_f2:
-                    st.text_input("العنوان (تلقائي):", value=selected_cust_obj.get("address", ""), disabled=True)
+                st.text_input("رقم الهاتف:", value=selected_cust_obj.get("phone", ""), disabled=True)
+                st.text_input("العنوان:", value=selected_cust_obj.get("address", ""), disabled=True)
 
         paid_str = st.text_input("المبلغ الواصل من الزبون (د.ع):", value=str(int(total_cart_price)))
         try:
@@ -283,9 +296,9 @@ elif selected_tab == "🛒 سلة البيع وإتمام الفاتورة":
         else:
             pay_status = "🔵 دفعة جزئية (أقساط)"
 
-        st.info(f"💡 حالة الدفع: {pay_status} | الواصل: **{int(paid_val):,} د.ع** | المتبقي (الدين): **{int(rem_val):,} د.ع**")
+        st.info(f"💡 حالة الدفع: {pay_status} | الواصل: **{int(paid_val):,}** | المتبقي: **{int(rem_val):,} د.ع**")
 
-        if st.button("💾 إتمام البيع، خصم المخزن، وطباعة الفاتورة", type="primary"):
+        if st.button("💾 بيع وطباعة الفاتورة", type="primary"):
             if not selected_cust_name:
                 st.error("يرجى اختيار عميل صالح.")
             else:
@@ -324,31 +337,31 @@ elif selected_tab == "🛒 سلة البيع وإتمام الفاتورة":
                     st.session_state.cart = []
                     st.success("✅ تمت عملية البيع وحفظ الفاتورة بنجاح!")
                     
-                    st.markdown("### 📄 معاينة الفاتورة للطباعة:")
-                    st.components.v1.html(generate_html_invoice(inv_data), height=450, scrolling=True)
+                    st.markdown("### 📄 معاينة الفاتورة:")
+                    st.components.v1.html(generate_html_invoice(inv_data), height=400, scrolling=True)
                     st.balloons()
                 except Exception as ex:
                     st.error(f"خطأ: {ex}")
     else:
-        st.info("🛒 السلة فارغة. اختر مواد من تبويب (الرئيسية والشبكة).")
+        st.info("🛒 السلة فارغة. اختر مواد من (الرئيسية والشبكة).")
 
 # ================= TAB 3: إضافة وتوريد الكميات =================
 elif selected_tab == "➕ إضافة وتوريد كميات":
-    st.subheader("➕ إضافة مادة جديدة أو توريد كميات إضافية فوق المخزون")
+    st.subheader("➕ إدارة وتوريد المخزون")
     try:
         res_all_p = supabase.table("products").select("id, product_name, quantity, sell_price").eq("username", username).execute()
         existing_prods = res_all_p.data if res_all_p.data else []
     except:
         existing_prods = []
 
-    mode = st.radio("اختر العملية:", ["إضافة مادة جديدة بالكامل", "توريد وزيادة كمية لمادة موجودة مسبقاً"], horizontal=True)
+    mode = st.radio("اختر العملية:", ["إضافة مادة جديدة بالكامل", "توريد وزيادة كمية لمادة موجودة"], horizontal=True)
 
-    if mode == "توريد وزيادة كمية لمادة موجودة مسبقاً" and existing_prods:
+    if mode == "توريد وزيادة كمية لمادة موجودة" and existing_prods:
         with st.form("restock_form_tab"):
             p_opts = {f"{p['product_name']} (المتوفر: {p['quantity']})": p['id'] for p in existing_prods}
-            chosen_p = st.selectbox("اختر المادة لتوريد كمية فوقها:", list(p_opts.keys()))
+            chosen_p = st.selectbox("اختر المادة:", list(p_opts.keys()))
             add_q_str = st.text_input("الكمية المراد إضافتها:", "1")
-            if st.form_submit_button("تحديث وزيادة الكمية", type="primary"):
+            if st.form_submit_button("تحديث الكمية", type="primary"):
                 try:
                     add_amt = int(add_q_str.strip())
                     pid = p_opts[chosen_p]
@@ -356,13 +369,13 @@ elif selected_tab == "➕ إضافة وتوريد كميات":
                     new_tot = item_obj['quantity'] + add_amt
                     supabase.table("products").update({"quantity": new_tot}).eq("id", pid).execute()
                     log_audit("توريد", f"توريد {add_amt} للمنتج {item_obj['product_name']}")
-                    st.success(f"🎉 تم تحديث كمية المادة بنجاح! الإجمالي الجديد: {new_tot}")
+                    st.success(f"🎉 تم التحديث بنجاح! الإجمالي الجديد: {new_tot}")
                     st.rerun()
                 except Exception as e:
                     st.error(f"خطأ: {e}")
     else:
-        if mode == "توريد وزيادة كمية لمادة موجودة مسبقاً":
-            st.info("لا توجد مواد مسجلة لتوريد كميات لها.")
+        if mode == "توريد وزيادة كمية لمادة موجودة":
+            st.info("لا توجد مواد مسجلة.")
         else:
             with st.form("new_product_form", clear_on_submit=True):
                 pn = st.text_input("اسم المادة / المنتج:")
@@ -374,11 +387,11 @@ elif selected_tab == "➕ إضافة وتوريد كميات":
                 
                 c_1, c_2, c_3, c_4 = st.columns(4)
                 with c_1:
-                    p_buy = st.text_input("سعر الشراء (د.ع):", "0")
+                    p_buy = st.text_input("سعر الشراء:", "0")
                 with c_2:
-                    p_sell = st.text_input("سعر القطعة المفرد (د.ع):", "0")
+                    p_sell = st.text_input("سعر البيع:", "0")
                 with c_3:
-                    p_qty = st.text_input("الكمية المتوفرة:", "1")
+                    p_qty = st.text_input("الكمية:", "1")
                 with c_4:
                     p_bar = st.text_input("باركود:", "")
 
@@ -404,7 +417,7 @@ elif selected_tab == "➕ إضافة وتوريد كميات":
                         st.warning("أدخل اسم المادة.")
 
 # ================= TAB 4: جرد المخزن =================
-elif selected_tab == "📦 جرد المخزن":
+elif selected_tab == "📦 إدارة المخزن":
     st.subheader("📦 جرد المخزن الشامل")
     try:
         res_inv = supabase.table("products").select("*").eq("username", username).execute()
@@ -418,13 +431,13 @@ elif selected_tab == "📦 جرد المخزن":
     else:
         st.info("المخزن فارغ.")
 
-# ================= TAB 5: إدارة العملاء والديون =================
-elif selected_tab == "👥 إدارة العملاء والديون":
-    st.subheader("👥 إدارة العملاء والديون والذمم")
+# ================= TAB 5: العملاء والديون =================
+elif selected_tab == "👥 العملاء والديون":
+    st.subheader("👥 إدارة العملاء والذمم")
     with st.form("cust_form", clear_on_submit=True):
         cn = st.text_input("اسم العميل:")
         cp = st.text_input("رقم الهاتف:")
-        ca = st.text_input("العنوان / المنطقة:")
+        ca = st.text_input("العنوان:")
         if st.form_submit_button("حفظ العميل"):
             if cn and cp:
                 try:
@@ -468,7 +481,7 @@ elif selected_tab == "💵 سداد الديون":
             c_invs = []
 
         tot_debt = sum(i.get('remaining_amount', 0) for i in c_invs)
-        st.markdown(f"### إجمالي الدين المتبقي على العميل: **{tot_debt:,} د.ع**")
+        st.markdown(f"### إجمالي الدين المتبقي: **{tot_debt:,} د.ع**")
 
         with st.form("pay_d_form"):
             pay_amt_str = st.text_input("المبلغ المسدد (د.ع):", "0")
@@ -512,9 +525,9 @@ elif selected_tab == "🏭 إدارة الموردين":
     if st.session_state.suppliers_list:
         st.dataframe(pd.DataFrame(st.session_state.suppliers_list), use_container_width=True)
 
-# ================= TAB 8: سجل الفواتير وواتساب =================
-elif selected_tab == "📄 سجل الفواتير وواتساب":
-    st.subheader("📄 سجل الفواتير الرسمية وإرسالها عبر الواتساب")
+# ================= TAB 8: سجل الفواتير =================
+elif selected_tab == "📄 قائمة الفواتير":
+    st.subheader("📄 سجل الفواتير الرسمية")
     try:
         res_all_i = supabase.table("invoices").select("*").eq("username", username).execute()
         all_is = res_all_i.data if res_all_i.data else []
@@ -525,7 +538,7 @@ elif selected_tab == "📄 سجل الفواتير وواتساب":
         for inv in reversed(all_is):
             with st.container(border=True):
                 st.markdown(f"### فاتورة: `{inv['invoice_code']}` | الزبون: **{inv['customer_name']}**")
-                st.markdown(f"المبلغ الكلي: `{inv['total_price']:,}` د.ع | المتبقي (الدين): `{inv['remaining_amount']:,}` د.ع")
+                st.markdown(f"المبلغ: `{inv['total_price']:,}` د.ع | المتبقي: `{inv['remaining_amount']:,}` د.ع")
                 with st.expander("🖨️ عرض الفاتورة للطباعة"):
                     st.components.v1.html(generate_html_invoice(inv), height=400, scrolling=True)
     else:
@@ -547,7 +560,7 @@ elif selected_tab == "💰 الصندوق والمصاريف":
 
 # ================= TAB 10: التقارير والأرباح =================
 elif selected_tab == "📊 التقارير والأرباح":
-    st.subheader("📊 التقارير المالية وحساب صافي الأرباح")
+    st.subheader("📊 التقارير المالية وحساب الأرباح")
     try:
         res_rep = supabase.table("invoices").select("*").eq("username", username).execute()
         reps = res_rep.data if res_rep.data else []
@@ -561,9 +574,9 @@ elif selected_tab == "📊 التقارير والأرباح":
         tot_debt_rem = sum(i['remaining_amount'] for i in reps)
 
         c1, c2, c3 = st.columns(3)
-        c1.metric("إجمالي المبيعات", f"{tot_sales:,.0f} د.ع")
-        c2.metric("صافي الأرباح", f"{tot_profit:,.0f} د.ع")
-        c3.metric("إجمالي الديون المتبقية", f"{tot_debt_rem:,.0f} د.ع")
+        c1.metric("إجمالي المبيعات", f"{tot_sales:,.0f}")
+        c2.metric("صافي الأرباح", f"{tot_profit:,.0f}")
+        c3.metric("الديون المتبقية", f"{tot_debt_rem:,.0f}")
     else:
         st.info("لا توجد بيانات كافية للتقارير.")
 
