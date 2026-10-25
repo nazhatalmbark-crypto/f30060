@@ -1,540 +1,885 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import pandas as pd
+from supabase import create_client, Client
+import datetime
+import json
+import urllib.parse
+import barcode
+from barcode.writer import ImageWriter
+import io
 
-st.set_page_config(page_title="ياسر ويب POS", layout="wide")
+SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
+SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
 
-html_code = """
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ياسر ويب POS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        purpleBrand: '#6b46c1',
-                        purpleLight: '#f3e8ff',
-                        bgApp: '#faf5ff',
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+@st.cache_resource
+def init_supabase() -> Client:
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+supabase = init_supabase()
+
+st.set_page_config(page_title="Yasser Web - النظام الشامل لإدارة المحلات", page_icon="🛍️", layout="wide")
+
+# **تنسيق اتجاه النصوص لليمين (RTL)**
+st.markdown("""
     <style>
-        body { background-color: #553c9a; font-family: system-ui, -apple-system, sans-serif; }
-        .hide-scroll::-webkit-scrollbar { display: none; }
+    .stApp {
+        direction: rtl;
+        text-align: right;
+    }
+    input, select, textarea {
+        direction: rtl;
+        text-align: right;
+    }
     </style>
-</head>
-<body class="text-gray-800 flex justify-center items-start min-h-screen p-0 sm:p-4">
+""", unsafe_allow_html=True)
 
-    <!-- Phone Container -->
-    <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[840px] sm:rounded-[38px] shadow-2xl overflow-hidden flex flex-col relative pb-16 border-4 border-gray-900/10">
+# **إدارة اللغات**
+if "lang" not in st.session_state:
+    st.session_state.lang = "العربية"
 
-        <!-- Header -->
-        <header class="bg-white px-4 pt-4 pb-2 border-b border-purple-50 flex justify-between items-center sticky top-0 z-40">
-            <button onclick="switchTab('dashboard')" class="text-purpleBrand text-lg">
-                <i class="fa-solid fa-bars-staggered"></i>
-            </button>
-            <div class="text-center">
-                <h1 class="font-bold text-gray-800 text-base tracking-wide">YASSER POS</h1>
-                <p class="text-[10px] text-purpleBrand font-semibold">إدارة المبيعات والمخزن</p>
+lang_dict = {
+    "العربية": {
+        "title": "🛍️ نظام Yasser Web الشامل لإدارة المبيعات والمخزون",
+        "login_title": "🔐 بوابة الدخول لحسابات المحلات والنظام",
+        "login_tab": "🔑 تسجيل الدخول",
+        "signup_tab": "✨ إنشاء حساب جديد",
+        "username_label": "اسم المستخدم أو اسم المحل:",
+        "login_btn": "تسجيل الدخول",
+        "signup_btn": "إنشاء الحساب الآن",
+        "settings": "⚙️ إعدادات الحساب والنسخ الاحتياطي",
+        "lang_select": "🌐 اللغة / Language",
+        "role_label": "👤 الصلاحية:",
+        "cart_badge": "🛒 المواد الحالية بالسلة:",
+        "backup_title": "🔄 النسخ الاحتياطي الفوري للبيانات",
+        "backup_download": "📥 تحميل نسخة احتياطية (JSON)",
+        "logout": "تسجيل الخروج",
+        "tabs": [
+            "➕ إضافة مادة وتوريد كميات", 
+            "📦 جرد المخزن والشبكة", 
+            "👥 إدارة العملاء والديون", 
+            "💵 سداد الديون",
+            "🏭 إدارة الموردين",
+            "🛒 شبكة المبيعات والسلة", 
+            "📄 سجل الفواتير وواتساب", 
+            "💰 صندوق الوردية والمصاريف", 
+            "📊 الرسوم البيانية والتقارير",
+            "📜 سجل النشاطات (Audit Trail)",
+            "📖 دليل الاستخدام والمميزات"
+        ]
+    }
+}
+
+t = lang_dict[st.session_state.lang]
+
+if "logged_in_user" not in st.session_state:
+    st.session_state.logged_in_user = None
+
+if "user_role" not in st.session_state:
+    st.session_state.user_role = "مشرف النظام"
+
+if "suppliers_list" not in st.session_state or isinstance(st.session_state.suppliers_list, pd.DataFrame):
+    st.session_state.suppliers_list = []
+
+if "cart" not in st.session_state or isinstance(st.session_state.cart, pd.DataFrame):
+    st.session_state.cart = []
+
+if "expenses_list" not in st.session_state or isinstance(st.session_state.expenses_list, pd.DataFrame):
+    st.session_state.expenses_list = []
+
+if "audit_logs" not in st.session_state or isinstance(st.session_state.audit_logs, pd.DataFrame):
+    st.session_state.audit_logs = []
+
+if "is_vip" not in st.session_state:
+    st.session_state.is_vip = False
+
+def log_audit(action, details):
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    user = st.session_state.logged_in_user or "زائر"
+    role = st.session_state.user_role
+    if isinstance(st.session_state.audit_logs, pd.DataFrame):
+        st.session_state.audit_logs = []
+    st.session_state.audit_logs.insert(0, {
+        "التاريخ والوقت": str(timestamp),
+        "المستخدم": str(user),
+        "الصلاحية": str(role),
+        "العملية": str(action),
+        "التفاصيل": str(details)
+    })
+
+# **دالة توليد الفاتورة الاحترافية بصيغة HTML**
+def generate_html_invoice(inv):
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <title>فاتورة رقم {inv['invoice_code']}</title>
+        <style>
+            body {{ font-family: 'Tahoma', Arial, sans-serif; padding: 20px; color: #333; }}
+            .invoice-box {{ max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); background: #fff; }}
+            .header {{ text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }}
+            .info {{ margin-bottom: 20px; font-size: 15px; line-height: 1.6; }}
+            table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+            th, td {{ border: 1px solid #ddd; padding: 10px; text-align: right; font-size: 14px; }}
+            th {{ background-color: #f4f4f4; }}
+            .totals {{ font-size: 16px; font-weight: bold; text-align: left; margin-top: 15px; line-height: 1.8; }}
+            .footer {{ text-align: center; margin-top: 40px; font-size: 13px; color: #777; border-top: 1px dashed #ddd; padding-top: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="invoice-box">
+            <div class="header">
+                <h2>YASSER WEB - فاتورة طلبية رسمية</h2>
+                <p>التاريخ والوقت: {inv['created_date']}</p>
             </div>
-            <div class="flex items-center space-x-3 space-x-reverse">
-                <!-- Shopping Cart Icon with Live Count -->
-                <button onclick="openCartView()" class="relative text-purpleBrand text-xl p-1">
-                    <i class="fa-solid fa-cart-shopping"></i>
-                    <span id="cart-badge" class="absolute -top-1 -right-2 bg-purpleBrand text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
-                </button>
-                <button onclick="logout()" class="text-gray-400 text-sm hover:text-red-500">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
+            <div class="info">
+                <p><strong>رقم الفاتورة:</strong> {inv['invoice_code']}</p>
+                <p><strong>اسم الزبون:</strong> {inv['customer_name']}</p>
+                <p><strong>طريقة وحالة الدفع:</strong> {inv['payment_type']}</p>
             </div>
-        </header>
-
-        <!-- Main Workspace -->
-        <main class="flex-1 overflow-y-auto bg-purple-50/30 p-4 space-y-4 hide-scroll">
-
-            <!-- 1. DASHBOARD VIEW -->
-            <div id="view-dashboard" class="view-panel space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="switchTab('create-invoice')" class="bg-white p-4 rounded-2xl shadow-sm border border-purple-100 flex flex-col items-center justify-center text-center space-y-2 hover:bg-purple-50 transition">
-                        <div class="bg-purpleLight text-purpleBrand p-3 rounded-2xl"><i class="fa-solid fa-file-circle-plus text-xl"></i></div>
-                        <span class="text-xs font-bold text-gray-800">إنشاء فاتورة (عرض الشبكة)</span>
-                        <span class="text-[10px] text-gray-400">إصدار الفواتير والطباعة</span>
-                    </button>
-
-                    <button onclick="switchTab('invoices-list')" class="bg-white p-4 rounded-2xl shadow-sm border border-purple-100 flex flex-col items-center justify-center text-center space-y-2 hover:bg-purple-50 transition">
-                        <div class="bg-purpleLight text-purpleBrand p-3 rounded-2xl"><i class="fa-solid fa-receipt text-xl"></i></div>
-                        <span class="text-xs font-bold text-gray-800">قائمة الفواتير</span>
-                        <span class="text-[10px] text-gray-400">سجل الفواتير المباعة</span>
-                    </button>
-
-                    <button onclick="switchTab('inventory')" class="bg-white p-4 rounded-2xl shadow-sm border border-purple-100 flex flex-col items-center justify-center text-center space-y-2 hover:bg-purple-50 transition">
-                        <div class="bg-purpleLight text-purpleBrand p-3 rounded-2xl"><i class="fa-solid fa-box text-xl"></i></div>
-                        <span class="text-xs font-bold text-gray-800">المخزن</span>
-                        <span class="text-[10px] text-gray-400">إدارة المواد والمشتريات</span>
-                    </button>
-
-                    <button onclick="switchTab('customers')" class="bg-white p-4 rounded-2xl shadow-sm border border-purple-100 flex flex-col items-center justify-center text-center space-y-2 hover:bg-purple-50 transition">
-                        <div class="bg-purpleLight text-purpleBrand p-3 rounded-2xl"><i class="fa-solid fa-user-group text-xl"></i></div>
-                        <span class="text-xs font-bold text-gray-800">العملاء والديون</span>
-                        <span class="text-[10px] text-gray-400">سجل العملاء والحسابات</span>
-                    </button>
-
-                    <button onclick="switchTab('bonds')" class="bg-white p-4 rounded-2xl shadow-sm border border-purple-100 flex flex-col items-center justify-center text-center space-y-2 hover:bg-purple-50 transition">
-                        <div class="bg-purpleLight text-purpleBrand p-3 rounded-2xl"><i class="fa-solid fa-wallet text-xl"></i></div>
-                        <span class="text-xs font-bold text-gray-800">السندات والمصروفات</span>
-                        <span class="text-[10px] text-gray-400">سندات قبض وصرف</span>
-                    </button>
-
-                    <button onclick="switchTab('reports')" class="bg-white p-4 rounded-2xl shadow-sm border border-purple-100 flex flex-col items-center justify-center text-center space-y-2 hover:bg-purple-50 transition">
-                        <div class="bg-purpleLight text-purpleBrand p-3 rounded-2xl"><i class="fa-solid fa-chart-pie text-xl"></i></div>
-                        <span class="text-xs font-bold text-gray-800">الإحصائيات والأرباح</span>
-                        <span class="text-[10px] text-gray-400">التقارير والصندوق</span>
-                    </button>
-                </div>
+            <table>
+                <tr>
+                    <th>تفاصيل المنتجات والمواد المطلوبة</th>
+                </tr>
+                <tr>
+                    <td>{inv['products_text']}</td>
+                </tr>
+            </table>
+            <div class="totals">
+                <p>المبلغ الكلي: {inv['total_price']:,} دينار عراقي</p>
+                <p>المبلغ الواصل: {inv['paid_amount']:,} دينار عراقي</p>
+                <p>المتبقي (الدين): {inv['remaining_amount']:,} دينار عراقي</p>
             </div>
-
-            <!-- 2. CREATE INVOICE VIEW (Grid of Products) -->
-            <div id="view-create-invoice" class="view-panel hidden space-y-3">
-                <div class="flex justify-between items-center bg-white p-3 rounded-2xl border border-purple-100">
-                    <span class="text-xs font-bold text-gray-700">شبكة المواد المتاحة</span>
-                    <button onclick="switchTab('inventory')" class="text-[11px] bg-purpleLight text-purpleBrand px-2.5 py-1 rounded-xl font-bold">+ إضافة مادة للمخزن</button>
-                </div>
-
-                <!-- Products Grid Container -->
-                <div id="products-grid" class="grid grid-cols-2 gap-3">
-                    <!-- Cards Injected Here -->
-                </div>
-            </div>
-
-            <!-- 3. CART & CHECKOUT VIEW -->
-            <div id="view-cart" class="view-panel hidden space-y-3">
-                <div class="bg-white p-4 rounded-2xl border border-purple-100 space-y-3">
-                    <h3 class="font-bold text-gray-800 text-sm border-b pb-2">إتمام البيع ونوع الفاتورة</h3>
-                    
-                    <!-- Sale Type: Cash or Credit -->
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-gray-600">نوع البيع</label>
-                        <select id="sale-type" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-bold focus:outline-none">
-                            <option value="cash">نقداً (كاش)</option>
-                            <option value="credit">آجل (دين)</option>
-                        </select>
-                    </div>
-
-                    <!-- Customer Selection & Auto-fill -->
-                    <div class="space-y-2 bg-purple-50/60 p-3 rounded-xl border border-purple-100">
-                        <label class="text-[11px] font-bold text-purpleBrand">اختر العميل (تعبئة تلقائية)</label>
-                        <select id="cart-customer-select" onchange="autoFillCustomerData()" class="w-full p-2 border rounded-xl text-xs bg-white focus:outline-none">
-                            <!-- Injected -->
-                        </select>
-                        <input type="text" id="cust-phone-filled" readonly placeholder="رقم الهاتف" class="w-full p-2 border rounded-xl text-xs bg-gray-100 text-gray-600">
-                        <input type="text" id="cust-address-filled" readonly placeholder="العنوان" class="w-full p-2 border rounded-xl text-xs bg-gray-100 text-gray-600">
-                    </div>
-
-                    <!-- Cart Items Summary -->
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-gray-600">المواد المحددة الفاتورة</label>
-                        <div id="cart-items-container" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
-                    </div>
-
-                    <!-- Total Price Card -->
-                    <div class="bg-purpleLight p-3 rounded-xl flex justify-between items-center text-xs">
-                        <span class="font-bold text-purpleBrand">المجموع الكلي:</span>
-                        <span id="cart-total-price" class="text-base font-black text-purpleBrand">0 د.ع</span>
-                    </div>
-
-                    <button onclick="finalizeSale()" class="w-full bg-purpleBrand text-white py-3 rounded-xl text-xs font-bold shadow-md hover:bg-purple-800 transition flex items-center justify-center space-x-2 space-x-reverse">
-                        <i class="fa-solid fa-print"></i>
-                        <span>إتمام البيع وطباعة الفاتورة</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- 4. INVENTORY MANAGEMENT VIEW -->
-            <div id="view-inventory" class="view-panel hidden space-y-3">
-                <div class="bg-white p-4 rounded-2xl border border-purple-100 space-y-3">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-bold text-gray-800 text-sm">إدارة المخزن والمواد</h3>
-                        <button onclick="toggleAddProductForm()" class="bg-purpleBrand text-white text-xs px-3 py-1.5 rounded-lg"><i class="fa-solid fa-plus ml-1"></i>مادة جديدة</button>
-                    </div>
-
-                    <div id="add-p-form" class="hidden space-y-2 bg-purple-50/50 p-3 rounded-xl border border-purple-100">
-                        <input type="text" id="p-name" placeholder="اسم المادة" class="w-full p-2 border rounded-lg text-xs">
-                        <input type="number" id="p-price" placeholder="السعر (د.ع)" class="w-full p-2 border rounded-lg text-xs">
-                        <input type="number" id="p-qty" placeholder="الكمية المتوفرة" class="w-full p-2 border rounded-lg text-xs">
-                        <button onclick="saveProduct()" class="w-full bg-purpleBrand text-white py-2 rounded-lg text-xs font-bold">حفظ المادة بالشبكة</button>
-                    </div>
-
-                    <div id="inventory-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
-                </div>
-            </div>
-
-            <!-- 5. CUSTOMERS VIEW -->
-            <div id="view-customers" class="view-panel hidden space-y-3">
-                <div class="bg-white p-4 rounded-2xl border border-purple-100 space-y-3">
-                    <h3 class="font-bold text-gray-800 text-sm border-b pb-2">إضافة وإدارة العملاء</h3>
-                    <div class="space-y-2">
-                        <input type="text" id="c-name" placeholder="اسم العميل الكامل" class="w-full p-2 border rounded-lg text-xs">
-                        <input type="text" id="c-phone" placeholder="رقم الهاتف" class="w-full p-2 border rounded-lg text-xs">
-                        <input type="text" id="c-address" placeholder="العنوان / المنطقة" class="w-full p-2 border rounded-lg text-xs">
-                        <button onclick="saveCustomer()" class="w-full bg-purpleBrand text-white py-2 rounded-lg text-xs font-bold">حفظ العميل</button>
-                    </div>
-                    <div id="customers-list" class="space-y-2 max-h-48 overflow-y-auto pt-2"></div>
-                </div>
-            </div>
-
-            <!-- 6. BONDS VIEW -->
-            <div id="view-bonds" class="view-panel hidden space-y-3">
-                <div class="bg-white p-4 rounded-2xl border border-purple-100 space-y-2">
-                    <h3 class="font-bold text-gray-800 text-sm border-b pb-2">السندات والمصروفات</h3>
-                    <div class="grid grid-cols-2 gap-2 text-center text-xs">
-                        <div class="bg-green-50 text-green-700 p-2.5 rounded-xl border border-green-100">
-                            <span>سند قبض</span>
-                            <h4 id="bond-in" class="font-bold text-sm mt-0.5">0 د.ع</h4>
-                        </div>
-                        <div class="bg-red-50 text-red-700 p-2.5 rounded-xl border border-red-100">
-                            <span>سند صرف</span>
-                            <h4 id="bond-out" class="font-bold text-sm mt-0.5">0 د.ع</h4>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 7. REPORTS & INVOICES LIST VIEW -->
-            <div id="view-invoices-list" class="view-panel hidden space-y-3">
-                <div class="bg-white p-4 rounded-2xl border border-purple-100 space-y-3">
-                    <h3 class="font-bold text-gray-800 text-sm border-b pb-2">سجل الفواتير المباعة</h3>
-                    <div id="invoices-history-list" class="space-y-2 max-h-60 overflow-y-auto text-xs"></div>
-                </div>
-            </div>
-
-            <div id="view-reports" class="view-panel hidden space-y-3">
-                <div class="bg-white p-4 rounded-2xl border border-purple-100 space-y-3">
-                    <h3 class="font-bold text-gray-800 text-sm border-b pb-2">الإحصائيات العامة والصندوق</h3>
-                    <div class="bg-purpleLight p-4 rounded-xl text-center">
-                        <span class="text-xs text-purpleBrand font-semibold">إجمالي المبيعات المحققة</span>
-                        <h2 id="stats-total" class="text-2xl font-bold text-purpleBrand mt-1">0 د.ع</h2>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-
-        <!-- Bottom Navigation Bar -->
-        <nav class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 py-2 px-4 flex justify-around items-center z-40">
-            <button onclick="switchTab('dashboard')" class="flex flex-col items-center text-purpleBrand text-[10px] font-bold">
-                <i class="fa-solid fa-house text-base"></i>
-                <span>الرئيسية</span>
-            </button>
-            <button onclick="switchTab('create-invoice')" class="flex flex-col items-center text-gray-400 hover:text-purpleBrand text-[10px]">
-                <i class="fa-solid fa-table-cells text-base"></i>
-                <span>الشبكة</span>
-            </button>
-            <button onclick="switchTab('inventory')" class="flex flex-col items-center text-gray-400 hover:text-purpleBrand text-[10px]">
-                <i class="fa-solid fa-boxes-stacked text-base"></i>
-                <span>المخزن</span>
-            </button>
-            <button onclick="switchTab('customers')" class="flex flex-col items-center text-gray-400 hover:text-purpleBrand text-[10px]">
-                <i class="fa-solid fa-users text-base"></i>
-                <span>العملاء</span>
-            </button>
-        </nav>
-
-        <!-- Login Screen Modal -->
-        <div id="login-modal" class="fixed inset-0 bg-purpleBrand/95 z-50 flex items-center justify-center p-4">
-            <div class="bg-white p-6 rounded-3xl w-full max-w-xs space-y-4 shadow-2xl text-center">
-                <div class="bg-purpleLight text-purpleBrand w-14 h-14 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
-                    <i class="fa-solid fa-lock"></i>
-                </div>
-                <h2 class="text-base font-bold text-gray-800">تسجيل الدخول - ياسر ويب</h2>
-                <div class="space-y-2 text-right">
-                    <input type="text" id="user-in" placeholder="اسم المستخدم" class="w-full p-2.5 border rounded-xl text-xs">
-                    <input type="password" id="pass-in" placeholder="كلمة المرور" class="w-full p-2.5 border rounded-xl text-xs">
-                </div>
-                <button onclick="auth()" class="w-full bg-purpleBrand text-white py-2.5 rounded-xl font-bold text-xs shadow">دخول</button>
+            <div class="footer">
+                <p>شكراً لتعاملكم معنا - نظام Yasser Web POS</p>
             </div>
         </div>
+    </body>
+    </html>
+    """
+    return html_content
 
-    </div>
+st.title(t["title"])
 
-    <script>
-        // Completely Zeroed Initial Data (No defaults!)
-        let products = JSON.parse(localStorage.getItem('yasser_zero_products')) || [];
-        let customers = JSON.parse(localStorage.getItem('yasser_zero_customers')) || [];
-        let invoicesHistory = JSON.parse(localStorage.getItem('yasser_zero_invoices')) || [];
-        let cart = [];
-        let totalSales = parseFloat(localStorage.getItem('yasser_zero_sales')) || 0;
+if not st.session_state.logged_in_user:
+    st.subheader(t["login_title"])
+    auth_tab1, auth_tab2 = st.tabs([t["login_tab"], t["signup_tab"]])
+    
+    with auth_tab1:
+        with st.form("login_form"):
+            login_user = st.text_input(t["username_label"])
+            login_role = st.selectbox("حدد الصلاحية عند الدخول:", ["مشرف النظام", "كاشير", "مسؤول مبيعات"])
+            login_submitted = st.form_submit_button(t["login_btn"], type="primary")
+            
+            if login_submitted:
+                if login_user.strip():
+                    try:
+                        res = supabase.table("users").select("*").eq("username", login_user.strip()).execute()
+                        if res.data:
+                            user_info = res.data[0]
+                            st.session_state.logged_in_user = str(user_info["username"])
+                            st.session_state.user_role = str(login_role)
+                            st.session_state.is_vip = bool(user_info.get("is_paid", False))
+                            log_audit("تسجيل دخول", f"تم تسجيل الدخول بواسطة {user_info['username']}")
+                            st.success("تم تسجيل الدخول بنجاح!")
+                            st.rerun()
+                        else:
+                            st.error("❌ اسم المستخدم غير موجود، يرجى إنشاء حساب جديد.")
+                    except Exception as e:
+                        st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
+                else:
+                    st.warning("يرجى إدخال اسم المستخدم.")
+                    
+    with auth_tab2:
+        with st.form("signup_form"):
+            new_user = st.text_input("اختر اسم المستخدم أو اسم المحل الجديد:")
+            signup_role = st.selectbox("حدد الصلاحية للحساب الجديد:", ["مشرف النظام", "كاشير", "مسؤول مبيعات"])
+            signup_submitted = st.form_submit_button(t["signup_btn"], type="primary")
+            
+            if signup_submitted:
+                if new_user.strip():
+                    try:
+                        check_res = supabase.table("users").select("*").eq("username", new_user.strip()).execute()
+                        if check_res.data:
+                            st.error("❌ اسم المستخدم هذا مستخدم مسبقاً.")
+                        else:
+                            supabase.table("users").insert({"username": new_user.strip(), "is_paid": False}).execute()
+                            st.session_state.logged_in_user = str(new_user.strip())
+                            st.session_state.user_role = str(signup_role)
+                            st.session_state.is_vip = False
+                            log_audit("إنشاء حساب جديد", f"تم إنشاء حساب باسم {new_user.strip()}")
+                            st.success("🎉 تم إنشاء الحساب بنجاح!")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ خطأ: {e}")
+                else:
+                    st.warning("يرجى كتابة اسم المستخدم الجديد.")
+    st.stop()
 
-        function auth() {
-            let u = document.getElementById('user-in').value;
-            let p = document.getElementById('pass-in').value;
-            if(u && p) {
-                document.getElementById('login-modal').classList.add('hidden');
-                localStorage.setItem('yw_auth_logged', '1');
-            }
-        }
+username = st.session_state.logged_in_user
+user_role = st.session_state.user_role
 
-        function logout() {
-            localStorage.removeItem('yw_auth_logged');
-            document.getElementById('login-modal').classList.remove('hidden');
-        }
+st.sidebar.title(t["settings"])
+st.sidebar.write(f"👤 المستخدم: **{username}**")
+st.sidebar.write(f"{t['role_label']} **{user_role}**")
 
-        function switchTab(viewId) {
-            document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
-            let target = document.getElementById('view-' + viewId);
-            if(target) target.classList.remove('hidden');
-            if(viewId === 'create-invoice') renderProductsGrid();
-        }
+cart_count_badge = sum(int(item['qty']) for item in st.session_state.cart)
+st.sidebar.info(f"{t['cart_badge']} **{cart_count_badge}**")
 
-        // Render Products Grid (Cards with "+ Add" button)
-        function renderProductsGrid() {
-            let grid = document.getElementById('products-grid');
-            grid.innerHTML = '';
+st.sidebar.divider()
+st.sidebar.subheader(t["backup_title"])
 
-            if(products.length === 0) {
-                grid.innerHTML = `<div class="col-span-2 text-center p-6 text-gray-400 text-xs">لا توجد مواد بالمخزن حالياً.<br>أضف مواد جديدة من قسم (المخزن) لتظهر هنا على شكل شبكة.</div>`;
-                return;
-            }
+try:
+    db_cust_res = supabase.table("customers").select("*").eq("username", username).execute()
+    current_customers_data = db_cust_res.data if db_cust_res.data else []
+except:
+    current_customers_data = []
 
-            products.forEach(p => {
-                let inCartObj = cart.find(c => c.id === p.id);
-                let countInCart = inCartObj ? inCartObj.cartQty : 0;
+try:
+    db_inv_res = supabase.table("invoices").select("*").eq("username", username).execute()
+    current_invoices_data = db_inv_res.data if db_inv_res.data else []
+except:
+    current_invoices_data = []
 
-                grid.innerHTML += `
-                    <div class="bg-white p-3 rounded-2xl border border-purple-100 shadow-sm flex flex-col justify-between space-y-2">
-                        <div class="bg-purple-50 p-4 rounded-xl flex items-center justify-center text-purpleBrand relative">
-                            <i class="fa-solid fa-box-open text-2xl"></i>
-                            ${countInCart > 0 ? `<span class="absolute top-1 right-1 bg-purpleBrand text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">${countInCart}</span>` : ''}
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-xs text-gray-800">${p.name}</h4>
-                            <p class="text-[10px] text-gray-400">المتفر: ${p.qty} | السعر: ${p.price.toLocaleString()} د.ع</p>
-                        </div>
-                        <button onclick="addToCart(${p.id})" class="w-full bg-purpleLight text-purpleBrand py-1.5 rounded-xl text-xs font-bold hover:bg-purpleBrand hover:text-white transition active:scale-95">
-                            + إضافة
-                        </button>
-                    </div>
-                `;
-            });
-        }
+backup_data = {
+    "username": str(username),
+    "customers": current_customers_data,
+    "suppliers": list(st.session_state.suppliers_list),
+    "invoices": current_invoices_data,
+    "expenses": list(st.session_state.expenses_list),
+    "audit_logs": list(st.session_state.audit_logs),
+    "export_date": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
+}
+backup_json = json.dumps(backup_data, ensure_ascii=False, indent=4, default=str)
+st.sidebar.download_button(
+    label=t["backup_download"],
+    data=backup_json,
+    file_name=f"yasser_web_backup_{username}.json",
+    mime="application/json"
+)
 
-        function addToCart(pId) {
-            let item = products.find(p => p.id === pId);
-            if(item && item.qty > 0) {
-                let cartItem = cart.find(c => c.id === pId);
-                if(cartItem) {
-                    if(cartItem.cartQty < item.qty) {
-                        cartItem.cartQty++;
-                    } else {
-                        alert('وصلت للحد الأقصى للكمية المتوفرة بالمعرض!');
+if not st.session_state.is_vip:
+    st.sidebar.warning("🔒 حالة النسخة: **مجانية (محدودة)**")
+    vip_code = st.sidebar.text_input("أدخل كود النسخة المدفوعة (VIP):", type="password")
+    if st.sidebar.button("تفعيل النسخة المدفوعة"):
+        if vip_code.strip() == "YASSER2026":
+            st.session_state.is_vip = True
+            try:
+                supabase.table("users").update({"is_paid": True}).eq("username", username).execute()
+            except:
+                pass
+            st.sidebar.success("تم تفعيل النسخة المدفوعة (VIP) بنجاح! 🎉")
+            st.rerun()
+        else:
+            st.sidebar.error("كود التفعيل غير صحيح!")
+else:
+    st.sidebar.success("🌟 النسخة المدفوعة (VIP) مفعلة بالكامل")
+
+if st.sidebar.button(t["logout"]):
+    log_audit("تسجيل خروج", f"تم تسجيل الخروج للمستخدم {username}")
+    st.session_state.logged_in_user = None
+    st.session_state.is_vip = False
+    st.session_state.cart = []
+    st.rerun()
+
+st.divider()
+
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(t["tabs"])
+
+with tab1:
+    st.subheader("➕ إضافة مادة جديدة أو توريد كميات إضافية فوق المخزون الحالي")
+    if user_role == "كاشير":
+        st.warning("⚠️ عذراً، حساب الكاشير لا يمتلك صلاحية إضافة أو تعديل المواد في المخزن.")
+    else:
+        # جلب المنتجات الموجودة مسبقاً لنظام التوريد السريع وزيادة الكميات
+        try:
+            res_existing_prod = supabase.table("products").select("id, product_name, quantity, sell_price").eq("username", username).execute()
+            existing_products = res_existing_prod.data if res_existing_prod.data else []
+        except:
+            existing_products = []
+
+        add_mode = st.radio("اختر طريقة الإضافة:", ["إضافة مادة جديدة تماماً", "توريد وزيادة كمية لمادة موجودة مسبقاً"], horizontal=True)
+
+        if add_mode == "توريد وزيادة كمية لمادة موجودة مسبقاً" and existing_products:
+            with st.form("restock_form"):
+                prod_options = {f"{p['product_name']} (المتوفر حالياً: {p['quantity']})": p['id'] for p in existing_products}
+                selected_prod_label = st.selectbox("اختر المادة لتوريد كمية إضافية فوقها:", list(prod_options.keys()))
+                restock_qty_str = st.text_input("الكمية المراد إضافتها (توريد جديد):", "1")
+                restock_submitted = st.form_submit_button("إضافة الكمية فوق المخزون الحالي", type="primary")
+
+                if restock_submitted:
+                    try:
+                        add_qty = int(restock_qty_str.strip())
+                        p_id = prod_options[selected_prod_label]
+                        curr_item = next(p for p in existing_products if p['id'] == p_id)
+                        new_total_qty = curr_item['quantity'] + add_qty
+
+                        supabase.table("products").update({"quantity": new_total_qty}).eq("id", p_id).execute()
+                        log_audit("توريد كمية", f"تم توريد {add_qty} قطعة للمنتج {curr_item['product_name']}")
+                        st.success(f"🎉 تم إضافة الكمية بنجاح! الإجمالي الجديد للمنتج: {new_total_qty} قطعة.")
+                        st.rerun()
+                    except ValueError:
+                        st.error("❌ يرجى إدخال رقم صحيح للكمية.")
+                    except Exception as e:
+                        st.error(f"❌ خطأ: {e}")
+        else:
+            if add_mode == "توريد وزيادة كمية لمادة موجودة مسبقاً" and not existing_products:
+                st.info("لا توجد مواد مسجلة حالياً، يرجى إضافة مادة جديدة أولاً.")
+
+            try:
+                res_prod_count = supabase.table("products").select("id").eq("username", username).execute()
+                current_count = len(res_prod_count.data) if res_prod_count.data else 0
+            except:
+                current_count = 0
+                
+            if not st.session_state.is_vip and current_count >= 5:
+                st.warning("⚠️ **تنبيه النسخة المجانية:** وصلت للحد الأقصى (5 منتجات).")
+            else:
+                with st.form("add_product_clean_form", clear_on_submit=True):
+                    p_name = st.text_input("اسم المادة / المنتج:")
+                    c_col, c_sz = st.columns(2)
+                    with c_col:
+                        p_color = st.text_input("اللون / المواصفات:", "عام")
+                    with c_sz:
+                        p_size = st.text_input("القياس / الحجم:", "عام")
+                    
+                    c1, c2, c3, c4 = st.columns(4)
+                    with c1:
+                        p_buy_str = st.text_input("سعر الشراء (د.ع):", "0")
+                    with c2:
+                        p_sell_str = st.text_input("سعر البيع المفرد (سعر القطعة د.ع):", "0")
+                    with c3:
+                        p_qty_str = st.text_input("الكمية المبدئية (عدد القطع):", "1")
+                    with c4:
+                        p_barcode = st.text_input("رمز الباركود:", "")
+                    
+                    submitted = st.form_submit_button("حفظ المادة الجديدة في المخزن", type="primary")
+                    if submitted:
+                        if p_name.strip():
+                            try:
+                                p_buy = float(p_buy_str.strip())
+                                p_sell = float(p_sell_str.strip())
+                                p_qty = int(p_qty_str.strip())
+                                
+                                supabase.table("products").insert({
+                                    "username": str(username),
+                                    "product_name": str(p_name.strip()),
+                                    "color": str(p_color.strip() if p_color else "عام"),
+                                    "size": str(p_size.strip() if p_size else "عام"),
+                                    "buy_price": float(p_buy),
+                                    "sell_price": float(p_sell),
+                                    "quantity": int(p_qty),
+                                    "barcode": str(p_barcode.strip() if p_barcode else "بدون")
+                                }).execute()
+                                log_audit("إضافة منتج", f"تمت إضافة المنتج ({p_name.strip()}) بسعر مفرد {p_sell}")
+                                st.success(f"تمت إضافة المادة ({p_name}) بنجاح!")
+                                st.rerun()
+                            except ValueError:
+                                st.error("❌ خطأ: يرجى إدخال أرقام صحيحة.")
+                            except Exception as e:
+                                st.error(f"❌ خطأ: {e}")
+                        else:
+                            st.warning("يرجى كتابة اسم المادة.")
+
+with tab2:
+    st.subheader("📦 جرد المخزن وعرض المواد على شكل شبكة مع الباركود")
+    try:
+        res_all_p = supabase.table("products").select("*").eq("username", username).execute()
+        all_products = res_all_p.data if res_all_p.data else []
+    except:
+        all_products = []
+
+    low_stock_items = [p for p in all_products if p['quantity'] <= 2]
+    if low_stock_items:
+        low_names = " ، ".join([f"**{i['product_name']}**" for i in low_stock_items])
+        st.error(f"🚨 **تنبيه قرب نفاد المخزون:** المواد التالية وشيكة النفاذ أو نفدت: {low_names}")
+
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        search_prod_term = st.text_input("🔍 بحث عن مادة:", "")
+    with col_s2:
+        search_barcode_term = st.text_input("📷 بحث بالباركود:", "")
+
+    if all_products:
+        filtered_products = all_products
+        if search_prod_term:
+            filtered_products = [p for p in filtered_products if search_prod_term.lower() in p['product_name'].lower()]
+        if search_barcode_term:
+            filtered_products = [p for p in filtered_products if search_barcode_term.lower() in p.get('barcode','').lower()]
+
+        cols = st.columns(3)
+        for idx, item in enumerate(filtered_products):
+            with cols[idx % 3]:
+                with st.container(border=True):
+                    st.markdown(f"### 📦 {item['product_name']}")
+                    st.markdown(f"🎨 **اللون:** `{item.get('color', 'عام')}` | 📏 **القياس:** `{item.get('size', 'عام')}`")
+                    st.markdown(f"🏷️ **الباركود:** `{item.get('barcode', 'بدون')}`")
+                    st.markdown(f"💰 **سعر القطعة المفرد:** `{int(item['sell_price']):,}` د.ع")
+                    
+                    profit_per_unit = int(float(item['sell_price']) - float(item['buy_price']))
+                    if profit_per_unit < 0:
+                        st.error(f"📉 خسارة القطعة: {profit_per_unit:,} د.ع")
+                    else:
+                        st.success(f"📈 ربح القطعة: +{profit_per_unit:,} د.ع")
+                    
+                    st.markdown(f"🔢 **الكمية المتوفرة:** `{int(item['quantity'])}` قطعة")
+                    
+                    with st.expander("🏷️ باركود المادة"):
+                        b_code_val = item.get('barcode', '')
+                        if not b_code_val or b_code_val == "بدون":
+                            b_code_val = f"PRD{item['id']}"
+                        try:
+                            rv = barcode.get('code128', str(b_code_val), writer=ImageWriter())
+                            buffer_bc = io.BytesIO()
+                            rv.write(buffer_bc)
+                            st.image(buffer_bc.getvalue(), caption=f"باركود: {b_code_val}", width=200)
+                        except Exception as ex:
+                            st.error(f"تعذر توليد الباركود: {ex}")
+
+                    if item['quantity'] > 0:
+                        if st.button(f"🛒 إضافة للسلة", key=f"inv_add_cart_{item['id']}"):
+                            found = False
+                            for ci in st.session_state.cart:
+                                if ci["id"] == item["id"]:
+                                    if ci["qty"] < item["quantity"]:
+                                        ci["qty"] += 1
+                                    found = True
+                                    break
+                            if not found:
+                                st.session_state.cart.append({
+                                    "id": item["id"],
+                                    "product_name": item["product_name"],
+                                    "color": item.get('color', ''),
+                                    "size": item.get('size', ''),
+                                    "sell_price": item["sell_price"],
+                                    "buy_price": item["buy_price"],
+                                    "max_qty": item["quantity"],
+                                    "qty": 1
+                                })
+                            st.toast(f"✅ تمت الإضافة للسلة!", icon="🛍️")
+                            st.rerun()
+                    else:
+                        st.warning("⚠️ نفذت الكمية")
+    else:
+        st.info("المخزن فارغ حالياً.")
+
+with tab3:
+    st.subheader("👥 إدارة العملاء ومتابعة الديون والذمم")
+    iraq_govs = ["بغداد", "البصرة", "نينوى", "أربيل", "النجف", "كربلاء", "ذي قار", "بابل", "الأنبار", "ديالى", "كركوك", "صلاح الدين", "المثنى", "ميسان", "القادسية", "واسط", "دهوك", "السليمانية"]
+    
+    with st.form("add_customer_db_form", clear_on_submit=True):
+        col_c1, col_c2, col_c3 = st.columns(3)
+        with col_c1:
+            c_name = st.text_input("اسم الزبون / العميل:")
+        with col_c2:
+            c_phone = st.text_input("رقم الهاتف:")
+        with col_c3:
+            c_gov = st.selectbox("المحافظة:", iraq_govs)
+            
+        c_address = st.text_input("العنوان / المنطقة:")
+        c_notes = st.text_area("ملاحظات:")
+            
+        if st.form_submit_button("تسجيل العميل وحفظه"):
+            if c_name and c_phone:
+                try:
+                    supabase.table("customers").insert({
+                        "username": str(username),
+                        "customer_name": str(c_name.strip()),
+                        "phone": str(c_phone.strip()),
+                        "governorate": str(c_gov),
+                        "address": str(c_address.strip() if c_address else "غير محدد"),
+                        "notes": str(c_notes.strip() if c_notes else "لا يوجد"),
+                        "created_at": str(datetime.datetime.now().strftime('%Y-%m-%d'))
+                    }).execute()
+                    log_audit("إضافة عميل", f"تم تسجيل العميل {c_name}")
+                    st.success(f"تم تسجيل العميل ({c_name}) بنجاح!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"خطأ في حفظ العميل: {e}")
+            else:
+                st.warning("يرجى كتابة الاسم ورقم الهاتف.")
+
+    st.divider()
+    st.subheader("📋 قائمة العملاء المسجلين")
+    try:
+        res_cust_table = supabase.table("customers").select("*").eq("username", username).execute()
+        db_customers = res_cust_table.data if res_cust_table.data else []
+    except:
+        db_customers = []
+
+    if db_customers:
+        df_cust = pd.DataFrame(db_customers)
+        st.dataframe(df_cust, use_container_width=True)
+    else:
+        st.info("لا يوجد عملاء مسجلين حالياً.")
+
+with tab4:
+    st.subheader("💵 نظام سداد الديون والذمم للعملاء")
+    try:
+        res_cust_debt = supabase.table("customers").select("customer_name").eq("username", username).execute()
+        debt_cust_list = [c["customer_name"] for c in res_cust_debt.data] if res_cust_debt.data else []
+    except:
+        debt_cust_list = []
+
+    if not debt_cust_list:
+        st.info("لا توجد عملاء مسجلين لعرض الديون.")
+    else:
+        selected_debt_customer = st.selectbox("اختر اسم العميل لتسديد الديون:", debt_cust_list, key="debt_pay_cust_select")
+        
+        try:
+            res_cust_invoices = supabase.table("invoices").select("*").eq("username", username).eq("customer_name", selected_debt_customer).execute()
+            customer_invoices = res_cust_invoices.data if res_cust_invoices.data else []
+        except:
+            customer_invoices = []
+
+        total_customer_debt = sum(inv.get('remaining_amount', 0) for inv in customer_invoices)
+        
+        st.markdown(f"### 📌 إجمالي الدين الكلي على العميل (`{selected_debt_customer}`): **{int(total_customer_debt):,} د.ع**")
+        
+        if customer_invoices:
+            with st.expander("📄 عرض تفاصيل الفواتير المسجلة على هذا العميل"):
+                for cinv in customer_invoices:
+                    st.write(f"- **رقم الفاتورة:** {cinv['invoice_code']} | **المبلغ الكلي:** {cinv['total_price']:,} د.ع | **الواصل:** {cinv['paid_amount']:,} د.ع | **المتبقي:** `{cinv['remaining_amount']:,}` د.ع | **التاريخ:** {cinv['created_date']}")
+        
+        st.divider()
+        with st.form("pay_debt_form"):
+            payment_input_str = st.text_input("أدخل المبلغ المراد تسديده (د.ع):", "0")
+            pay_submitted = st.form_submit_button("إتمام التسديد وتصفير الديون", type="primary")
+            
+            if pay_submitted:
+                try:
+                    payment_val = float(payment_input_str.strip())
+                    if payment_val <= 0:
+                        st.warning("يرجى إدخال مبلغ صالح أكبر من الصفر.")
+                    elif payment_val > total_customer_debt:
+                        st.error("❌ المبلغ المدخل أكبر من إجمالي الدين المطلوب على العميل!")
+                    else:
+                        remaining_payment = payment_val
+                        for cinv in customer_invoices:
+                            if remaining_payment <= 0:
+                                break
+                            curr_rem = cinv.get('remaining_amount', 0)
+                            if curr_rem > 0:
+                                if remaining_payment >= curr_rem:
+                                    new_paid = cinv['total_price']
+                                    new_rem = 0
+                                    new_type = "🟢 نقد بالكامل (كاش)"
+                                    remaining_payment -= curr_rem
+                                else:
+                                    new_paid = cinv['paid_amount'] + remaining_payment
+                                    new_rem = curr_rem - remaining_payment
+                                    new_type = "🔵 دفعة جزئية (أقساط)"
+                                    remaining_payment = 0
+                                
+                                supabase.table("invoices").update({
+                                    "paid_amount": int(new_paid),
+                                    "remaining_amount": int(new_rem),
+                                    "payment_type": str(new_type)
+                                }).eq("id", cinv["id"]).execute()
+                        
+                        log_audit("سداد ديون", f"تم تسديد مبلغ {payment_val:,} د.ع للعميل {selected_debt_customer}")
+                        st.success(f"🎉 تم تسديد مبلغ {payment_val:,.0f} دينار بنجاح وتحديث حساب العميل والفواتير!")
+                        st.rerun()
+                except ValueError:
+                    st.error("❌ يرجى إدخال رقم صحيح للمبلغ.")
+                except Exception as e:
+                    st.error(f"❌ خطأ في عملية التسديد: {e}")
+
+with tab5:
+    st.subheader("🏭 إدارة الموردين")
+    with st.form("add_supplier_form", clear_on_submit=True):
+        sup_name = st.text_input("اسم المورد:")
+        sup_phone = st.text_input("رقم هاتف المورد:")
+        sup_notes = st.text_input("التخصص / نوع البضاعة:")
+        if st.form_submit_button("إضافة المورد"):
+            if sup_name.strip():
+                st.session_state.suppliers_list.append({
+                    "اسم المورد": str(sup_name.strip()),
+                    "رقم الهاتف": str(sup_phone.strip() if sup_phone else "غير محدد"),
+                    "التخصص": str(sup_notes.strip() if sup_notes else "عام"),
+                    "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d'))
+                })
+                st.success("تم إضافة المورد بنجاح!")
+                st.rerun()
+            else:
+                st.warning("يرجى إدخال اسم المورد.")
+    if st.session_state.suppliers_list:
+        st.dataframe(pd.DataFrame(st.session_state.suppliers_list), use_container_width=True)
+    else:
+        st.info("لا يوجد موردين.")
+
+with tab6:
+    st.subheader("🛒 شبكة المبيعات، السلة الذكية وإتمام الفاتورة")
+    
+    # عرض المواد على شكل شبكة مع زر إضافة للسلة
+    try:
+        res_grid_p = supabase.table("products").select("*").eq("username", username).execute()
+        grid_products = res_grid_p.data if res_grid_p.data else []
+    except:
+        grid_products = []
+
+    st.markdown("### 🛍️ اختر المواد من الشبكة (اضغط إضافة لتجميعها في السلة):")
+    if grid_products:
+        g_cols = st.columns(3)
+        for g_idx, g_item in enumerate(grid_products):
+            with g_cols[g_idx % 3]:
+                with st.container(border=True):
+                    st.markdown(f"#### 📦 {g_item['product_name']}")
+                    st.markdown(f"💰 **سعر القطعة المفرد:** `{int(g_item['sell_price']):,}` د.ع")
+                    st.markdown(f"🔢 **المتوفر:** `{g_item['quantity']}` قطعة")
+                    if g_item['quantity'] > 0:
+                        if st.button("➕ إضافة للسلة", key=f"grid_add_{g_item['id']}"):
+                            found = False
+                            for ci in st.session_state.cart:
+                                if ci["id"] == g_item["id"]:
+                                    if ci["qty"] < g_item["quantity"]:
+                                        ci["qty"] += 1
+                                    found = True
+                                    break
+                            if not found:
+                                st.session_state.cart.append({
+                                    "id": g_item["id"],
+                                    "product_name": g_item["product_name"],
+                                    "color": g_item.get('color', ''),
+                                    "size": g_item.get('size', ''),
+                                    "sell_price": g_item["sell_price"],
+                                    "buy_price": g_item["buy_price"],
+                                    "max_qty": g_item["quantity"],
+                                    "qty": 1
+                                })
+                            st.toast("✅ تمت الإضافة للسلة بنجاح!", icon="🛒")
+                            st.rerun()
+                    else:
+                        st.error("نفدت الكمية")
+    else:
+        st.info("لا توجد مواد في المخزن حالياً. أضف مواد من تبويب (إضافة مادة وتوريد كميات).")
+
+    st.divider()
+    st.markdown("### 🛒 محتويات السلة وإتمام الفاتورة:")
+    if st.session_state.cart:
+        total_cart_price = 0
+        for idx, c_item in enumerate(st.session_state.cart):
+            cols_cart = st.columns([3, 2, 2, 1])
+            with cols_cart[0]:
+                st.write(f"**{c_item['product_name']}** ({c_item['color']} / {c_item['size']})")
+            with cols_cart[1]:
+                new_q = st.number_input(f"الكمية", min_value=1, max_value=int(c_item['max_qty']), value=int(c_item['qty']), key=f"cart_q_{c_item['id']}")
+                c_item['qty'] = new_q
+            with cols_cart[2]:
+                item_total = c_item['sell_price'] * c_item['qty']
+                total_cart_price += item_total
+                st.write(f"المجموع: **{int(item_total):,}** د.ع")
+            with cols_cart[3]:
+                if st.button("❌", key=f"del_cart_{c_item['id']}"):
+                    st.session_state.cart.pop(idx)
+                    st.rerun()
+                    
+        st.divider()
+        st.markdown(f"### 💵 المجموع الكلي المطلوب: **{int(total_cart_price):,} د.ع**")
+        
+        # جلب العملاء للتعبئة التلقائية للبيانات
+        try:
+            res_c_box = supabase.table("customers").select("*").eq("username", username).execute()
+            cust_records = res_c_box.data if res_c_box.data else []
+        except:
+            cust_records = []
+            
+        if not cust_records:
+            st.warning("⚠️ تنبيه: يرجى إضافة عميل أولاً من تبويب (إدارة العملاء) لتتمكن من إتمام الفاتورة!")
+            selected_customer_name = ""
+        else:
+            cust_names_list = [c["customer_name"] for c in cust_records]
+            selected_customer_name = st.selectbox("اختر اسم الزبون (سيتم تعبئة تفاصيله تلقائياً):", cust_names_list)
+            
+            # العثور على بيانات العميل المختار للتعبئة التلقائية
+            selected_cust_obj = next((c for c in cust_records if c["customer_name"] == selected_customer_name), None)
+            if selected_cust_obj:
+                c_col_info1, c_col_info2 = st.columns(2)
+                with c_col_info1:
+                    st.text_input("رقم هاتف العميل (تلقائي):", value=selected_cust_obj.get("phone", ""), disabled=True, key="autofill_phone")
+                with c_col_info2:
+                    st.text_input("عنوان العميل (تلقائي):", value=selected_cust_obj.get("address", ""), disabled=True, key="autofill_addr")
+        
+        st.write("---")
+        st.markdown("#### 💰 طريقة الدفع وإدخال المبلغ الواصل:")
+        paid_input_str = st.text_input("أدخل المبلغ الذي دفعه الزبون (د.ع):", value=str(int(total_cart_price)))
+        
+        try:
+            paid_amount = float(paid_input_str.strip())
+            if paid_amount < 0: paid_amount = 0
+            if paid_amount > total_cart_price: paid_amount = total_cart_price
+        except ValueError:
+            paid_amount = 0
+            
+        remaining_amount = total_cart_price - paid_amount
+
+        if paid_amount >= total_cart_price:
+            auto_pay_type = "🟢 نقد بالكامل (كاش)"
+        elif paid_amount == 0:
+            auto_pay_type = "🔴 دين كامل (آجل)"
+        else:
+            auto_pay_type = "🔵 دفعة جزئية (أقساط)"
+
+        st.info(f"💡 **تحليل النظام التلقائي للفاتورة:** {auto_pay_type} | الواصل: **{int(paid_amount):,} د.ع** | المتبقي (الدين): **{int(remaining_amount):,} د.ع**")
+
+        if st.button("💾 إتمام البيع، خصم المخزن، وحفظ الفاتورة وطباعتها", type="primary"):
+            if not selected_customer_name:
+                st.error("❌ خطأ: اختر عميلاً مسجلاً.")
+            else:
+                try:
+                    prod_names_str = []
+                    total_buy_cost_of_invoice = 0
+                    
+                    for c_item in st.session_state.cart:
+                        prod_names_str.append(f"{c_item['product_name']} ({c_item['color']}) [العدد: {c_item['qty']}]")
+                        total_buy_cost_of_invoice += (c_item['buy_price'] * c_item['qty'])
+                        
+                        res_p = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
+                        if res_p.data:
+                            current_db_qty = res_p.data[0]["quantity"]
+                            new_db_qty = max(0, current_db_qty - c_item['qty'])
+                            supabase.table("products").update({"quantity": new_db_qty}).eq("id", c_item["id"]).execute()
+                    
+                    try:
+                        res_inv_count = supabase.table("invoices").select("id").eq("username", username).execute()
+                        inv_id = len(res_inv_count.data) + 1 if res_inv_count.data else 1
+                    except:
+                        inv_id = 1
+                        
+                    inv_code = f"INV-{inv_id:03d}"
+                    
+                    invoice_record = {
+                        "username": str(username),
+                        "invoice_code": str(inv_code),
+                        "customer_name": str(selected_customer_name),
+                        "products_text": str(" ، ".join(prod_names_str)),
+                        "total_price": int(total_cart_price),
+                        "cost_price": int(total_buy_cost_of_invoice),
+                        "paid_amount": int(paid_amount),
+                        "remaining_amount": int(remaining_amount),
+                        "payment_type": str(auto_pay_type),
+                        "created_date": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
                     }
-                } else {
-                    cart.push({ ...item, cartQty: 1 });
-                }
-                updateCartBadge();
-                renderProductsGrid();
-            } else {
-                alert('هذه المادة نفدت من المخزن!');
-            }
-        }
 
-        function updateCartBadge() {
-            let totalCount = cart.reduce((acc, i) => acc + i.cartQty, 0);
-            document.getElementById('cart-badge').innerText = totalCount;
-        }
+                    supabase.table("invoices").insert(invoice_record).execute()
+                    
+                    log_audit("إتمام بيع", f"فاتورة {inv_code} للزبون {selected_customer_name}")
+                    st.session_state.cart = []
+                    st.success("✅ تمت عملية البيع وتحديث المخزن وحفظ الفاتورة بنجاح!")
+                    
+                    # عرض الفاتورة الاحترافية الجاهزة للطباعة
+                    st.markdown("---")
+                    st.subheader("📄 معاينة الفاتورة الرسمية:")
+                    st.components.v1.html(generate_html_invoice(invoice_record), height=500, scrolling=True)
+                    
+                    st.balloons()
+                except Exception as e:
+                    st.error(f"❌ خطأ: {e}")
+    else:
+        st.info("🛒 السلة فارغة. قم بإضافة مواد من الشبكة بالأعلى.")
 
-        function openCartView() {
-            let custSelect = document.getElementById('cart-customer-select');
-            custSelect.innerHTML = '<option value="">-- اختر العميل --</option>';
-            
-            customers.forEach((cust, index) => {
-                custSelect.innerHTML += `<option value="${index}">${cust.name}</option>`;
-            });
+with tab7:
+    st.subheader("📄 سجل الفواتير، الطباعة المباشرة، وإرسال الفاتورة عبر الواتساب")
+    try:
+        res_all_inv = supabase.table("invoices").select("*").eq("username", username).execute()
+        all_invoices = res_all_inv.data if res_all_inv.data else []
+    except:
+        all_invoices = []
 
-            // Render Selected Items
-            let container = document.getElementById('cart-items-container');
-            container.innerHTML = '';
-            
-            if(cart.length === 0) {
-                container.innerHTML = `<div class="text-center text-gray-400 text-xs py-2">لا توجد مواد مضافة بالسلة</div>`;
-            } else {
-                cart.forEach(c => {
-                    container.innerHTML += `
-                        <div class="flex justify-between items-center bg-gray-50 p-2 rounded-xl text-xs">
-                            <span>${c.name} (عدد: ${c.cartQty})</span>
-                            <span class="font-bold text-purpleBrand">${(c.price * c.cartQty).toLocaleString()} د.ع</span>
-                        </div>
-                    `;
-                });
-            }
+    if all_invoices:
+        for inv in reversed(all_invoices):
+            with st.container(border=True):
+                st.markdown(f"### 🧾 فاتورة رقم: `{inv['invoice_code']}` | الزبون: **{inv['customer_name']}**")
+                st.markdown(f"📅 **التاريخ:** {inv['created_date']} | الحالة: **{inv['payment_type']}**")
+                st.markdown(f"📦 **المواد:** {inv['products_text']}")
+                st.markdown(f"💰 **المجموع الكلي:** `{inv['total_price']:,}` د.ع | **الواصل:** `{inv['paid_amount']:,}` د.ع | **المتبقي:** `{inv['remaining_amount']:,}` د.ع")
+                
+                col_inv1, col_inv2 = st.columns(2)
+                with col_inv1:
+                    with st.expander("🖨️ عرض الفاتورة للطباعة"):
+                        st.components.v1.html(generate_html_invoice(inv), height=400, scrolling=True)
+                with col_inv2:
+                    try:
+                        res_cust_phone = supabase.table("customers").select("phone").eq("username", username).eq("customer_name", inv['customer_name']).execute()
+                        c_ph = res_cust_phone.data[0]["phone"] if res_cust_phone.data else ""
+                    except:
+                        c_ph = ""
+                    
+                    wa_text = f"مرحباً {inv['customer_name']},\nإليك تفاصيل فاتورتك ({inv['invoice_code']}) من Yasser Web POS:\nالمجموع: {inv['total_price']:,} د.ع\nالواصل: {inv['paid_amount']:,} د.ع\nالمتبقي: {inv['remaining_amount']:,} د.ع\nشكراً لتعاملك معنا!"
+                    encoded_wa = urllib.parse.quote(wa_text)
+                    wa_link = f"https://wa.me/{c_ph}?text={encoded_wa}" if c_ph else f"https://wa.me/?text={encoded_wa}"
+                    st.markdown(f"📲 [إرسال الفاتورة عبر الواتساب]({wa_link})", unsafe_allow_html=True)
+    else:
+        st.info("لا توجد فواتير مسجلة حتى الآن.")
 
-            let totalPrice = cart.reduce((acc, i) => acc + (i.price * i.cartQty), 0);
-            document.getElementById('cart-total-price').innerText = totalPrice.toLocaleString() + ' د.ع';
+with tab8:
+    st.subheader("💰 صندوق الوردية والمصاريف اليومية")
+    with st.form("add_expense_form", clear_on_submit=True):
+        exp_title = st.text_input("بيان المصروف (مثل: إيجار، خطوط نقل، ضيافة):")
+        exp_amount_str = st.text_input("المبلغ (د.ع):", "0")
+        if st.form_submit_button("تسجيل المصروف"):
+            if exp_title.strip():
+                try:
+                    exp_val = float(exp_amount_str.strip())
+                    st.session_state.expenses_list.append({
+                        "البيان": str(exp_title.strip()),
+                        "المبلغ": float(exp_val),
+                        "التاريخ": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
+                    })
+                    log_audit("تسجيل مصروف", f"مصروف {exp_title} بقيمة {exp_val}")
+                    st.success("تم تسجيل المصروف بنجاح!")
+                    st.rerun()
+                except ValueError:
+                    st.error("يرجى إدخال مبلغ صحيح.")
+            else:
+                st.warning("يرجى كتابة بيان المصروف.")
 
-            switchTab('cart');
-        }
+    if st.session_state.expenses_list:
+        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
+        total_exp = sum(e["المبلغ"] for e in st.session_state.expenses_list)
+        st.markdown(f"### 📉 إجمالي المصروفات: **{total_exp:,.0f} د.ع**")
+    else:
+        st.info("لا توجد مصروفات مسجلة اليوم.")
 
-        // Auto-fill Customer Info Function
-        function autoFillCustomerData() {
-            let idx = document.getElementById('cart-customer-select').value;
-            if(idx !== "") {
-                let cust = customers[idx];
-                document.getElementById('cust-phone-filled').value = cust.phone || "غير محدد";
-                document.getElementById('cust-address-filled').value = cust.address || "غير محدد";
-            } else {
-                document.getElementById('cust-phone-filled').value = "";
-                document.getElementById('cust-address-filled').value = "";
-            }
-        }
+with tab9:
+    st.subheader("📊 الرسوم البيانية والتقارير المالية وحساب صافي الأرباح")
+    try:
+        res_rep_inv = supabase.table("invoices").select("*").eq("username", username).execute()
+        rep_invoices = res_rep_inv.data if res_rep_inv.data else []
+    except:
+        rep_invoices = []
 
-        function finalizeSale() {
-            if(cart.length === 0) {
-                alert('السلة فارغة! أضف مواد أولاً.');
-                return;
-            }
+    if rep_invoices:
+        total_sales_sum = sum(i['total_price'] for i in rep_invoices)
+        total_cost_sum = sum(i.get('cost_price', 0) for i in rep_invoices)
+        total_net_profit = total_sales_sum - total_cost_sum
+        total_collected_cash = sum(i['paid_amount'] for i in rep_invoices)
+        total_remaining_debts = sum(i['remaining_amount'] for i in rep_invoices)
 
-            cart.forEach(cItem => {
-                let original = products.find(p => p.id === cItem.id);
-                if(original) original.qty -= cItem.cartQty;
-            });
+        c_r1, c_r2, c_r3, c_r4 = st.columns(4)
+        c_r1.metric("إجمالي المبيعات", f"{total_sales_sum:,.0f} د.ع")
+        c_r2.metric("إجمالي تكلفة البضاعة", f"{total_cost_sum:,.0f} د.ع")
+        c_r3.metric("صافي الأرباح", f"{total_net_profit:,.0f} د.ع")
+        c_r4.metric("الديون المتبقية", f"{total_remaining_debts:,.0f} د.ع")
 
-            let sum = cart.reduce((acc, i) => acc + (i.price * i.cartQty), 0);
-            totalSales += sum;
+        df_rep = pd.DataFrame(rep_invoices)
+        st.bar_chart(df_rep, x="created_date", y="total_price")
+    else:
+        st.info("لا توجد بيانات كافية لعرض الرسوم البيانية والتقارير.")
 
-            invoicesHistory.push({
-                id: Date.now(),
-                date: new Date().toLocaleTimeString('ar-IQ'),
-                total: sum,
-                itemsCount: cart.length
-            });
+with tab10:
+    st.subheader("📜 سجل النشاطات (Audit Trail)")
+    if st.session_state.audit_logs:
+        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
+    else:
+        st.info("لا توجد سجلات نشاط حتى الآن.")
 
-            cart = [];
-            updateCartBadge();
-            saveData();
-            renderProductsGrid();
-            renderInventory();
-            renderInvoicesHistory();
-            switchTab('dashboard');
-            alert('تمت عملية البيع وطباعة الفاتورة بنجاح!');
-        }
-
-        function toggleAddProductForm() {
-            document.getElementById('add-p-form').classList.toggle('hidden');
-        }
-
-        function saveProduct() {
-            let name = document.getElementById('p-name').value;
-            let price = parseFloat(document.getElementById('p-price').value);
-            let qty = parseInt(document.getElementById('p-qty').value);
-
-            if(name && price && qty) {
-                products.push({ id: Date.now(), name, price, qty });
-                saveData();
-                renderProductsGrid();
-                renderInventory();
-                document.getElementById('p-name').value = '';
-                document.getElementById('p-price').value = '';
-                document.getElementById('p-qty').value = '';
-                toggleAddProductForm();
-            } else {
-                alert('يرجى ملء جميع معلومات المادة.');
-            }
-        }
-
-        function renderInventory() {
-            let inv = document.getElementById('inventory-list');
-            inv.innerHTML = '';
-            if(products.length === 0) {
-                inv.innerHTML = `<div class="text-center text-gray-400 text-xs py-2">المخزن فارغ حالياً.</div>`;
-                return;
-            }
-            products.forEach(p => {
-                inv.innerHTML += `
-                    <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl text-xs">
-                        <span class="font-bold text-gray-800">${p.name}</span>
-                        <span class="font-bold text-purpleBrand">${p.price.toLocaleString()} د.ع | المتبقي: ${p.qty}</span>
-                    </div>
-                `;
-            });
-        }
-
-        function saveCustomer() {
-            let name = document.getElementById('c-name').value;
-            let phone = document.getElementById('c-phone').value;
-            let address = document.getElementById('c-address').value;
-
-            if(name) {
-                customers.push({ id: Date.now(), name, phone, address });
-                saveData();
-                renderCustomers();
-                document.getElementById('c-name').value = '';
-                document.getElementById('c-phone').value = '';
-                document.getElementById('c-address').value = '';
-                alert('تم حفظ العميل بنجاح.');
-            }
-        }
-
-        function renderCustomers() {
-            let list = document.getElementById('customers-list');
-            list.innerHTML = '';
-            if(customers.length === 0) {
-                list.innerHTML = `<div class="text-center text-gray-400 text-xs py-2">لا يوجد عملاء مضافين.</div>`;
-                return;
-            }
-            customers.forEach(c => {
-                list.innerHTML += `
-                    <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl text-xs">
-                        <div>
-                            <p class="font-bold text-gray-800">${c.name}</p>
-                            <p class="text-[10px] text-gray-400">${c.phone} - ${c.address}</p>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function renderInvoicesHistory() {
-            let div = document.getElementById('invoices-history-list');
-            div.innerHTML = '';
-            invoicesHistory.forEach(inv => {
-                div.innerHTML += `
-                    <div class="flex justify-between items-center bg-purple-50/50 p-2.5 rounded-xl border border-purple-100">
-                        <span>فاتورة #${inv.id.toString().slice(-4)} (${inv.date})</span>
-                        <span class="font-bold text-purpleBrand">${inv.total.toLocaleString()} د.ع</span>
-                    </div>
-                `;
-            });
-        }
-
-        function saveData() {
-            localStorage.setItem('yasser_zero_products', JSON.stringify(products));
-            localStorage.setItem('yasser_zero_customers', JSON.stringify(customers));
-            localStorage.setItem('yasser_zero_invoices', JSON.stringify(invoicesHistory));
-            localStorage.setItem('yasser_zero_sales', totalSales);
-            document.getElementById('stats-total').innerText = totalSales.toLocaleString() + ' د.ع';
-        }
-
-        function init() {
-            if(localStorage.getItem('yw_auth_logged') === '1') {
-                document.getElementById('login-modal').classList.add('hidden');
-            }
-            renderProductsGrid();
-            renderInventory();
-            renderCustomers();
-            renderInvoicesHistory();
-            saveData();
-        }
-
-        init();
-    </script>
-</body>
-</html>
-"""
-
-components.html(html_code, height=850, scrolling=True)
+with tab11:
+    st.subheader("📖 دليل الاستخدام والمميزات والدعم الفني")
+    st.markdown("""
+    ### مرحباً بك في نظام Yasser Web POS 🛍️
+    - **إضافة المادة وتوريد الكميات:** أضف منتجاتك بسعر القطعة المفرد والكمية، ويمكنك توريد كميات إضافية لنفس المنتج دون الحاجة لحذفه وإعادة إنشائه.
+    - **شبكة المبيعات:** عرض المواد على شكل شبكة بطاقات مع زر إضافة للسلة لسهولة اختيار المواد.
+    - **التعبئة التلقائية للعملاء:** عند إتمام البيع، اختر العميل المسجل وسيتم تعبئة رقمه وعنوانه تلقائياً.
+    - **الفواتير والواتساب:** توليد فواتير رسمية قابلة للطباعة والإرسال الفوري عبر الواتساب.
+    """)
