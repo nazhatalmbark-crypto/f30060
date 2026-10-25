@@ -15,7 +15,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web POS", layout="centered")
 
-# **تصميم عصري متطور مطابق لتطبيق TOFA**
+# **تصميم احترافي مطابق تماماً لتطبيقات الـ POS الحديثة**
 st.markdown("""
     <style>
     .stApp {
@@ -30,24 +30,19 @@ st.markdown("""
         text-align: right;
         border-radius: 10px !important;
     }
-    .card-box {
-        background: #ffffff;
-        padding: 20px;
-        border-radius: 18px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        color: #333333;
-        margin-bottom: 15px;
-        text-align: center;
-        cursor: pointer;
+    /* تنسيق أزرار الـ Streamlit لتكون متناسقة باللون البنفسجي الغامق */
+    .stButton > button {
+        background-color: #6b46c1;
+        color: white;
+        border-radius: 12px;
+        border: none;
+        padding: 10px 20px;
+        font-weight: bold;
+        width: 100%;
     }
-    .card-box h3 {
-        color: #553c9a;
-        margin-bottom: 5px;
-        font-size: 18px;
-    }
-    .card-box p {
-        color: #666;
-        font-size: 13px;
+    .stButton > button:hover {
+        background-color: #553c9a;
+        color: #fff;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -160,7 +155,7 @@ if not st.session_state.logged_in_user:
 username = st.session_state.logged_in_user
 user_role = st.session_state.user_role
 
-# **شريط علوي احترافي (يشبه تطبيق TOFA)**
+# **شريط علوي احترافي**
 top_c1, top_c2, top_c3 = st.columns([1, 4, 1])
 with top_c1:
     if st.session_state.active_page != "الرئيسية":
@@ -178,7 +173,7 @@ with top_c3:
 
 st.divider()
 
-# ================= شاشة القائمة الرئيسية (مطابقة للصور) =================
+# ================= شاشة القائمة الرئيسية (مطابقة لتطبيق TOFA) =================
 if st.session_state.active_page == "الرئيسية":
     st.markdown("<h4 style='text-align: center; color: #e2d9f3; margin-bottom: 20px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
     
@@ -230,10 +225,9 @@ if st.session_state.active_page == "الرئيسية":
 
     st.markdown("<br><p style='text-align: center; color: #b794f4; font-size: 12px;'>الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
-# ================= 1. إنشاء فاتورة جديدة والشبكة =================
+# ================= باقي الأقسام تباعاً =================
 elif st.session_state.active_page == "إنشاء فاتورة":
     st.subheader("🛒 إنشاء فاتورة جديدة والبيع السريع")
-    
     sub_choice = st.radio("طريقة البيع:", ["شبكة المنتجات السريعة", "مراجعة السلة وإتمام الفاتورة"], horizontal=True)
     
     if sub_choice == "شبكة المنتجات السريعة":
@@ -275,8 +269,7 @@ elif st.session_state.active_page == "إنشاء فاتورة":
                         else:
                             st.error("نفدت الكمية")
         else:
-            st.info("لا توجد مواد في المخزن. توجه إلى قسم (المخزن) لإضافة بضاعة جديدة.")
-    
+            st.info("لا توجد مواد في المخزن. توجه إلى قسم (المخزن).")
     else:
         if st.session_state.cart:
             total_cart_price = 0
@@ -373,7 +366,6 @@ elif st.session_state.active_page == "إنشاء فاتورة":
         else:
             st.info("🛒 السلة فارغة. اختر مواد من شبكة المنتجات السريعة أولاً.")
 
-# ================= 2. قائمة الفواتير =================
 elif st.session_state.active_page == "قائمة الفواتير":
     st.subheader("📄 سجل الفواتير الرسمية")
     try:
@@ -392,10 +384,8 @@ elif st.session_state.active_page == "قائمة الفواتير":
     else:
         st.info("لا توجد فواتير مسجلة حتى الآن.")
 
-# ================= 3. المخزن =================
 elif st.session_state.active_page == "المخزن":
     st.subheader("📦 إدارة المخزن والمشتريات")
-    
     m_choice = st.radio("الخيارات:", ["عرض جرد المخزن", "إضافة مادة جديدة", "توريد كميات إضافية"], horizontal=True)
     
     if m_choice == "عرض جرد المخزن":
@@ -408,7 +398,6 @@ elif st.session_state.active_page == "المخزن":
             st.dataframe(pd.DataFrame(inv_data), use_container_width=True)
         else:
             st.info("المخزن فارغ.")
-            
     elif m_choice == "إضافة مادة جديدة":
         with st.form("new_prod_form_tab", clear_on_submit=True):
             pn = st.text_input("اسم المادة / المنتج:")
@@ -458,10 +447,8 @@ elif st.session_state.active_page == "المخزن":
         else:
             st.info("لا توجد مواد مسجلة لتوريد كميات لها.")
 
-# ================= 4. العملاء والديون =================
 elif st.session_state.active_page == "العملاء والديون":
     st.subheader("👥 إدارة العملاء والذمم والديون")
-    
     cust_mode = st.radio("العملية:", ["إضافة عميل جديد", "عرض العملاء وسداد الديون"], horizontal=True)
     
     if cust_mode == "إضافة عميل جديد":
@@ -493,7 +480,6 @@ elif st.session_state.active_page == "العملاء والديون":
             c_list = []
         if c_list:
             st.dataframe(pd.DataFrame(c_list), use_container_width=True)
-            
             st.markdown("### 💵 تسديد ديون عميل")
             d_names = [c["customer_name"] for c in c_list]
             sel_cust_debt = st.selectbox("اختر العميل لتسديد ديونه:", d_names)
@@ -529,30 +515,4 @@ elif st.session_state.active_page == "العملاء والديون":
                         st.success("تم تسديد المبلغ بنجاح!")
                         st.rerun()
                     except Exception as e:
-                        st.error(f"خطأ: {e}")
-        else:
-            st.info("لا يوجد عملاء مسجلين.")
-
-# ================= 5. الصندوق والمصاريف (السندات) =================
-elif st.session_state.active_page == "الصندوق والمصاريف":
-    st.subheader("💰 صندوق الوردية وسندات القبض والصرف")
-    with st.form("exp_f_tab", clear_on_submit=True):
-        et = st.text_input("بيان السند (مثال: مصاريف إدارية / وقود):")
-        ea = st.text_input("المبلغ (د.ع):", "0")
-        if st.form_submit_button("تسجيل السند والمصروف"):
-            if et:
-                st.session_state.expenses_list.append({"البيان": et, "المبلغ": float(ea)})
-                st.success("تم تسجيل السند بنجاح!")
-                st.rerun()
-    if st.session_state.expenses_list:
-        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
-    else:
-        st.info("لا توجد سندات أو مصاريف مسجلة اليوم.")
-
-# ================= 6. سجل النشاطات =================
-elif st.session_state.active_page == "سجل النشاطات":
-    st.subheader("📜 سجل النشاطات والعمليات (Audit Trail)")
-    if st.session_state.audit_logs:
-        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
-    else:
-        st.info("لا توجد سجلات نشاط حتى الآن.")
+                        st.
