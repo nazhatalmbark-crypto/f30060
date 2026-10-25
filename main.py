@@ -14,39 +14,42 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="ياسر بوس - YASSER POS", layout="centered")
 
-# **تصميم شبكة البطاقات 11 المطابقة لتطبيق TOFA**
+# **تصميم مريح للعين مطابق تماماً لواجهة تطبيق TOFA (خلفية فاتحة وبطاقات بيضاء)**
 st.markdown("""
     <style>
     .stApp {
-        background: linear-gradient(135deg, #553c9a 0%, #3b2375 100%);
+        background: linear-gradient(135deg, #f3f0fb 0%, #e9e4f5 100%);
         direction: rtl;
         text-align: right;
         font-family: system-ui, -apple-system, sans-serif;
-        color: #ffffff;
+        color: #2d1a4e;
     }
     input, select, textarea {
         direction: rtl;
         text-align: right;
-        border-radius: 12px !important;
+        border-radius: 14px !important;
+        border: 1px solid #dcd6f7 !important;
     }
+    /* تنسيق الأزرار لتكون أنيقة ومخفية بشكل متناسق داخل البطاقات */
     .stButton > button {
         background-color: #6b46c1;
         color: white;
         border-radius: 12px;
         border: none;
-        padding: 10px 15px;
+        padding: 8px 14px;
         font-weight: bold;
         width: 100%;
-        font-size: 14px;
+        font-size: 13px;
+        box-shadow: 0 4px 10px rgba(107, 70, 193, 0.2);
     }
     .stButton > button:hover {
-        background-color: #483185;
+        background-color: #553c9a;
         color: #fff;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# **جلسات النظام الأساسية (فارغة تماماً ومصفّرة)**
+# **جلسات النظام مصفّرة ونظيفة تماماً**
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
@@ -121,7 +124,7 @@ def generate_html_invoice(inv):
 
 # **شاشة تسجيل الدخول**
 if not st.session_state.logged_in_user:
-    st.markdown("<h2 style='text-align: center; color: white;'>🔐 تسجيل الدخول لنظام (ياسر بوس)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: #2d1a4e;'>🔐 تسجيل الدخول لنظام (ياسر بوس)</h2>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login_modern_form"):
@@ -162,7 +165,7 @@ with top_c1:
             st.session_state.active_page = "الرئيسية"
             st.rerun()
 with top_c2:
-    st.markdown(f"<h3 style='text-align: center; margin: 0;'>ياسر بوس (YASSER POS)</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0; color: #2d1a4e;'>ياسر بوس (TOFA)</h3>", unsafe_allow_html=True)
 with top_c3:
     if st.button("🚪 خروج"):
         st.session_state.logged_in_user = None
@@ -172,9 +175,9 @@ with top_c3:
 
 st.divider()
 
-# ================= الشاشة الرئيسية: عرض الـ 11 تبويب كبطاقات تفاعلية =================
+# ================= الشاشة الرئيسية: عرض الـ 11 تبويب ببطاقات TOFA البيضاء =================
 if st.session_state.active_page == "الرئيسية":
-    st.markdown("<h4 style='text-align: center; color: #e2d9f3; margin-bottom: 20px;'>إدارة المبيعات والعمليات الرئيسية</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #553c9a; margin-bottom: 20px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
     
     col_a, col_b = st.columns(2)
     
@@ -235,7 +238,7 @@ if st.session_state.active_page == "الرئيسية":
             st.write("الحسابات والأرباح المالية")
             if st.button("فتح التقارير", key="t10"): st.session_state.active_page = "📊 التقارير والأرباح"; st.rerun()
 
-    st.markdown("<br><p style='text-align: center; color: #b794f4; font-size: 12px;'>ياسر بوس - الإصدار 4.3.0</p>", unsafe_allow_html=True)
+    st.markdown("<br><p style='text-align: center; color: #7c6f9f; font-size: 12px;'>ياسر بوس - الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
 # ================= تشغيل الـ 11 تبويب بالكامل =================
 
