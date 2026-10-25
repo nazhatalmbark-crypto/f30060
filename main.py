@@ -455,4 +455,14 @@ elif selected_tab == "👥 إدارة العملاء والديون":
 
 # ================= TAB 6: سداد الديون =================
 elif selected_tab == "💵 سداد الديون":
-    st.subheader("💵 نظام سداد ديون العم
+    st.subheader("💵 نظام سداد ديون العملاء")
+    try:
+        res_dc = supabase.table("customers").select("customer_name").eq("username", username).execute()
+        d_names = [x["customer_name"] for x in res_dc.data] if res_dc.data else []
+    except:
+        d_names = []
+
+    if d_names:
+        sel_cust_debt = st.selectbox("اختر العميل لتسديد ديونه:", d_names)
+        try:
+            res_c_inv
