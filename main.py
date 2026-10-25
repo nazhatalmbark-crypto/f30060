@@ -525,4 +525,52 @@ elif selected_tab == "📄 سجل الفواتير وواتساب":
         for inv in reversed(all_is):
             with st.container(border=True):
                 st.markdown(f"### فاتورة: `{inv['invoice_code']}` | الزبون: **{inv['customer_name']}**")
-                st.markdown(f"المبلغ الكلي:
+                st.markdown(f"المبلغ الكلي: `{inv['total_price']:,}` د.ع | المتبقي (الدين): `{inv['remaining_amount']:,}` د.ع")
+                with st.expander("🖨️ عرض الفاتورة للطباعة"):
+                    st.components.v1.html(generate_html_invoice(inv), height=400, scrolling=True)
+    else:
+        st.info("لا توجد فواتير مسجلة.")
+
+# ================= TAB 9: الصندوق والمصاريف =================
+elif selected_tab == "💰 الصندوق والمصاريف":
+    st.subheader("💰 صندوق الوردية والمصاريف اليومية")
+    with st.form("exp_f", clear_on_submit=True):
+        et = st.text_input("بيان المصروف:")
+        ea = st.text_input("المبلغ (د.ع):", "0")
+        if st.form_submit_button("تسجيل المصروف"):
+            if et:
+                st.session_state.expenses_list.append({"البيان": et, "المبلغ": float(ea)})
+                st.success("تم تسجيل المصروف!")
+                st.rerun()
+    if st.session_state.expenses_list:
+        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
+
+# ================= TAB 10: التقارير والأرباح =================
+elif selected_tab == "📊 التقارير والأرباح":
+    st.subheader("📊 التقارير المالية وحساب صافي الأرباح")
+    try:
+        res_rep = supabase.table("invoices").select("*").eq("username", username).execute()
+        reps = res_rep.data if res_rep.data else []
+    except:
+        reps = []
+
+    if reps:
+        tot_sales = sum(i['total_price'] for i in reps)
+        tot_cost = sum(i.get('cost_price', 0) for i in reps)
+        tot_profit = tot_sales - tot_cost
+        tot_debt_rem = sum(i['remaining_amount'] for i in reps)
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("إجمالي المبيعات", f"{tot_sales:,.0f} د.ع")
+        c2.metric("صافي الأرباح", f"{tot_profit:,.0f} د.ع")
+        c3.metric("إجمالي الديون المتبقية", f"{tot_debt_rem:,.0f} د.ع")
+    else:
+        st.info("لا توجد بيانات كافية للتقارير.")
+
+# ================= TAB 11: سجل النشاطات =================
+elif selected_tab == "📜 سجل النشاطات":
+    st.subheader("📜 سجل النشاطات (Audit Trail)")
+    if st.session_state.audit_logs:
+        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
+    else:
+        st.info("لا توجد سجلات نشاط حتى الآن.")
