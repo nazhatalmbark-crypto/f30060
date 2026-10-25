@@ -71,7 +71,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# **تهيئة الجلسات مع قوائم احتياطية آمنة لمنع أي خطأ في الجداول**
+# **تهيئة الجلسات مع قوائم احتياطية آمنة**
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
@@ -317,7 +317,7 @@ elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
     else:
         st.info("لا توجد مواد في المخزن. أضف بضاعة جديدة من قسم (إضافة وتوريد كميات).")
 
-# 2. سلة البيع وإتمام الفاتورة (مع إمكانية الطباعة والواتساب)
+# 2. سلة البيع وإتمام الفاتورة (مع خصم دقيق وفوري من المخزن وقاعدة البيانات)
 elif st.session_state.active_page == "🛒 سلة البيع وإتمام الفاتورة":
     st.subheader("🛒 سلة البيع وإتمام الفاتورة")
     if st.session_state.cart:
@@ -389,14 +389,22 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
                         prod_str_list.append(f"{c_item['product_name']} [العدد: {c_item['qty']}]")
                         total_cost_inv += (c_item['buy_price'] * c_item['qty'])
                         
+                        # التحديث الفوري والناجح للكميات في جدول المنتجات بـ Supabase
                         try:
-                            res_p_q = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
-                            if res_p_q.data:
-                                curr_q = res_p_q.data[0]["quantity"]
+                            p_res = supabase.table("products").select("*").eq("username", username).eq("product_name", c_item["product_name"]).execute()
+                            if p_res.data:
+                                p_row = p_res.data[0]
+                                curr_q = p_row["quantity"]
+                                p_id = p_row["id"]
                                 new_q = max(0, curr_q - c_item['qty'])
-                                supabase.table("products").update({"quantity": new_q}).eq("id", c_item["id"]).execute()
+                                supabase.table("products").update({"quantity": new_q}).eq("id", p_id).execute()
                         except Exception:
                             pass
+
+                        # التحديث الفوري محلياً أيضاً
+                        for p_local in st.session_state.products_list:
+                            if p_local["product_name"] == c_item["product_name"]:
+                                p_local["quantity"] = max(0, p_local["quantity"] - c_item['qty'])
 
                     inv_seq = len(st.session_state.invoices_list) + 1
                     inv_code = f"INV-{inv_seq:03d}"
@@ -422,7 +430,7 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
 
                     log_audit("إتمام بيع", f"فاتورة رقم {inv_code}")
                     st.session_state.cart = []
-                    st.success("✅ تمت عملية البيع بنجاح وتحديث المخزن!")
+                    st.success("✅ تمت عملية البيع بنجاح ونقصان الكميات من المخزن!")
                     
                     # عرض الفاتورة للطباعة والواتساب
                     st.markdown("### 📄 معاينة الفاتورة للطباعة والواتساب")
