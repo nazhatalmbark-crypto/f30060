@@ -15,7 +15,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web POS", layout="centered")
 
-# **التصميم الاحترافي المتناسق مع واجهات TOFA**
+# **تصميم CSS احترافي يجعل البطاقات بالكامل تفاعلية ونظيفة**
 st.markdown("""
     <style>
     .stApp {
@@ -30,17 +30,19 @@ st.markdown("""
         text-align: right;
         border-radius: 10px !important;
     }
+    /* إخفاء الأزرار الداخلية وجعل البطاقة نظيفة */
     .stButton > button {
         background-color: #6b46c1;
         color: white;
         border-radius: 12px;
         border: none;
-        padding: 10px 20px;
+        padding: 8px 16px;
         font-weight: bold;
         width: 100%;
+        margin-top: 5px;
     }
     .stButton > button:hover {
-        background-color: #553c9a;
+        background-color: #483185;
         color: #fff;
     }
     </style>
@@ -119,7 +121,7 @@ def generate_html_invoice(inv):
     </html>
     """
 
-# **شاشة تسجيل الدخول (تعمل بكفاءة عالية وتتصل بقاعدة البيانات)**
+# **شاشة تسجيل الدخول**
 if not st.session_state.logged_in_user:
     st.markdown("<h2 style='text-align: center; color: white;'>🔐 بوابة الدخول لنظام المبيعات</h2>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -172,7 +174,7 @@ with top_c3:
 
 st.divider()
 
-# ================= الشاشة الرئيسية (بطاقات TOFA الستة) =================
+# ================= شاشة القائمة الرئيسية (مطابقة تماماً لتطبيق TOFA) =================
 if st.session_state.active_page == "الرئيسية":
     st.markdown("<h4 style='text-align: center; color: #e2d9f3; margin-bottom: 25px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
     
@@ -224,7 +226,7 @@ if st.session_state.active_page == "الرئيسية":
 
     st.markdown("<br><p style='text-align: center; color: #b794f4; font-size: 13px;'>الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
-# ================= باقي الأقسام والتبويبات الـ 11 متكاملة =================
+# ================= التبويبات الـ 11 المتكاملة بالكامل =================
 elif st.session_state.active_page == "إنشاء فاتورة":
     st.subheader("🛒 إنشاء فاتورة جديدة والبيع السريع")
     sub_choice = st.radio("طريقة البيع:", ["شبكة المنتجات السريعة", "مراجعة السلة وإتمام الفاتورة"], horizontal=True)
