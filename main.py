@@ -15,7 +15,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web POS", layout="centered")
 
-# **تصميم عصري مطابق تماماً لتطبيق TOFA**
+# **التصميم الاحترافي المتناسق مع واجهات TOFA**
 st.markdown("""
     <style>
     .stApp {
@@ -30,13 +30,12 @@ st.markdown("""
         text-align: right;
         border-radius: 10px !important;
     }
-    /* إخفاء الأزرار أو جعلها منسقة بالكامل */
     .stButton > button {
         background-color: #6b46c1;
         color: white;
         border-radius: 12px;
         border: none;
-        padding: 8px 16px;
+        padding: 10px 20px;
         font-weight: bold;
         width: 100%;
     }
@@ -120,7 +119,7 @@ def generate_html_invoice(inv):
     </html>
     """
 
-# **شاشة تسجيل الدخول**
+# **شاشة تسجيل الدخول (تعمل بكفاءة عالية وتتصل بقاعدة البيانات)**
 if not st.session_state.logged_in_user:
     st.markdown("<h2 style='text-align: center; color: white;'>🔐 بوابة الدخول لنظام المبيعات</h2>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -163,7 +162,7 @@ with top_c1:
             st.session_state.active_page = "الرئيسية"
             st.rerun()
 with top_c2:
-    st.markdown(f"<h3 style='text-align: center; margin: 0;'>YASSER POS</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0;'>TOFA - YASSER POS</h3>", unsafe_allow_html=True)
 with top_c3:
     if st.button("🚪 خروج"):
         st.session_state.logged_in_user = None
@@ -173,14 +172,13 @@ with top_c3:
 
 st.divider()
 
-# ================= شاشة القائمة الرئيسية (مطابقة تماماً للصورة) =================
+# ================= الشاشة الرئيسية (بطاقات TOFA الستة) =================
 if st.session_state.active_page == "الرئيسية":
     st.markdown("<h4 style='text-align: center; color: #e2d9f3; margin-bottom: 25px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
     
     col_a, col_b = st.columns(2)
     
     with col_a:
-        # بطاقة إنشاء فاتورة
         with st.container(border=True):
             st.markdown("### 📝 إنشاء فاتورة")
             st.write("إصدار الفواتير والطباعة والشبكة")
@@ -188,7 +186,6 @@ if st.session_state.active_page == "الرئيسية":
                 st.session_state.active_page = "إنشاء فاتورة"
                 st.rerun()
                 
-        # بطاقة العملاء
         with st.container(border=True):
             st.markdown("### 👥 العملاء")
             st.write("إدارة العملاء والديون")
@@ -196,7 +193,6 @@ if st.session_state.active_page == "الرئيسية":
                 st.session_state.active_page = "العملاء والديون"
                 st.rerun()
                 
-        # بطاقة السندات
         with st.container(border=True):
             st.markdown("### 💵 السندات")
             st.write("سندات قبض وصرف ومصاريف")
@@ -205,7 +201,6 @@ if st.session_state.active_page == "الرئيسية":
                 st.rerun()
 
     with col_b:
-        # بطاقة قائمة الفواتير
         with st.container(border=True):
             st.markdown("### 📄 قائمة الفواتير")
             st.write("سجل الفواتير المباعة")
@@ -213,7 +208,6 @@ if st.session_state.active_page == "الرئيسية":
                 st.session_state.active_page = "قائمة الفواتير"
                 st.rerun()
                 
-        # بطاقة المخزن
         with st.container(border=True):
             st.markdown("### 📦 المخزن")
             st.write("إدارة المشتريات والمخزون")
@@ -221,7 +215,6 @@ if st.session_state.active_page == "الرئيسية":
                 st.session_state.active_page = "المخزن"
                 st.rerun()
                 
-        # بطاقة إرجاع بيع
         with st.container(border=True):
             st.markdown("### 🔄 إرجاع بيع")
             st.write("قائمة المرتجعات")
@@ -231,7 +224,7 @@ if st.session_state.active_page == "الرئيسية":
 
     st.markdown("<br><p style='text-align: center; color: #b794f4; font-size: 13px;'>الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
-# ================= باقي الأقسام بالتفصيل =================
+# ================= باقي الأقسام والتبويبات الـ 11 متكاملة =================
 elif st.session_state.active_page == "إنشاء فاتورة":
     st.subheader("🛒 إنشاء فاتورة جديدة والبيع السريع")
     sub_choice = st.radio("طريقة البيع:", ["شبكة المنتجات السريعة", "مراجعة السلة وإتمام الفاتورة"], horizontal=True)
