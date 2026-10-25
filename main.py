@@ -30,7 +30,6 @@ st.markdown("""
         text-align: right;
         border-radius: 10px !important;
     }
-    /* تنسيق أزرار الـ Streamlit لتكون متناسقة باللون البنفسجي الغامق */
     .stButton > button {
         background-color: #6b46c1;
         color: white;
@@ -173,7 +172,7 @@ with top_c3:
 
 st.divider()
 
-# ================= شاشة القائمة الرئيسية (مطابقة لتطبيق TOFA) =================
+# ================= شاشة القائمة الرئيسية =================
 if st.session_state.active_page == "الرئيسية":
     st.markdown("<h4 style='text-align: center; color: #e2d9f3; margin-bottom: 20px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
     
@@ -225,7 +224,7 @@ if st.session_state.active_page == "الرئيسية":
 
     st.markdown("<br><p style='text-align: center; color: #b794f4; font-size: 12px;'>الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
-# ================= باقي الأقسام تباعاً =================
+# ================= باقي الأقسام =================
 elif st.session_state.active_page == "إنشاء فاتورة":
     st.subheader("🛒 إنشاء فاتورة جديدة والبيع السريع")
     sub_choice = st.radio("طريقة البيع:", ["شبكة المنتجات السريعة", "مراجعة السلة وإتمام الفاتورة"], horizontal=True)
@@ -425,94 +424,4 @@ elif st.session_state.active_page == "المخزن":
     else:
         try:
             res_all_p = supabase.table("products").select("id, product_name, quantity").eq("username", username).execute()
-            existing_prods = res_all_p.data if res_all_p.data else []
-        except:
-            existing_prods = []
-        if existing_prods:
-            with st.form("restock_form"):
-                p_opts = {f"{p['product_name']} (المتوفر: {p['quantity']})": p['id'] for p in existing_prods}
-                chosen_p = st.selectbox("اختر المادة لتوريد كمية فوقها:", list(p_opts.keys()))
-                add_q_str = st.text_input("الكمية المراد إضافتها:", "1")
-                if st.form_submit_button("تحديث وزيادة الكمية", type="primary"):
-                    try:
-                        add_amt = int(add_q_str.strip())
-                        pid = p_opts[chosen_p]
-                        item_obj = next(x for x in existing_prods if x['id'] == pid)
-                        new_tot = item_obj['quantity'] + add_amt
-                        supabase.table("products").update({"quantity": new_tot}).eq("id", pid).execute()
-                        st.success(f"تم تحديث الكمية بنجاح! الإجمالي الجديد: {new_tot}")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"خطأ: {e}")
-        else:
-            st.info("لا توجد مواد مسجلة لتوريد كميات لها.")
-
-elif st.session_state.active_page == "العملاء والديون":
-    st.subheader("👥 إدارة العملاء والذمم والديون")
-    cust_mode = st.radio("العملية:", ["إضافة عميل جديد", "عرض العملاء وسداد الديون"], horizontal=True)
-    
-    if cust_mode == "إضافة عميل جديد":
-        with st.form("cust_form_tab", clear_on_submit=True):
-            cn = st.text_input("اسم العميل (حضرة السيد):")
-            cp = st.text_input("رقم الهاتف:")
-            ca = st.text_input("العنوان / المنطقة:")
-            if st.form_submit_button("حفظ العميل"):
-                if cn and cp:
-                    try:
-                        supabase.table("customers").insert({
-                            "username": str(username),
-                            "customer_name": str(cn.strip()),
-                            "phone": str(cp.strip()),
-                            "address": str(ca.strip() if ca else "غير محدد"),
-                            "created_at": str(datetime.datetime.now().strftime('%Y-%m-%d'))
-                        }).execute()
-                        st.success(f"تم حفظ العميل {cn} بنجاح!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"خطأ: {e}")
-                else:
-                    st.warning("أدخل اسم العميل ورقم الهاتف.")
-    else:
-        try:
-            res_c_list = supabase.table("customers").select("*").eq("username", username).execute()
-            c_list = res_c_list.data if res_c_list.data else []
-        except:
-            c_list = []
-        if c_list:
-            st.dataframe(pd.DataFrame(c_list), use_container_width=True)
-            st.markdown("### 💵 تسديد ديون عميل")
-            d_names = [c["customer_name"] for c in c_list]
-            sel_cust_debt = st.selectbox("اختر العميل لتسديد ديونه:", d_names)
-            try:
-                res_c_inv = supabase.table("invoices").select("*").eq("username", username).eq("customer_name", sel_cust_debt).execute()
-                c_invs = res_c_inv.data if res_c_inv.data else []
-            except:
-                c_invs = []
-            tot_debt = sum(i.get('remaining_amount', 0) for i in c_invs)
-            st.markdown(f"إجمالي الدين المتبقي على العميل: **{tot_debt:,} د.ع**")
-            
-            with st.form("pay_d_form_tab"):
-                pay_amt_str = st.text_input("المبلغ المسدد (د.ع):", "0")
-                if st.form_submit_button("إتمام التسديد"):
-                    try:
-                        p_val = float(pay_amt_str.strip())
-                        rem_p = p_val
-                        for inv in c_invs:
-                            if rem_p <= 0: break
-                            curr_r = inv.get('remaining_amount', 0)
-                            if curr_r > 0:
-                                if rem_p >= curr_r:
-                                    n_paid = inv['total_price']
-                                    n_rem = 0
-                                    n_type = "🟢 نقد بالكامل (كاش)"
-                                    rem_p -= curr_r
-                                else:
-                                    n_paid = inv['paid_amount'] + rem_p
-                                    n_rem = curr_r - rem_p
-                                    n_type = "🔵 دفعة جزئية (أقساط)"
-                                    rem_p = 0
-                                supabase.table("invoices").update({"paid_amount": int(n_paid), "remaining_amount": int(n_rem), "payment_type": str(n_type)}).eq("id", inv["id"]).execute()
-                        st.success("تم تسديد المبلغ بنجاح!")
-                        st.rerun()
-                    except Exception as e:
-                        st.
+            existing_prods = res_all_p.data if res_
