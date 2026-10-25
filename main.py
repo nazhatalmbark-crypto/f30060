@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from supabase import create_client, Client
 import datetime
@@ -12,9 +13,9 @@ def init_supabase() -> Client:
 
 supabase = init_supabase()
 
-st.set_page_config(page_title="ياسر بوس - Yasser POS", layout="centered")
+st.set_page_config(page_title="ياسر بوس - YASSER POS", layout="centered")
 
-# **تصميم مطابق 100% لواجهة تطبيق TOFA وبطابق الألوان البنفسجية**
+# **التصميم البنفسجي الاحترافي والبطاقات البيضاء المطابقة لـ TOFA**
 st.markdown("""
     <style>
     .stApp {
@@ -27,49 +28,27 @@ st.markdown("""
     input, select, textarea {
         direction: rtl;
         text-align: right;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
     }
-    /* تصميم البطاقات البيضاء المطابقة لـ TOFA */
-    .tofa-card {
-        background: #ffffff;
-        padding: 22px 15px;
-        border-radius: 24px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-        color: #2d1a4e;
-        text-align: center;
-        margin-bottom: 15px;
-        cursor: pointer;
-        border: 1px solid #f0ebf8;
-    }
-    .tofa-card h3 {
-        color: #2d1a4e;
-        font-size: 17px;
-        margin-bottom: 5px;
-        font-weight: 700;
-    }
-    .tofa-card p {
-        color: #8a81ab;
-        font-size: 11px;
-        margin: 0;
-    }
+    /* تنسيق أزرار البطاقات البيضاء في الرئيسية لتكون تفاعلية ومطابقة */
     .stButton > button {
         background-color: #6b46c1;
         color: white;
         border-radius: 12px;
         border: none;
-        padding: 8px 16px;
+        padding: 10px 20px;
         font-weight: bold;
         width: 100%;
-        margin-top: 8px;
+        font-size: 15px;
     }
     .stButton > button:hover {
-        background-color: #553c9a;
+        background-color: #483185;
         color: #fff;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# **تصفير وتهيئة الجلسات بقوائم فارغة تماماً**
+# **تصفير الجلسات تماماً لبدء بيانات جديدة فارغة**
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
@@ -142,9 +121,9 @@ def generate_html_invoice(inv):
     </html>
     """
 
-# **شاشة تسجيل الدخول**
+# **شاشة تسجيل الدخول المرتبة**
 if not st.session_state.logged_in_user:
-    st.markdown("<h2 style='text-align: center; color: white;'>🔐 بوابة الدخول لنظام ياسر بوس</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: white;'>🔐 بوابة الدخول لنظام (ياسر بوس)</h2>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login_modern_form"):
@@ -185,7 +164,7 @@ with top_c1:
             st.session_state.active_page = "الرئيسية"
             st.rerun()
 with top_c2:
-    st.markdown(f"<h3 style='text-align: center; margin: 0;'>ياسر بوس</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0;'>ياسر بوس (YASSER POS)</h3>", unsafe_allow_html=True)
 with top_c3:
     if st.button("🚪 خروج"):
         st.session_state.logged_in_user = None
@@ -195,9 +174,9 @@ with top_c3:
 
 st.divider()
 
-# ================= الشاشة الرئيسية (مطابقة لـ TOFA) =================
+# ================= شاشة القائمة الرئيسية (شبكة TOFA الشغالة 100%) =================
 if st.session_state.active_page == "الرئيسية":
-    st.markdown("<h4 style='text-align: center; color: #e2d9f3; margin-bottom: 20px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #e2d9f3; margin-bottom: 25px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
     
     col_a, col_b = st.columns(2)
     
@@ -211,43 +190,45 @@ if st.session_state.active_page == "الرئيسية":
                 
         with st.container(border=True):
             st.markdown("### 👥 العملاء")
-            st.write("إدارة العملاء والديون")
-            if st.button("إدارة العملاء", key="card_cust"):
+            st.write("إدارة العملاء والديون والذمم")
+            if st.button("إدارة العملاء والديون", key="card_cust"):
                 st.session_state.active_page = "العملاء والديون"
                 st.rerun()
                 
         with st.container(border=True):
             st.markdown("### 💵 السندات")
             st.write("سندات قبض وصرف ومصاريف")
-            if st.button("فتح السندات", key="card_bonds"):
+            if st.button("فتح السندات والصندوق", key="card_bonds"):
                 st.session_state.active_page = "الصندوق والمصاريف"
                 st.rerun()
 
     with col_b:
         with st.container(border=True):
             st.markdown("### 📄 قائمة الفواتير")
-            st.write("سجل الفواتير المباعة")
-            if st.button("سجل الفواتير", key="card_list"):
+            st.write("سجل الفواتير المباعة والطباعة")
+            if st.button("عرض سجل الفواتير", key="card_list"):
                 st.session_state.active_page = "قائمة الفواتير"
                 st.rerun()
                 
         with st.container(border=True):
             st.markdown("### 📦 المخزن")
-            st.write("إدارة المشتريات والمخزون")
-            if st.button("إدارة المخزن", key="card_store"):
+            st.write("إدارة المشتريات وجرد البضاعة")
+            if st.button("إدارة المخزن والمشتريات", key="card_store"):
                 st.session_state.active_page = "المخزن"
                 st.rerun()
                 
         with st.container(border=True):
-            st.markdown("### 🔄 إرجاع بيع")
-            st.write("قائمة المرتجعات")
-            if st.button("سجل النشاطات", key="card_return"):
+            st.markdown("### 🔄 إرجاع بيع / النشاطات")
+            st.write("قائمة المرتجعات وسجل الحركة")
+            if st.button("فتح سجل النشاطات", key="card_return"):
                 st.session_state.active_page = "سجل النشاطات"
                 st.rerun()
 
-    st.markdown("<br><p style='text-align: center; color: #b794f4; font-size: 12px;'>الإصدار 4.3.0</p>", unsafe_allow_html=True)
+    st.markdown("<br><p style='text-align: center; color: #b794f4; font-size: 13px;'>الإصدار 4.3.0</p>", unsafe_allow_html=True)
 
-# ================= التبويبات الـ 11 المتكاملة بالكامل (فارغة ونظيفة) =================
+# ================= التبويبات الـ 11 المتكاملة بالكامل (مصفّرة وجاهزة للحفظ) =================
+
+# 1. قسم إنشاء الفاتورة
 elif st.session_state.active_page == "إنشاء فاتورة":
     st.subheader("🛒 إنشاء فاتورة جديدة والبيع السريع")
     sub_choice = st.radio("طريقة البيع:", ["شبكة المنتجات السريعة", "مراجعة السلة وإتمام الفاتورة"], horizontal=True)
@@ -291,7 +272,7 @@ elif st.session_state.active_page == "إنشاء فاتورة":
                         else:
                             st.error("نفدت الكمية")
         else:
-            st.info("لا توجد مواد مضافة في المخزن حالياً.")
+            st.info("لا توجد مواد مضافة في المخزن حالياً. يمكنك إضافة مواد جديدة من قسم (المخزن).")
     else:
         if st.session_state.cart:
             total_cart_price = 0
@@ -388,6 +369,7 @@ elif st.session_state.active_page == "إنشاء فاتورة":
         else:
             st.info("🛒 السلة فارغة تماماً. اختر مواد من شبكة المنتجات السريعة أولاً.")
 
+# 2. قسم قائمة الفواتير
 elif st.session_state.active_page == "قائمة الفواتير":
     st.subheader("📄 سجل الفواتير الرسمية")
     try:
@@ -406,6 +388,7 @@ elif st.session_state.active_page == "قائمة الفواتير":
     else:
         st.info("لا توجد فواتير مسجلة حالياً.")
 
+# 3. قسم إدارة المخزن
 elif st.session_state.active_page == "المخزن":
     st.subheader("📦 إدارة المخزن والمشتريات")
     m_choice = st.radio("الخيارات:", ["عرض جرد المخزن", "إضافة مادة جديدة", "توريد كميات إضافية"], horizontal=True)
@@ -470,6 +453,7 @@ elif st.session_state.active_page == "المخزن":
         else:
             st.info("لا توجد مواد مسجلة لتوريد كميات لها.")
 
+# 4. قسم العملاء والديون
 elif st.session_state.active_page == "العملاء والديون":
     st.subheader("👥 إدارة العملاء والذمم والديون")
     cust_mode = st.radio("العملية:", ["إضافة عميل جديد", "عرض العملاء وسداد الديون"], horizontal=True)
@@ -542,6 +526,7 @@ elif st.session_state.active_page == "العملاء والديون":
         else:
             st.info("لا يوجد عملاء مسجلين حالياً.")
 
+# 5. قسم الصندوق والمصاريف
 elif st.session_state.active_page == "الصندوق والمصاريف":
     st.subheader("💰 صندوق الوردية وسندات القبض والصرف")
     with st.form("exp_f_tab", clear_on_submit=True):
@@ -557,6 +542,7 @@ elif st.session_state.active_page == "الصندوق والمصاريف":
     else:
         st.info("لا توجد سندات أو مصاريف مسجلة اليوم.")
 
+# 6. قسم سجل النشاطات والمرتجعات
 elif st.session_state.active_page == "سجل النشاطات":
     st.subheader("📜 سجل النشاطات والعمليات (Audit Trail)")
     if st.session_state.audit_logs:
