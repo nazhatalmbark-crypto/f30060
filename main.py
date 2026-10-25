@@ -1,10 +1,15 @@
+import streamlit as st
+import streamlit.components.v1 as components
+
+st.set_page_config(page_title="ياسر ويب POS", layout="wide")
+
+html_code = """
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ياسر ويب - نظام إدارة المبيعات والمخزون</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -36,12 +41,36 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3 space-x-reverse">
-                <span id="current-date" class="text-xs bg-emerald-900 px-2 py-1 rounded-lg">اليوم</span>
+                <button onclick="logout()" class="text-xs bg-red-600 hover:bg-red-700 px-2.5 py-1 rounded-lg text-white font-bold transition">
+                    <i class="fa-solid fa-right-from-bracket ml-1"></i>خروج
+                </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Container (Mobile Frame Look) -->
+    <!-- Login Screen Modal/Overlay -->
+    <div id="login-modal" class="fixed inset-0 bg-darkGreen/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 shadow-2xl border border-emerald-100 text-center">
+            <div class="bg-emerald-100 text-darkGreen w-16 h-16 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h2 class="text-xl font-bold text-gray-800">تسجيل الدخول - ياسر ويب</h2>
+            <p class="text-xs text-gray-500">أدخل اسم المستخدم وكلمة المرور للوصول إلى النظام</p>
+            <div class="space-y-3 text-right">
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">اسم المستخدم</label>
+                    <input type="text" id="login-user" placeholder="أدخل اسم المستخدم" class="w-full p-3 border rounded-xl text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">كلمة المرور</label>
+                    <input type="password" id="login-pass" placeholder="أدخل كلمة المرور" class="w-full p-3 border rounded-xl text-sm focus:outline-none focus:border-primary">
+                </div>
+            </div>
+            <button onclick="checkLogin()" class="w-full bg-primary text-white py-3 rounded-xl font-bold shadow hover:bg-darkGreen transition">تسجيل الدخول</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
     <main class="max-w-md mx-auto p-4 space-y-4">
 
         <!-- Top Summary Cards -->
@@ -66,84 +95,52 @@
             </div>
         </div>
 
-        <!-- Dashboard Grid Menu (Modern Tiles) -->
+        <!-- Dashboard Grid Menu -->
         <div class="grid grid-cols-3 gap-3">
-            <!-- لوحة التحكم -->
             <button onclick="switchTab('dashboard')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:bg-emerald-50 transition active:scale-95">
-                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2">
-                    <i class="fa-solid fa-border-all text-xl"></i>
-                </div>
+                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2"><i class="fa-solid fa-border-all text-xl"></i></div>
                 <span class="text-xs font-bold text-gray-700">لوحة التحكم</span>
             </button>
-            <!-- المبيعات -->
             <button onclick="switchTab('sales')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:bg-emerald-50 transition active:scale-95">
-                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2">
-                    <i class="fa-solid fa-cash-register text-xl"></i>
-                </div>
+                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2"><i class="fa-solid fa-cash-register text-xl"></i></div>
                 <span class="text-xs font-bold text-gray-700">المبيعات</span>
             </button>
-            <!-- المشتريات -->
             <button onclick="switchTab('purchases')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:bg-emerald-50 transition active:scale-95">
-                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2">
-                    <i class="fa-solid fa-cart-shopping text-xl"></i>
-                </div>
+                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2"><i class="fa-solid fa-cart-shopping text-xl"></i></div>
                 <span class="text-xs font-bold text-gray-700">المشتريات</span>
             </button>
-            <!-- المخازن -->
             <button onclick="switchTab('inventory')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:bg-emerald-50 transition active:scale-95">
-                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2">
-                    <i class="fa-solid fa-warehouse text-xl"></i>
-                </div>
+                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2"><i class="fa-solid fa-warehouse text-xl"></i></div>
                 <span class="text-xs font-bold text-gray-700">المخزن</span>
             </button>
-            <!-- تقرير الأرباح -->
             <button onclick="switchTab('profits')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:bg-emerald-50 transition active:scale-95">
-                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2">
-                    <i class="fa-solid fa-chart-pie text-xl"></i>
-                </div>
+                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2"><i class="fa-solid fa-chart-pie text-xl"></i></div>
                 <span class="text-xs font-bold text-gray-700">تقرير الأرباح</span>
             </button>
-            <!-- تقرير الصندوق -->
             <button onclick="switchTab('cashbox')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:bg-emerald-50 transition active:scale-95">
-                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2">
-                    <i class="fa-solid fa-wallet text-xl"></i>
-                </div>
+                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2"><i class="fa-solid fa-wallet text-xl"></i></div>
                 <span class="text-xs font-bold text-gray-700">تقرير الصندوق</span>
             </button>
-            <!-- العملاء / الديون -->
             <button onclick="switchTab('customers')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:bg-emerald-50 transition active:scale-95">
-                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2">
-                    <i class="fa-solid fa-users text-xl"></i>
-                </div>
+                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2"><i class="fa-solid fa-users text-xl"></i></div>
                 <span class="text-xs font-bold text-gray-700">العملاء والديون</span>
             </button>
-            <!-- الموردين -->
             <button onclick="switchTab('suppliers')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:bg-emerald-50 transition active:scale-95">
-                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2">
-                    <i class="fa-solid fa-truck-field text-xl"></i>
-                </div>
+                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2"><i class="fa-solid fa-truck-field text-xl"></i></div>
                 <span class="text-xs font-bold text-gray-700">الموردين</span>
             </button>
-            <!-- التقارير الرسمية -->
             <button onclick="switchTab('reports')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:bg-emerald-50 transition active:scale-95">
-                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2">
-                    <i class="fa-solid fa-file-lines text-xl"></i>
-                </div>
+                <div class="bg-emerald-100 text-darkGreen p-3 rounded-2xl mb-2"><i class="fa-solid fa-file-lines text-xl"></i></div>
                 <span class="text-xs font-bold text-gray-700">تقارير نهائية</span>
             </button>
         </div>
 
         <!-- Dynamic Section Content -->
         <div id="content-area" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 min-h-[300px]">
-            <!-- Content changes based on active tab -->
             <div id="tab-dashboard" class="tab-content space-y-4">
                 <h2 class="font-bold text-gray-800 text-base border-b pb-2"><i class="fa-solid fa-fire text-primary ml-2"></i>الإشعارات والتنبيهات السريعة</h2>
                 <div id="low-stock-alert" class="bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-800 text-sm flex items-center justify-between">
-                    <span><i class="fa-solid fa-triangle-exclamation ml-2"></i> لا توجد مواد منخفضة حالياً.</span>
-                </div>
-                <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-center">
-                    <p class="text-xs text-emerald-700 font-bold mb-1">مرحباً بك في نظام ياسر ويب POS</p>
-                    <p class="text-xs text-gray-600">اختر من الأقسام بالأعلى لإدارة المبيعات، المخزن، والديون بكل سهولة.</p>
+                    <span><i class="fa-solid fa-triangle-exclamation ml-2"></i> لا توجد مواد منخفضة حاليا.</span>
                 </div>
             </div>
 
@@ -165,9 +162,7 @@
                     <h2 class="font-bold text-gray-800 text-base">إدارة المخزن</h2>
                     <button onclick="openAddProductModal()" class="bg-primary text-white text-xs px-3 py-1.5 rounded-lg"><i class="fa-solid fa-plus ml-1"></i>مادة جديدة</button>
                 </div>
-                <div id="inventory-list" class="space-y-2 max-h-60 overflow-y-auto">
-                    <!-- Products list injected via JS -->
-                </div>
+                <div id="inventory-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
             </div>
 
             <div id="tab-customers" class="tab-content hidden space-y-3">
@@ -187,7 +182,6 @@
 
             <div id="tab-profits" class="tab-content hidden space-y-3">
                 <h2 class="font-bold text-gray-800 text-base border-b pb-2">تقرير الأرباح</h2>
-                <p class="text-xs text-gray-500">صافي الأرباح يعتمد على فرق سعر الشراء وسعر البيع.</p>
                 <div class="bg-gray-50 p-4 rounded-xl text-center">
                     <span class="text-sm text-gray-600">إجمالي الأرباح الصافية:</span>
                     <h3 id="net-profit-val" class="text-xl font-bold text-primary mt-1">0.00 د.ع</h3>
@@ -215,32 +209,6 @@
 
     </main>
 
-    <!-- Bottom Navigation Bar -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
-        <div class="max-w-md mx-auto flex justify-around py-2">
-            <button onclick="switchTab('sales')" class="flex flex-col items-center text-primary text-xs">
-                <i class="fa-solid fa-cash-register text-lg"></i>
-                <span>المبيعات</span>
-            </button>
-            <button onclick="switchTab('purchases')" class="flex flex-col items-center text-gray-500 text-xs hover:text-primary">
-                <i class="fa-solid fa-cart-shopping text-lg"></i>
-                <span>المشتريات</span>
-            </button>
-            <button onclick="switchTab('inventory')" class="flex flex-col items-center text-gray-500 text-xs hover:text-primary">
-                <i class="fa-solid fa-warehouse text-lg"></i>
-                <span>المخازن</span>
-            </button>
-            <button onclick="switchTab('reports')" class="flex flex-col items-center text-gray-500 text-xs hover:text-primary">
-                <i class="fa-solid fa-chart-column text-lg"></i>
-                <span>التقارير</span>
-            </button>
-            <button onclick="switchTab('dashboard')" class="flex flex-col items-center text-gray-500 text-xs hover:text-primary">
-                <i class="fa-solid fa-wallet text-lg"></i>
-                <span>المالية</span>
-            </button>
-        </div>
-    </nav>
-
     <!-- Modal for adding product -->
     <div id="product-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white p-5 rounded-2xl w-full max-w-sm space-y-3">
@@ -264,8 +232,26 @@
         let customers = JSON.parse(localStorage.getItem('yasser_customers')) || [];
         let totalSales = parseFloat(localStorage.getItem('yasser_sales')) || 0.0;
 
+        function checkLogin() {
+            let u = document.getElementById('login-user').value;
+            let p = document.getElementById('login-pass').value;
+            if(u !== "" && p !== "") {
+                document.getElementById('login-modal').classList.add('hidden');
+                localStorage.setItem('yasser_logged', 'true');
+            } else {
+                alert('يرجى كتابة اسم المستخدم وكلمة المرور');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('yasser_logged');
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
         function initApp() {
-            document.getElementById('current-date').innerText = new Date().toLocaleDateString('ar-IQ');
+            if(localStorage.getItem('yasser_logged') === 'true') {
+                document.getElementById('login-modal').classList.add('hidden');
+            }
             updateUI();
         }
 
@@ -374,3 +360,6 @@
     </script>
 </body>
 </html>
+"""
+
+components.html(html_code, height=800, scrolling=True)
