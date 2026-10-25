@@ -14,7 +14,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="ياسر ويب - YASSER WEB", layout="centered")
 
-# **تنسيق CSS دقيق يطابق واجهات TOFA وبإطار موبايل احترافي متجاوب**
+# **تنسيق CSS دقيق يطابق واجهات الموبايل وبإطار احترافي**
 st.markdown("""
     <style>
     /* خلفية التطبيق الخارجية */
@@ -71,7 +71,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# **تهيئة الجلسات نظيفة تماماً (صفر بيانات مسبقة)**
+# **تهيئة الجلسات (صفر بيانات مسبقة ونظيفة تماماً)**
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
@@ -195,7 +195,7 @@ with top_c3:
 
 st.divider()
 
-# ================= الشاشة الرئيسية: عرض الـ 11 تبويب ببطاقات بيضاء مطابقة =================
+# ================= الشاشة الرئيسية: عرض الـ 11 تبويب كبطاقات بيضاء =================
 if st.session_state.active_page == "الرئيسية":
     st.markdown("<p style='text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; color: #553c9a;'>إدارة المبيعات والعمليات</p>", unsafe_allow_html=True)
     
@@ -204,7 +204,7 @@ if st.session_state.active_page == "الرئيسية":
     with col_a:
         with st.container(border=True):
             st.markdown("### 🏠 الرئيسية والشبكة")
-            st.write("عرض شبكة المواد السريعة")
+            st.write("عرض شبكة المواد والسلة")
             if st.button("فتح الرئيسية", key="t1"): st.session_state.active_page = "🏠 الرئيسية والشبكة"; st.rerun()
             
         with st.container(border=True):
@@ -233,8 +233,10 @@ if st.session_state.active_page == "الرئيسية":
             if st.button("فتح السجل", key="t11"): st.session_state.active_page = "📜 سجل النشاطات"; st.rerun()
 
     with col_b:
+        # حساب إجمالي عدد القطع بالسلة لعرضه فوق كعداد متحرك
+        total_cart_qty = sum(item['qty'] for item in st.session_state.cart)
         with st.container(border=True):
-            st.markdown("### 🛒 سلة البيع")
+            st.markdown(f"### 🛒 سلة البيع 🛒 [{total_cart_qty}]")
             st.write("مراجعة السلة والفاتورة")
             if st.button("فتح السلة", key="t2"): st.session_state.active_page = "🛒 سلة البيع وإتمام الفاتورة"; st.rerun()
             
@@ -262,8 +264,11 @@ if st.session_state.active_page == "الرئيسية":
 
 # ================= تشغيل الـ 11 تبويب بالكامل =================
 
+# 1. الرئيسية والشبكة مع زر "إضافة إلى السلة" تحت كل منتج وزيادة العداد الفوق
 elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
-    st.subheader("🏠 شبكة المبيعات السريعة")
+    total_items_badge = sum(i['qty'] for i in st.session_state.cart)
+    st.subheader(f"🏠 شبكة المبيعات السريعة [السلة: {total_items_badge}]")
+    
     try:
         res = supabase.table("products").select("*").eq("username", username).execute()
         grid_items = res.data if res.data else []
@@ -279,7 +284,7 @@ elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
                     st.markdown(f"💰 السعر: `{int(item['sell_price']):,}` د.ع")
                     st.markdown(f"🔢 المتوفر: `{item['quantity']}` قطعة")
                     if item['quantity'] > 0:
-                        if st.button("➕ إضافة", key=f"grid_add_{item['id']}"):
+                        if st.button("➕ إضافة إلى السلة", key=f"grid_add_{item['id']}"):
                             found = False
                             for ci in st.session_state.cart:
                                 if ci["id"] == item["id"]:
@@ -296,13 +301,14 @@ elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
                                     "max_qty": item["quantity"],
                                     "qty": 1
                                 })
-                            st.success("تمت الإضافة!")
+                            st.success("تمت الإضافة للسلة!")
                             st.rerun()
                     else:
                         st.error("نفدت الكمية")
     else:
-        st.info("لا توجد مواد مضافة في المخزن حالياً. أضف بضاعة جديدة من قسم (إضافة وتوريد كميات).")
+        st.info("لا توجد مواد في المخزن. أضف بضاعة جديدة من قسم (إضافة وتوريد كميات).")
 
+# 2. سلة البيع وإتمام الفاتورة مع اختيار العميل والمعلومات الكاملة
 elif st.session_state.active_page == "🛒 سلة البيع وإتمام الفاتورة":
     st.subheader("🛒 سلة البيع وإتمام الفاتورة")
     if st.session_state.cart:
@@ -334,11 +340,20 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
         if not customer_records:
             st.warning("⚠️ يرجى إضافة عميل أولاً من قسم (إدارة العملاء والديون).")
             selected_cust_name = ""
+            selected_cust_phone = ""
+            selected_cust_address = ""
         else:
             cust_names = [c["customer_name"] for c in customer_records]
-            selected_cust_name = st.selectbox("اسم الزبون:", cust_names)
+            selected_cust_name = st.selectbox("اختر اسم العميل:", cust_names)
+            
+            # جلب معلومات العميل تلقائياً وعرضها
+            chosen_cust_obj = next((c for c in customer_records if c["customer_name"] == selected_cust_name), None)
+            if chosen_cust_obj:
+                selected_cust_phone = chosen_cust_obj.get("phone", "غير محدد")
+                selected_cust_address = chosen_cust_obj.get("address", "غير محدد")
+                st.info(f"📍 معلومات العميل - الهاتف: `{selected_cust_phone}` | العنوان: `{selected_cust_address}`")
 
-        paid_str = st.text_input("المبلغ الواصل (د.ع):", value=str(int(total_cart_price)))
+        paid_str = st.text_input("المبلغ الواصل (اكتب المبلغ نقد أو حط 0 للأقساط/الدين):", value=str(int(total_cart_price)))
         try:
             paid_val = float(paid_str.strip())
             if paid_val < 0: paid_val = 0
@@ -348,11 +363,11 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
         rem_val = total_cart_price - paid_val
 
         if paid_val >= total_cart_price:
-            pay_status = "🟢 كاش"
+            pay_status = "🟢 نقد (كاش)"
         elif paid_val == 0:
-            pay_status = "🔴 دين كامل"
+            pay_status = "🔴 دين كامل (آجل)"
         else:
-            pay_status = "🔵 دفعة جزئية"
+            pay_status = "🔵 دفعة جزئية (أقساط)"
 
         if st.button("💾 بيع وطباعة الفاتورة", type="primary"):
             if not selected_cust_name:
@@ -397,7 +412,7 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
                 except Exception as ex:
                     st.error(f"خطأ: {ex}")
     else:
-        st.info("🛒 السلة فارغة حالياً. أضف مواد من الرئيسية للبدء.")
+        st.info("🛒 السلة فارغة حالياً. اذهب إلى (الرئيسية والشبكة) وأضف مواد.")
 
 elif st.session_state.active_page == "➕ إضافة وتوريد كميات":
     st.subheader("➕ إضافة مادة جديدة")
