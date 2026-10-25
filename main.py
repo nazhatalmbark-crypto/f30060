@@ -71,7 +71,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# **تهيئة الجلسات (صفر بيانات مسبقة ونظيفة تماماً)**
+# **تهيئة الجلسات**
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
@@ -177,7 +177,7 @@ if not st.session_state.logged_in_user:
 username = st.session_state.logged_in_user
 user_role = st.session_state.user_role
 
-# **شريط علوي احترافي يضم أيقونة السلة المتحركة (العداد الفوق)**
+# **شريط علوي احترافي يضم أيقونة السلة المتحركة**
 top_c1, top_c2, top_c3, top_c4 = st.columns([1, 2, 1, 1])
 with top_c1:
     if st.session_state.active_page != "الرئيسية":
@@ -187,7 +187,6 @@ with top_c1:
 with top_c2:
     st.markdown(f"<h3 style='text-align: center; margin: 0; font-size: 15px; color: #2d1a4e;'>ياسر ويب</h3>", unsafe_allow_html=True)
 with top_c3:
-    # أيقونة السلة الفوق مع العداد المتحدث
     total_cart_qty = sum(item['qty'] for item in st.session_state.cart)
     if st.button(f"🛒 [{total_cart_qty}]"):
         st.session_state.active_page = "🛒 سلة البيع وإتمام الفاتورة"
@@ -201,7 +200,7 @@ with top_c4:
 
 st.divider()
 
-# ================= الشاشة الرئيسية: عرض الـ 10 تبوابات المتبقية (بعد نقل السلة للأعلى) =================
+# ================= الشاشة الرئيسية: عرض الـ 10 تبويبات المتبقية =================
 if st.session_state.active_page == "الرئيسية":
     st.markdown("<p style='text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; color: #553c9a;'>إدارة المبيعات والعمليات</p>", unsafe_allow_html=True)
     
@@ -263,7 +262,7 @@ if st.session_state.active_page == "الرئيسية":
 
 # ================= تشغيل الأقسام والتبويبات بالكامل =================
 
-# 1. الرئيسية والشبكة مع زر الإضافة تحت كل مادة وزيادة العداد الفوق
+# 1. الرئيسية والشبكة
 elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
     total_badge = sum(i['qty'] for i in st.session_state.cart)
     st.subheader(f"🏠 شبكة المبيعات [السلة: {total_badge}]")
@@ -307,7 +306,7 @@ elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
     else:
         st.info("لا توجد مواد في المخزن. أضف بضاعة جديدة من قسم (إضافة وتوريد كميات).")
 
-# 2. سلة البيع وإتمام الفاتورة مع استدعاء معلومات العميل تلقائياً وتخصم من المخزن
+# 2. سلة البيع وإتمام الفاتورة (مع إمكانية الطباعة والواتساب)
 elif st.session_state.active_page == "🛒 سلة البيع وإتمام الفاتورة":
     st.subheader("🛒 سلة البيع وإتمام الفاتورة")
     if st.session_state.cart:
@@ -343,14 +342,14 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
             cust_names = [c["customer_name"] for c in customer_records]
             selected_cust_name = st.selectbox("اختر اسم العميل:", cust_names)
             
-            # استدعاء معلومات العميل تلقائياً وعرضها
             chosen_cust_obj = next((c for c in customer_records if c["customer_name"] == selected_cust_name), None)
             if chosen_cust_obj:
                 c_phone = chosen_cust_obj.get("phone", "غير محدد")
                 c_address = chosen_cust_obj.get("address", "غير محدد")
-                st.info(f"📍 معلومات العميل - الهاتف: `{c_phone}` | العنوان: `{c_address}`")
+                c_gov = chosen_cust_obj.get("governorate", "غير محدد")
+                st.info(f"📍 معلومات العميل:\n الهاتف: `{c_phone}`\n العنوان: `{c_address}`\n المحافظة: `{c_gov}`")
 
-        paid_str = st.text_input("المبلغ الواصل (اكتب المبلغ نقد أو حط 0 للأقساط):", value=str(int(total_cart_price)))
+        paid_str = st.text_input("المبلغ الواصل (نقد أو حط 0 للأقساط):", value=str(int(total_cart_price)))
         try:
             paid_val = float(paid_str.strip())
             if paid_val < 0: paid_val = 0
@@ -366,7 +365,7 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
         else:
             pay_status = "🔵 دفعة جزئية (أقساط)"
 
-        if st.button("💾 بيع وطباعة الفاتورة", type="primary"):
+        if st.button("💾 إتمام وحفظ البيع وطباعة الفاتورة", type="primary"):
             if not selected_cust_name:
                 st.error("يرجى اختيار عميل صالح.")
             else:
@@ -377,7 +376,6 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
                         prod_str_list.append(f"{c_item['product_name']} [العدد: {c_item['qty']}]")
                         total_cost_inv += (c_item['buy_price'] * c_item['qty'])
                         
-                        # خصم الكميات من المخزن في قاعدة البيانات تلقائياً
                         res_p_q = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
                         if res_p_q.data:
                             curr_q = res_p_q.data[0]["quantity"]
@@ -403,9 +401,17 @@ elif st.session_state.active_page == "🛒 سلة البيع وإتمام الف
 
                     supabase.table("invoices").insert(inv_data).execute()
                     log_audit("إتمام بيع", f"فاتورة رقم {inv_code}")
-                    st.session_state.cart = [] # تفريغ السلة بعد إتمام البيع
+                    st.session_state.cart = []
                     st.success("✅ تمت عملية البيع بنجاح وتحديث المخزن!")
+                    
+                    # عرض الفاتورة للطباعة والواتساب
+                    st.markdown("### 📄 معاينة الفاتورة للطباعة والواتساب")
                     st.components.v1.html(generate_html_invoice(inv_data), height=400, scrolling=True)
+                    
+                    # زر إرسال للواتساب مباشرة
+                    w_text = f"مرحباً {selected_cust_name}، تفاصيل فاتورتك رقم {inv_code} من ياسر ويب:%0Aإجمالي المبلغ: {total_cart_price:,} د.ع%0Aالمتبقي: {rem_val:,} د.ع%0Aشكراً لتعاملكم معنا!"
+                    st.markdown(f'<a href="https://wa.me/?text={w_text}" target="_blank"><button style="background-color:#25D366; color:white; padding:10px; border:none; border-radius:10px; width:100%; font-weight:bold; cursor:pointer;">💬 إرسال الفاتورة عبر الواتساب</button></a>', unsafe_allow_html=True)
+                    
                     st.balloons()
                 except Exception as ex:
                     st.error(f"خطأ: {ex}")
@@ -450,9 +456,10 @@ elif st.session_state.active_page == "📦 جرد المخزن":
 elif st.session_state.active_page == "👥 إدارة العملاء والديون":
     st.subheader("👥 إدارة العملاء والذمم")
     with st.form("cust_f", clear_on_submit=True):
-        cn = st.text_input("اسم العميل:")
-        cp = st.text_input("رقم الهاتف:")
+        cn = st.text_input("اسم العميل (الاسم):")
+        cp = st.text_input("رقم الهاتف (الرقم):")
         ca = st.text_input("العنوان:")
+        cg = st.text_input("المحافظة:")
         if st.form_submit_button("حفظ العميل"):
             if cn and cp:
                 try:
@@ -461,12 +468,15 @@ elif st.session_state.active_page == "👥 إدارة العملاء والدي�
                         "customer_name": cn.strip(),
                         "phone": cp.strip(),
                         "address": ca.strip() if ca else "غير محدد",
+                        "governorate": cg.strip() if cg else "غير محدد",
                         "created_at": str(datetime.datetime.now().strftime('%Y-%m-%d'))
                     }).execute()
-                    st.success("تم حفظ العميل بنجاح!")
+                    st.success(f"تم حفظ العميل {cn} بنجاح!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"خطأ: {e}")
+            else:
+                st.warning("يرجى إدخال اسم العميل ورقم الهاتف على الأقل.")
 
 elif st.session_state.active_page == "💵 سداد الديون":
     st.subheader("💵 نظام سداد ديون العملاء")
@@ -486,7 +496,7 @@ elif st.session_state.active_page == "🏭 إدارة الموردين":
         st.dataframe(pd.DataFrame(st.session_state.suppliers_list), use_container_width=True)
 
 elif st.session_state.active_page == "📄 سجل الفواتير وواتساب":
-    st.subheader("📄 سجل الفواتير الرسمية")
+    st.subheader("📄 سجل الفواتير الرسمية والواتساب")
     try:
         res = supabase.table("invoices").select("*").eq("username", username).execute()
         invs = res.data if res.data else []
@@ -496,6 +506,10 @@ elif st.session_state.active_page == "📄 سجل الفواتير وواتسا�
         for inv in reversed(invs):
             with st.container(border=True):
                 st.write(f"فاتورة: {inv['invoice_code']} | الزبون: {inv['customer_name']} | المجموع: {inv['total_price']:,} د.ع")
+                with st.expander("🖨️ عرض الفاتورة والواتساب"):
+                    st.components.v1.html(generate_html_invoice(inv), height=350, scrolling=True)
+                    w_text = f"فاتورة رقم {inv['invoice_code']} للزبون {inv['customer_name']}%0Aالمبلغ: {inv['total_price']:,} د.ع%0Aالمتبقي: {inv['remaining_amount']:,} د.ع"
+                    st.markdown(f'<a href="https://wa.me/?text={w_text}" target="_blank"><button style="background-color:#25D366; color:white; padding:8px; border:none; border-radius:8px; width:100%; font-weight:bold; cursor:pointer;">💬 إرسال عبر الواتساب</button></a>', unsafe_allow_html=True)
     else:
         st.info("لا توجد فواتير مسجلة.")
 
