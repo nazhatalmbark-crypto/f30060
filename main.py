@@ -15,7 +15,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="Yasser Web POS", layout="centered")
 
-# **تصميم احترافي مطابق تماماً لتطبيقات الـ POS الحديثة**
+# **تصميم عصري مطابق تماماً لتطبيق TOFA**
 st.markdown("""
     <style>
     .stApp {
@@ -30,12 +30,13 @@ st.markdown("""
         text-align: right;
         border-radius: 10px !important;
     }
+    /* إخفاء الأزرار أو جعلها منسقة بالكامل */
     .stButton > button {
         background-color: #6b46c1;
         color: white;
         border-radius: 12px;
         border: none;
-        padding: 10px 20px;
+        padding: 8px 16px;
         font-weight: bold;
         width: 100%;
     }
@@ -172,59 +173,65 @@ with top_c3:
 
 st.divider()
 
-# ================= شاشة القائمة الرئيسية =================
+# ================= شاشة القائمة الرئيسية (مطابقة تماماً للصورة) =================
 if st.session_state.active_page == "الرئيسية":
-    st.markdown("<h4 style='text-align: center; color: #e2d9f3; margin-bottom: 20px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #e2d9f3; margin-bottom: 25px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
     
     col_a, col_b = st.columns(2)
     
     with col_a:
-        with st.container(border=True):
-            st.markdown("### 📄 قائمة الفواتير")
-            st.write("سجل الفواتير المباعة")
-            if st.button("فتح قائمة الفواتير", key="btn_invoices"):
-                st.session_state.active_page = "قائمة الفواتير"
-                st.rerun()
-                
-        with st.container(border=True):
-            st.markdown("### 📦 المخزن")
-            st.write("إدارة المشتريات والمخزون")
-            if st.button("فتح المخزن", key="btn_inventory"):
-                st.session_state.active_page = "المخزن"
-                st.rerun()
-                
-        with st.container(border=True):
-            st.markdown("### 🔄 إرجاع بيع")
-            st.write("قائمة المرتجعات")
-            if st.button("فتح المرتجعات", key="btn_returns"):
-                st.session_state.active_page = "سجل النشاطات"
-                st.rerun()
-
-    with col_b:
+        # بطاقة إنشاء فاتورة
         with st.container(border=True):
             st.markdown("### 📝 إنشاء فاتورة")
             st.write("إصدار الفواتير والطباعة والشبكة")
-            if st.button("إنشاء فاتورة جديدة", key="btn_new_inv"):
+            if st.button("إصدار فاتورة جديدة", key="card_inv"):
                 st.session_state.active_page = "إنشاء فاتورة"
                 st.rerun()
                 
+        # بطاقة العملاء
         with st.container(border=True):
             st.markdown("### 👥 العملاء")
             st.write("إدارة العملاء والديون")
-            if st.button("فتح العملاء", key="btn_customers"):
+            if st.button("إدارة العملاء", key="card_cust"):
                 st.session_state.active_page = "العملاء والديون"
                 st.rerun()
                 
+        # بطاقة السندات
         with st.container(border=True):
             st.markdown("### 💵 السندات")
             st.write("سندات قبض وصرف ومصاريف")
-            if st.button("فتح السندات", key="btn_bonds"):
+            if st.button("فتح السندات", key="card_bonds"):
                 st.session_state.active_page = "الصندوق والمصاريف"
                 st.rerun()
 
-    st.markdown("<br><p style='text-align: center; color: #b794f4; font-size: 12px;'>الإصدار 4.3.0</p>", unsafe_allow_html=True)
+    with col_b:
+        # بطاقة قائمة الفواتير
+        with st.container(border=True):
+            st.markdown("### 📄 قائمة الفواتير")
+            st.write("سجل الفواتير المباعة")
+            if st.button("سجل الفواتير", key="card_list"):
+                st.session_state.active_page = "قائمة الفواتير"
+                st.rerun()
+                
+        # بطاقة المخزن
+        with st.container(border=True):
+            st.markdown("### 📦 المخزن")
+            st.write("إدارة المشتريات والمخزون")
+            if st.button("إدارة المخزن", key="card_store"):
+                st.session_state.active_page = "المخزن"
+                st.rerun()
+                
+        # بطاقة إرجاع بيع
+        with st.container(border=True):
+            st.markdown("### 🔄 إرجاع بيع")
+            st.write("قائمة المرتجعات")
+            if st.button("سجل النشاطات", key="card_return"):
+                st.session_state.active_page = "سجل النشاطات"
+                st.rerun()
 
-# ================= باقي الأقسام =================
+    st.markdown("<br><p style='text-align: center; color: #b794f4; font-size: 13px;'>الإصدار 4.3.0</p>", unsafe_allow_html=True)
+
+# ================= باقي الأقسام بالتفصيل =================
 elif st.session_state.active_page == "إنشاء فاتورة":
     st.subheader("🛒 إنشاء فاتورة جديدة والبيع السريع")
     sub_choice = st.radio("طريقة البيع:", ["شبكة المنتجات السريعة", "مراجعة السلة وإتمام الفاتورة"], horizontal=True)
