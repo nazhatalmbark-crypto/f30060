@@ -14,7 +14,7 @@ supabase = init_supabase()
 
 st.set_page_config(page_title="ياسر بوس - YASSER POS", layout="centered")
 
-# **تصميم مريح للعين مطابق تماماً لواجهة تطبيق TOFA (خلفية فاتحة وبطاقات بيضاء)**
+# **تصميم مريح جداً ومطابق لواجهة التطبيق (خلفية فاتحة وبطاقات بيضاء نقية)**
 st.markdown("""
     <style>
     .stApp {
@@ -30,7 +30,6 @@ st.markdown("""
         border-radius: 14px !important;
         border: 1px solid #dcd6f7 !important;
     }
-    /* تنسيق الأزرار لتكون أنيقة ومخفية بشكل متناسق داخل البطاقات */
     .stButton > button {
         background-color: #6b46c1;
         color: white;
@@ -49,7 +48,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# **جلسات النظام مصفّرة ونظيفة تماماً**
+# **تصفير الجلسات تماماً**
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 if "user_role" not in st.session_state:
@@ -165,7 +164,7 @@ with top_c1:
             st.session_state.active_page = "الرئيسية"
             st.rerun()
 with top_c2:
-    st.markdown(f"<h3 style='text-align: center; margin: 0; color: #2d1a4e;'>ياسر بوس (TOFA)</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0; color: #2d1a4e;'>ياسر بوس (YASSER POS)</h3>", unsafe_allow_html=True)
 with top_c3:
     if st.button("🚪 خروج"):
         st.session_state.logged_in_user = None
@@ -175,7 +174,7 @@ with top_c3:
 
 st.divider()
 
-# ================= الشاشة الرئيسية: عرض الـ 11 تبويب ببطاقات TOFA البيضاء =================
+# ================= الشاشة الرئيسية: عرض الـ 11 تبويب كبطاقات بيضاء =================
 if st.session_state.active_page == "الرئيسية":
     st.markdown("<h4 style='text-align: center; color: #553c9a; margin-bottom: 20px;'>إدارة المبيعات والعمليات</h4>", unsafe_allow_html=True)
     
@@ -242,23 +241,145 @@ if st.session_state.active_page == "الرئيسية":
 
 # ================= تشغيل الـ 11 تبويب بالكامل =================
 
+# 1. الرئيسية والشبكة (تعرض المواد على شكل شبكة منتجات سريعة كما طلبت)
 elif st.session_state.active_page == "🏠 الرئيسية والشبكة":
-    st.subheader("🏠 شبكة المبيعات السريعة")
+    st.subheader("🏠 شبكة المبيعات السريعة والمنتجات")
     try:
         res = supabase.table("products").select("*").eq("username", username).execute()
-        items = res.data if res.data else []
+        grid_items = res.data if res.data else []
     except:
-        items = []
-    if items:
-        for item in items:
-            with st.container(border=True):
-                st.write(f"**{item['product_name']}** - السعر: `{item['sell_price']}` د.ع - المتوفر: `{item['quantity']}`")
+        grid_items = []
+
+    if grid_items:
+        # عرض المنتجات على شكل شبكة عمودين
+        g_cols = st.columns(2)
+        for idx, item in enumerate(grid_items):
+            with g_cols[idx % 2]:
+                with st.container(border=True):
+                    st.markdown(f"#### 📦 {item['product_name']}")
+                    st.markdown(f"💰 السعر: `{int(item['sell_price']):,}` د.ع")
+                    st.markdown(f"🔢 المتوفر: `{item['quantity']}` قطعة")
+                    if item['quantity'] > 0:
+                        if st.button("➕ إضافة للسلة", key=f"grid_add_{item['id']}"):
+                            found = False
+                            for ci in st.session_state.cart:
+                                if ci["id"] == item["id"]:
+                                    if ci["qty"] < item["quantity"]:
+                                        ci["qty"] += 1
+                                    found = True
+                                    break
+                            if not found:
+                                st.session_state.cart.append({
+                                    "id": item["id"],
+                                    "product_name": item["product_name"],
+                                    "sell_price": item["sell_price"],
+                                    "buy_price": item["buy_price"],
+                                    "max_qty": item["quantity"],
+                                    "qty": 1
+                                })
+                            st.success("تمت الإضافة للسلة!")
+                            st.rerun()
+                    else:
+                        st.error("نفدت الكمية")
     else:
         st.info("لا توجد مواد مضافة في المخزن حالياً. أضف بضاعة جديدة من قسم (إضافة وتوريد كميات).")
 
 elif st.session_state.active_page == "🛒 سلة البيع وإتمام الفاتورة":
     st.subheader("🛒 سلة البيع وإتمام الفاتورة")
-    st.info("السلة فارغة حالياً. أضف مواد من الرئيسية أو ابدأ عملية بيع جديدة.")
+    if st.session_state.cart:
+        total_cart_price = 0
+        for idx, c_item in enumerate(st.session_state.cart):
+            with st.container(border=True):
+                st.write(f"**{c_item['product_name']}**")
+                cols_c = st.columns(3)
+                with cols_c[0]:
+                    new_q = st.number_input("العدد", min_value=1, max_value=int(c_item['max_qty']), value=int(c_item['qty']), key=f"c_q_{c_item['id']}")
+                    c_item['qty'] = new_q
+                with cols_c[1]:
+                    item_sum = c_item['sell_price'] * c_item['qty']
+                    total_cart_price += item_sum
+                    st.write(f"المجموع: **{int(item_sum):,}**")
+                with cols_c[2]:
+                    if st.button("❌ حذف", key=f"rem_{c_item['id']}"):
+                        st.session_state.cart.pop(idx)
+                        st.rerun()
+
+        st.divider()
+        st.markdown(f"### 💵 المجموع الكلي: **{int(total_cart_price):,} د.ع**")
+
+        try:
+            res_custs = supabase.table("customers").select("*").eq("username", username).execute()
+            customer_records = res_custs.data if res_custs.data else []
+        except:
+            customer_records = []
+
+        if not customer_records:
+            st.warning("⚠️ يرجى إضافة عميل أولاً من قسم (إدارة العملاء والديون).")
+            selected_cust_name = ""
+        else:
+            cust_names = [c["customer_name"] for c in customer_records]
+            selected_cust_name = st.selectbox("اسم الزبون:", cust_names)
+
+        paid_str = st.text_input("المبلغ الواصل من الزبون (د.ع):", value=str(int(total_cart_price)))
+        try:
+            paid_val = float(paid_str.strip())
+            if paid_val < 0: paid_val = 0
+            if paid_val > total_cart_price: paid_val = total_cart_price
+        except:
+            paid_val = 0
+        rem_val = total_cart_price - paid_val
+
+        if paid_val >= total_cart_price:
+            pay_status = "🟢 نقد بالكامل (كاش)"
+        elif paid_val == 0:
+            pay_status = "🔴 دين كامل (آجل)"
+        else:
+            pay_status = "🔵 دفعة جزئية (أقساط)"
+
+        if st.button("💾 بيع وطباعة الفاتورة", type="primary"):
+            if not selected_cust_name:
+                st.error("يرجى اختيار عميل صالح.")
+            else:
+                try:
+                    prod_str_list = []
+                    total_cost_inv = 0
+                    for c_item in st.session_state.cart:
+                        prod_str_list.append(f"{c_item['product_name']} [العدد: {c_item['qty']}]")
+                        total_cost_inv += (c_item['buy_price'] * c_item['qty'])
+                        
+                        res_p_q = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
+                        if res_p_q.data:
+                            curr_q = res_p_q.data[0]["quantity"]
+                            new_q = max(0, curr_q - c_item['qty'])
+                            supabase.table("products").update({"quantity": new_q}).eq("id", c_item["id"]).execute()
+
+                    res_inv_len = supabase.table("invoices").select("id").eq("username", username).execute()
+                    inv_seq = len(res_inv_len.data) + 1 if res_inv_len.data else 1
+                    inv_code = f"INV-{inv_seq:03d}"
+
+                    inv_data = {
+                        "username": str(username),
+                        "invoice_code": str(inv_code),
+                        "customer_name": str(selected_cust_name),
+                        "products_text": str(" ، ".join(prod_str_list)),
+                        "total_price": int(total_cart_price),
+                        "cost_price": int(total_cost_inv),
+                        "paid_amount": int(paid_val),
+                        "remaining_amount": int(rem_val),
+                        "payment_type": str(pay_status),
+                        "created_date": str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
+                    }
+
+                    supabase.table("invoices").insert(inv_data).execute()
+                    log_audit("إتمام بيع", f"فاتورة رقم {inv_code}")
+                    st.session_state.cart = []
+                    st.success("✅ تمت عملية البيع بنجاح!")
+                    st.components.v1.html(generate_html_invoice(inv_data), height=400, scrolling=True)
+                    st.balloons()
+                except Exception as ex:
+                    st.error(f"خطأ: {ex}")
+    else:
+        st.info("🛒 السلة فارغة حالياً. أضف مواد من (الرئيسية والشبكة) لتبدأ البيع.")
 
 elif st.session_state.active_page == "➕ إضافة وتوريد كميات":
     st.subheader("➕ إضافة مادة جديدة أو توريد كميات")
