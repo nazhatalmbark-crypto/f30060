@@ -471,4 +471,72 @@ elif st.session_state.active_page == "العملاء والديون":
                     except Exception as e:
                         st.error(f"خطأ: {e}")
                 else:
-                    st.warning("أدخل اسم العميل ورقم الهاتف
+                    st.warning("أدخل اسم العميل ورقم الهاتف.")
+    else:
+        try:
+            res_c_list = supabase.table("customers").select("*").eq("username", username).execute()
+            c_list = res_c_list.data if res_c_list.data else []
+        except:
+            c_list = []
+        if c_list:
+            st.dataframe(pd.DataFrame(c_list), use_container_width=True)
+            st.markdown("### 💵 تسديد ديون عميل")
+            d_names = [c["customer_name"] for c in c_list]
+            sel_cust_debt = st.selectbox("اختر العميل لتسديد ديونه:", d_names)
+            try:
+                res_c_inv = supabase.table("invoices").select("*").eq("username", username).eq("customer_name", sel_cust_debt).execute()
+                c_invs = res_c_inv.data if res_c_inv.data else []
+            except:
+                c_invs = []
+            tot_debt = sum(i.get('remaining_amount', 0) for i in c_invs)
+            st.markdown(f"إجمالي الدين المتبقي على العميل: **{tot_debt:,} د.ع**")
+            
+            with st.form("pay_d_form_tab"):
+                pay_amt_str = st.text_input("المبلغ المسدد (د.ع):", "0")
+                if st.form_submit_button("إتمام التسديد"):
+                    try:
+                        p_val = float(pay_amt_str.strip())
+                        rem_p = p_val
+                        for inv in c_invs:
+                            if rem_p <= 0: break
+                            curr_r = inv.get('remaining_amount', 0)
+                            if curr_r > 0:
+                                if rem_p >= curr_r:
+                                    n_paid = inv['total_price']
+                                    n_rem = 0
+                                    n_type = "🟢 نقد بالكامل (كاش)"
+                                    rem_p -= curr_r
+                                else:
+                                    n_paid = inv['paid_amount'] + rem_p
+                                    n_rem = curr_r - rem_p
+                                    n_type = "🔵 دفعة جزئية (أقساط)"
+                                    rem_p = 0
+                                supabase.table("invoices").update({"paid_amount": int(n_paid), "remaining_amount": int(n_rem), "payment_type": str(n_type)}).eq("id", inv["id"]).execute()
+                        st.success("تم تسديد المبلغ بنجاح!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"خطأ: {e}")
+        else:
+            st.info("لا يوجد عملاء مسجلين.")
+
+elif st.session_state.active_page == "الصندوق والمصاريف":
+    st.subheader("💰 صندوق الوردية وسندات القبض والصرف")
+    with st.form("exp_f_tab", clear_on_submit=True):
+        et = st.text_input("بيان السند (مثال: مصاريف إدارية / وقود):")
+        ea = st.text_input("المبلغ (د.ع):", "0")
+        if st.form_submit_button("تسجيل السند والمصروف"):
+            if et:
+                st.session_state.expenses_list.append({"البيان": et, "المبلغ": float(ea)})
+                st.success("تم تسجيل السند بنجاح!")
+                st.rerun()
+    if st.session_state.expenses_list:
+        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
+    else:
+        st.info("لا توجد سندات أو مصاريف مسجلة اليوم.")
+
+elif st.session_state.active_page == "سجل النشاطات":
+    st.subheader("📜 سجل النشاطات والعمليات (Audit Trail)")
+    if st.session_state.audit_logs:
+        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
+    else:
+        st.info("لا توجد سجلات نشاط حتى الآن.")
