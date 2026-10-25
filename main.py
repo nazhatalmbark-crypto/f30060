@@ -9,7 +9,7 @@ import barcode
 from barcode.writer import ImageWriter
 import io
 
-SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co" 
+SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co"
 SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp"
 
 @st.cache_resource
@@ -134,7 +134,6 @@ if not st.session_state.logged_in_user:
                             st.success("تم تسجيل الدخول بنجاح!")
                             st.rerun()
                         else:
-                            # إنشاء الحساب تلقائياً إذا لم يكن موجوداً لتسهيل الاستخدام
                             supabase.table("users").insert({"username": login_user.strip(), "is_paid": False}).execute()
                             st.session_state.logged_in_user = str(login_user.strip())
                             st.session_state.user_role = str(login_role)
@@ -250,7 +249,6 @@ elif selected_tab == "🛒 سلة البيع وإتمام الفاتورة":
         st.divider()
         st.markdown(f"### 💵 المجموع الكلي: **{int(total_cart_price):,} د.ع**")
 
-        # جلب العملاء للتعبئة التلقائية
         try:
             res_custs = supabase.table("customers").select("*").eq("username", username).execute()
             customer_records = res_custs.data if res_custs.data else []
@@ -301,14 +299,12 @@ elif selected_tab == "🛒 سلة البيع وإتمام الفاتورة":
                         prod_str_list.append(f"{c_item['product_name']} [العدد: {c_item['qty']}]")
                         total_cost_inv += (c_item['buy_price'] * c_item['qty'])
                         
-                        # خصم المخزن
                         res_p_q = supabase.table("products").select("quantity").eq("id", c_item["id"]).execute()
                         if res_p_q.data:
                             curr_q = res_p_q.data[0]["quantity"]
                             new_q = max(0, curr_q - c_item['qty'])
                             supabase.table("products").update({"quantity": new_q}).eq("id", c_item["id"]).execute()
 
-                    # توليد كود الفاتورة
                     res_inv_len = supabase.table("invoices").select("id").eq("username", username).execute()
                     inv_seq = len(res_inv_len.data) + 1 if res_inv_len.data else 1
                     inv_code = f"INV-{inv_seq:03d}"
@@ -532,52 +528,4 @@ elif selected_tab == "📄 سجل الفواتير وواتساب":
         for inv in reversed(all_is):
             with st.container(border=True):
                 st.markdown(f"### فاتورة: `{inv['invoice_code']}` | الزبون: **{inv['customer_name']}**")
-                st.markdown(f"المبلغ الكلي: `{inv['total_price']:,}` د.ع | المتبقي (الدين): `{inv['remaining_amount']:,}` د.ع")
-                with st.expander("🖨️ عرض الفاتورة للطباعة"):
-                    st.components.v1.html(generate_html_invoice(inv), height=400, scrolling=True)
-    else:
-        st.info("لا توجد فواتير مسجلة.")
-
-# ================= TAB 9: الصندوق والمصاريف =================
-elif selected_tab == "💰 الصندوق والمصاريف":
-    st.subheader("💰 صندوق الوردية والمصاريف اليومية")
-    with st.form("exp_f", clear_on_submit=True):
-        et = st.text_input("بيان المصروف:")
-        ea = st.text_input("المبلغ (د.ع):", "0")
-        if st.form_submit_button("تسجيل المصروف"):
-            if et:
-                st.session_state.expenses_list.append({"البيان": et, "المبلغ": float(ea)})
-                st.success("تم تسجيل المصروف!")
-                st.rerun()
-    if st.session_state.expenses_list:
-        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
-
-# ================= TAB 10: التقارير والأرباح =================
-elif selected_tab == "📊 التقارير والأرباح":
-    st.subheader("📊 التقارير المالية وحساب صافي الأرباح")
-    try:
-        res_rep = supabase.table("invoices").select("*").eq("username", username).execute()
-        reps = res_rep.data if res_rep.data else []
-    except:
-        reps = []
-
-    if reps:
-        tot_sales = sum(i['total_price'] for i in reps)
-        tot_cost = sum(i.get('cost_price', 0) for i in reps)
-        tot_profit = tot_sales - tot_cost
-        tot_debt_rem = sum(i['remaining_amount'] for i in reps)
-
-        c1, c2, c3 = st.columns(3)
-        c1.metric("إجمالي المبيعات", f"{tot_sales:,.0f} د.ع")
-        c2.metric("صافي الأرباح", f"{tot_profit:,.0f} د.ع")
-        c3.metric("إجمالي الديون المتبقية", f"{tot_debt_rem:,.0f} د.ع")
-    else:
-        st.info("لا توجد بيانات كافية للتقارير.")
-
-# ================= TAB 11: سجل النشاطات =================
-elif selected_tab == "📜 سجل النشاطات":
-    st.subheader("📜 سجل النشاطات (Audit Trail)")
-    if st.session_state.audit_logs:
-        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
-    else:
-        st.info("لا توجد سجلات نشاط حتى الآن.")
+                st.markdown(f"المبلغ الكلي: `{inv['total_price']:,}` د.ع | المتبقي (الدين): `{inv['remaining_amount']:,}` د
