@@ -411,4 +411,169 @@ elif selected_tab == "📦 جرد المخزن":
     st.subheader("📦 جرد المخزن الشامل")
     try:
         res_inv = supabase.table("products").select("*").eq("username", username).execute()
-        inv_data = res_
+        inv_data = res_inv.data if res_inv.data else []
+    except:
+        inv_data = []
+
+    if inv_data:
+        df_inv = pd.DataFrame(inv_data)
+        st.dataframe(df_inv, use_container_width=True)
+    else:
+        st.info("المخزن فارغ.")
+
+# ================= TAB 5: إدارة العملاء والديون =================
+elif selected_tab == "👥 إدارة العملاء والديون":
+    st.subheader("👥 إدارة العملاء والديون والذمم")
+    with st.form("cust_form", clear_on_submit=True):
+        cn = st.text_input("اسم العميل:")
+        cp = st.text_input("رقم الهاتف:")
+        ca = st.text_input("العنوان / المنطقة:")
+        if st.form_submit_button("حفظ العميل"):
+            if cn and cp:
+                try:
+                    supabase.table("customers").insert({
+                        "username": str(username),
+                        "customer_name": str(cn.strip()),
+                        "phone": str(cp.strip()),
+                        "address": str(ca.strip() if ca else "غير محدد"),
+                        "created_at": str(datetime.datetime.now().strftime('%Y-%m-%d'))
+                    }).execute()
+                    st.success(f"تم حفظ العميل {cn} بنجاح!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"خطأ: {e}")
+            else:
+                st.warning("أدخل اسم العميل ورقم الهاتف.")
+
+    try:
+        res_c_list = supabase.table("customers").select("*").eq("username", username).execute()
+        c_list = res_c_list.data if res_c_list.data else []
+    except:
+        c_list = []
+    if c_list:
+        st.dataframe(pd.DataFrame(c_list), use_container_width=True)
+
+# ================= TAB 6: سداد الديون =================
+elif selected_tab == "💵 سداد الديون":
+    st.subheader("💵 نظام سداد ديون العملاء")
+    try:
+        res_dc = supabase.table("customers").select("customer_name").eq("username", username).execute()
+        d_names = [x["customer_name"] for x in res_dc.data] if res_dc.data else []
+    except:
+        d_names = []
+
+    if d_names:
+        sel_cust_debt = st.selectbox("اختر العميل لتسديد ديونه:", d_names)
+        try:
+            res_c_inv = supabase.table("invoices").select("*").eq("username", username).eq("customer_name", sel_cust_debt).execute()
+            c_invs = res_c_inv.data if res_c_inv.data else []
+        except:
+            c_invs = []
+
+        tot_debt = sum(i.get('remaining_amount', 0) for i in c_invs)
+        st.markdown(f"### إجمالي الدين المتبقي على العميل: **{tot_debt:,} د.ع**")
+
+        with st.form("pay_d_form"):
+            pay_amt_str = st.text_input("المبلغ المسدد (د.ع):", "0")
+            if st.form_submit_button("إتمام التسديد"):
+                try:
+                    p_val = float(pay_amt_str.strip())
+                    rem_p = p_val
+                    for inv in c_invs:
+                        if rem_p <= 0: break
+                        curr_r = inv.get('remaining_amount', 0)
+                        if curr_r > 0:
+                            if rem_p >= curr_r:
+                                n_paid = inv['total_price']
+                                n_rem = 0
+                                n_type = "🟢 نقد بالكامل (كاش)"
+                                rem_p -= curr_r
+                            else:
+                                n_paid = inv['paid_amount'] + rem_p
+                                n_rem = curr_r - rem_p
+                                n_type = "🔵 دفعة جزئية (أقساط)"
+                                rem_p = 0
+                            supabase.table("invoices").update({"paid_amount": int(n_paid), "remaining_amount": int(n_rem), "payment_type": str(n_type)}).eq("id", inv["id"]).execute()
+                    st.success("تم تسديد المبلغ بنجاح وتحديث الحساب!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"خطأ: {e}")
+    else:
+        st.info("لا توجد عملاء مسجلين.")
+
+# ================= TAB 7: إدارة الموردين =================
+elif selected_tab == "🏭 إدارة الموردين":
+    st.subheader("🏭 إدارة الموردين")
+    with st.form("sup_f", clear_on_submit=True):
+        sn = st.text_input("اسم المورد:")
+        sphone = st.text_input("رقم الهاتف:")
+        if st.form_submit_button("إضافة المورد"):
+            if sn:
+                st.session_state.suppliers_list.append({"اسم المورد": sn, "الهاتف": sphone})
+                st.success("تمت الإضافة بنجاح!")
+                st.rerun()
+    if st.session_state.suppliers_list:
+        st.dataframe(pd.DataFrame(st.session_state.suppliers_list), use_container_width=True)
+
+# ================= TAB 8: سجل الفواتير وواتساب =================
+elif selected_tab == "📄 سجل الفواتير وواتساب":
+    st.subheader("📄 سجل الفواتير الرسمية وإرسالها عبر الواتساب")
+    try:
+        res_all_i = supabase.table("invoices").select("*").eq("username", username).execute()
+        all_is = res_all_i.data if res_all_i.data else []
+    except:
+        all_is = []
+
+    if all_is:
+        for inv in reversed(all_is):
+            with st.container(border=True):
+                st.markdown(f"### فاتورة: `{inv['invoice_code']}` | الزبون: **{inv['customer_name']}**")
+                st.markdown(f"المبلغ الكلي: `{inv['total_price']:,}` د.ع | المتبقي (الدين): `{inv['remaining_amount']:,}` د.ع")
+                with st.expander("🖨️ عرض الفاتورة للطباعة"):
+                    st.components.v1.html(generate_html_invoice(inv), height=400, scrolling=True)
+    else:
+        st.info("لا توجد فواتير مسجلة.")
+
+# ================= TAB 9: الصندوق والمصاريف =================
+elif selected_tab == "💰 الصندوق والمصاريف":
+    st.subheader("💰 صندوق الوردية والمصاريف اليومية")
+    with st.form("exp_f", clear_on_submit=True):
+        et = st.text_input("بيان المصروف:")
+        ea = st.text_input("المبلغ (د.ع):", "0")
+        if st.form_submit_button("تسجيل المصروف"):
+            if et:
+                st.session_state.expenses_list.append({"البيان": et, "المبلغ": float(ea)})
+                st.success("تم تسجيل المصروف!")
+                st.rerun()
+    if st.session_state.expenses_list:
+        st.dataframe(pd.DataFrame(st.session_state.expenses_list), use_container_width=True)
+
+# ================= TAB 10: التقارير والأرباح =================
+elif selected_tab == "📊 التقارير والأرباح":
+    st.subheader("📊 التقارير المالية وحساب صافي الأرباح")
+    try:
+        res_rep = supabase.table("invoices").select("*").eq("username", username).execute()
+        reps = res_rep.data if res_rep.data else []
+    except:
+        reps = []
+
+    if reps:
+        tot_sales = sum(i['total_price'] for i in reps)
+        tot_cost = sum(i.get('cost_price', 0) for i in reps)
+        tot_profit = tot_sales - tot_cost
+        tot_debt_rem = sum(i['remaining_amount'] for i in reps)
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("إجمالي المبيعات", f"{tot_sales:,.0f} د.ع")
+        c2.metric("صافي الأرباح", f"{tot_profit:,.0f} د.ع")
+        c3.metric("إجمالي الديون المتبقية", f"{tot_debt_rem:,.0f} د.ع")
+    else:
+        st.info("لا توجد بيانات كافية للتقارير.")
+
+# ================= TAB 11: سجل النشاطات =================
+elif selected_tab == "📜 سجل النشاطات":
+    st.subheader("📜 سجل النشاطات (Audit Trail)")
+    if st.session_state.audit_logs:
+        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
+    else:
+        st.info("لا توجد سجلات نشاط حتى الآن.")
