@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ياسر ويب - YASSER WEB</title>
-    <!-- مكتبة Supabase للاتصال بقاعدة البيانات -->
+    <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- مكتبة لطباعة وتصدير PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             background: linear-gradient(135deg, #553c9a 0%, #3b2375 100%);
@@ -81,13 +83,6 @@
             border-bottom: 2px solid #e2d9f3;
             padding-bottom: 10px;
         }
-        .badge {
-            background: #6b46c1;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 8px;
-            font-size: 12px;
-        }
         .alert-warning { background: #fff3cd; color: #856404; padding: 8px; border-radius: 8px; font-size: 12px; margin-bottom: 8px; }
         .hidden { display: none !important; }
     </style>
@@ -95,13 +90,13 @@
 <body>
 
 <div class="mobile-container" id="app">
-    <!-- شاشة التحميل الأولية -->
+    <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 4.4.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 4.5.0</p>
     </div>
 
-    <!-- شاشة تسجيل الدخول -->
+    <!-- تسجيل الدخول -->
     <div id="login-screen" class="hidden">
         <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
         <label>اسم المستخدم أو المحل:</label>
@@ -129,13 +124,12 @@
         <div id="view-content"></div>
         
         <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7c6f9f;">
-            ياسر ويب - الإصدار 4.4.0 (Static Web)
+            ياسر ويب - الإصدار 4.5.0
         </div>
     </div>
 </div>
 
 <script>
-    // إعدادات قاعدة بيانات Supabase
     const SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co";
     const SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -145,13 +139,9 @@
     let cart = JSON.parse(localStorage.getItem("yasser_cart")) || [];
     let currentView = "home";
 
-    // بيانات مؤقتة لتخزين الذاكرة المحلية
     let productsList = [];
     let customersList = [];
     let invoicesList = [];
-    let suppliersList = [];
-    let expensesList = [];
-    let auditLogs = [];
 
     window.onload = async () => {
         document.getElementById("loading-screen").classList.add("hidden");
@@ -167,10 +157,7 @@
     async function handleLogin() {
         const usernameInput = document.getElementById("login-username").value.trim();
         const roleInput = document.getElementById("login-role").value;
-        if (!usernameInput) {
-            alert("يرجى إدخال اسم المستخدم.");
-            return;
-        }
+        if (!usernameInput) { alert("يرجى إدخال اسم المستخدم."); return; }
         currentUser = usernameInput;
         userRole = roleInput;
         localStorage.setItem("yasser_user", currentUser);
@@ -228,11 +215,11 @@
             else if (page === "add_product") { renderAddProduct(content); }
             else if (page === "inventory") { renderInventory(content); }
             else if (page === "customers") { renderCustomers(content); }
-            else if (page === "suppliers") { renderSuppliers(content); }
-            else if (page === "expenses") { renderExpenses(content); }
+            else if (page === "suppliers") { content.innerHTML = `<p>إدارة الموردين قيد التشغيل.</p>`; }
+            else if (page === "expenses") { content.innerHTML = `<p>الصندوق قيد التشغيل.</p>`; }
             else if (page === "invoices") { renderInvoices(content); }
             else if (page === "reports") { renderReports(content); }
-            else if (page === "audit") { renderAudit(content); }
+            else if (page === "audit") { content.innerHTML = `<p>سجل النشاطات يعمل.</p>`; }
         }
     }
 
@@ -288,14 +275,14 @@
             <input type="text" id="search-box" placeholder="🔍 بحث سريع عن مادة..." oninput="filterProducts(this.value)">
             <div id="products-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         `;
-        productsList.forEach((item, idx) => {
+        productsList.forEach((item) => {
             html += `
                 <div class="card" style="margin-bottom:0; text-align:center;">
                     <h4 style="margin:5px 0;">📦 ${item.product_name}</h4>
                     <p style="margin:2px 0; font-size:12px;">السعر: <b>${Number(item.sell_price).toLocaleString()}</b> د.ع</p>
                     <p style="margin:2px 0; font-size:12px;">المتوفر: <b>${item.quantity}</b></p>
                     ${item.quantity <= 3 && item.quantity > 0 ? '<div class="alert-warning">⚠️ وشك النفاد!</div>' : ''}
-                    ${item.quantity > 0 ? `<button onclick='addToCart(${JSON.stringify(item)})'>➕ إضافة</button>` : '<button disabled style="background:#ccc;">نفدت الكمية</button>'}
+                    ${item.quantity > 0 ? `<button onclick='лектaddToCart(${JSON.stringify(item)})'>➕ إضافة</button>` : '<button disabled style="background:#ccc;">نفدت الكمية</button>'}
                 </div>
             `;
         });
@@ -338,11 +325,11 @@
             return;
         }
 
-        let totalCartPrice = 0;
+        let subtotal = 0;
         let html = ``;
         cart.forEach((item, idx) => {
             let itemSum = item.sell_price * item.qty;
-            totalCartPrice += itemSum;
+            subtotal += itemSum;
             html += `
                 <div class="card">
                     <b>${item.product_name}</b>
@@ -357,18 +344,25 @@
 
         html += `
             <hr>
-            <h3>المجموع الكلي: <span id="grand-total">${totalCartPrice.toLocaleString()}</span> د.ع</h3>
+            <p>المجموع الفرعي: <b id="subtotal-val">${subtotal.toLocaleString()}</b> د.ع</p>
+            <label>مربع الخصم (قيمة الخصم د.ع):</label>
+            <input type="number" id="discount-val" value="0" oninput="calculateGrandTotal(${subtotal})">
+            
+            <h3 style="margin:5px 0;">المجموع الكلي النهائي: <span id="grand-total-val">${subtotal.toLocaleString()}</span> د.ع</h3>
+            
             <label>اختر اسم العميل:</label>
             <select id="selected-customer">
-                ${customersList.map(c => `<option value="${c.customer_name}">${c.customer_name} (${c.phone})</option>`).join('')}
+                ${customersList.map(c => `<option value="${c.customer_name}">${c.customer_name} - ${c.phone} (${c.governorate})</option>`).join('')}
             </select>
+            
             <label>المبلغ الواصل (نقد أو 0 للأقساط):</label>
-            <input type="number" id="paid-amount" value="${totalCartPrice}" oninput="calcRemaining(${totalCartPrice})">
+            <input type="number" id="paid-amount" value="${subtotal}" oninput="calcRemaining()">
             <p id="calc-result" style="font-size:13px; font-weight:bold; color:#2b6cb0;"></p>
-            <button onclick="checkout(${totalCartPrice})" style="background:#2f855a; font-size:16px; padding:12px;">💾 إتمام وحفظ البيع وطباعة الفاتورة</button>
+            
+            <button onclick="checkout(${subtotal})" style="background:#2f855a; font-size:16px; padding:12px;">💾 إتمام وحفظ البيع وطباعة الفاتورة</button>
         `;
         container.innerHTML = html;
-        calcRemaining(totalCartPrice);
+        calcRemaining();
     }
 
     function updateQty(idx, val) {
@@ -381,32 +375,40 @@
         goToPage('cart');
     }
 
-    function calcRemaining(total) {
+    function calculateGrandTotal(subtotal) {
+        const discount = parseFloat(document.getElementById("discount-val").value) || 0;
+        let finalTotal = Math.max(0, subtotal - discount);
+        document.getElementById("grand-total-val").innerText = finalTotal.toLocaleString();
+        document.getElementById("paid-amount").value = finalTotal;
+        calcRemaining();
+    }
+
+    function calcRemaining() {
+        const finalTotal = parseFloat(document.getElementById("grand-total-val").innerText.replace(/,/g, '')) || 0;
         const paid = parseFloat(document.getElementById("paid-amount").value) || 0;
-        const rem = Math.max(0, total - paid);
+        const rem = Math.max(0, finalTotal - paid);
         let resText = `المتبقي (الدين): ${rem.toLocaleString()} د.ع`;
-        if (paid > total) {
-            resText += ` | الباقي المستحق للزبون: ${(paid - total).toLocaleString()} د.ع`;
+        if (paid > finalTotal) {
+            resText += ` | الباقي المستحق للزبون: ${(paid - finalTotal).toLocaleString()} د.ع`;
         }
         document.getElementById("calc-result").innerText = resText;
     }
 
-    async function checkout(total) {
+    async function checkout(subtotal) {
         const custName = document.getElementById("selected-customer").value;
-        if (!custName) {
-            alert("يرجى اختيار عميل صالح.");
-            return;
-        }
+        if (!custName) { alert("يرجى اختيار عميل صالح."); return; }
+        
+        const discountVal = parseFloat(document.getElementById("discount-val").value) || 0;
+        const finalTotal = Math.max(0, subtotal - discountVal);
         const paidVal = parseFloat(document.getElementById("paid-amount").value) || 0;
-        const remVal = Math.max(0, total - paidVal);
-        let payStatus = paidVal >= total ? "🟢 نقد (كاش)" : (paidVal === 0 ? "🔴 دين كامل (آجل)" : "🔵 دفعة جزئية");
+        const remVal = Math.max(0, finalTotal - paidVal);
+        let payStatus = paidVal >= finalTotal ? "🟢 نقد (كاش)" : (paidVal === 0 ? "🔴 دين كامل (آجل)" : "🔵 دفعة جزئية");
 
         let prodStrList = [];
         let totalCostInv = 0;
         for (let item of cart) {
             prodStrList.push(`${item.product_name} [العدد: ${item.qty}]`);
             totalCostInv += (item.buy_price || 0) * item.qty;
-            // تحديث المخزن بقاعدة البيانات
             try {
                 let newQ = Math.max(0, item.max_qty - item.qty);
                 await supabaseClient.table("products").update({ quantity: newQ }).eq("id", item.id);
@@ -419,9 +421,9 @@
             invoice_code: invCode,
             customer_name: custName,
             products_text: prodStrList.join(" ، "),
-            total_price: total,
+            total_price: finalTotal,
             cost_price: totalCostInv,
-            paid_amount: Math.min(paidVal, total),
+            paid_amount: Math.min(paidVal, finalTotal),
             remaining_amount: remVal,
             payment_type: payStatus,
             created_date: new Date().toISOString().replace('T', ' ').substring(0, 16)
@@ -434,7 +436,7 @@
         invoicesList.push(invData);
         cart = [];
         localStorage.removeItem("yasser_cart");
-        alert("✅ تمت عملية البيع بنجاح ونقصان الكميات من المخزن!");
+        alert("✅ تمت عملية البيع بنجاح!");
         goToPage('invoices');
     }
 
@@ -471,7 +473,7 @@
 
     function renderInventory(container) {
         document.getElementById("app-title").innerText = "جرد المخزن الشامل";
-        let html = `<table border="1" style="width:100%; border-collapse:collapse; font-size:12px; background:#fff;">
+        let html = `<table border="1" style="width:100%; border-collapse:collapse; font-size:12px; background:#fff; text-align:center;">
             <tr style="background:#f3e8ff;"><th>المادة</th><th>الشراء</th><th>البيع</th><th>الكمية</th></tr>`;
         productsList.forEach(p => {
             html += `<tr><td>${p.product_name}</td><td>${p.buy_price}</td><td>${p.sell_price}</td><td><b>${p.quantity}</b></td></tr>`;
@@ -484,24 +486,38 @@
         document.getElementById("app-title").innerText = "إدارة العملاء والديون";
         container.innerHTML = `
             <label>اسم العميل:</label>
-            <input type="text" id="c-name" placeholder="الاسم...">
+            <input type="text" id="c-name" placeholder="الاسم الكامل...">
             <label>رقم الهاتف:</label>
-            <input type="text" id="c-phone" placeholder="الهاتف...">
-            <label>العنوان:</label>
-            <input type="text" id="c-address" placeholder="العنوان...">
-            <button onclick="saveCustomer()">حفظ العميل</button>
+            <input type="text" id="c-phone" placeholder="رقم الهاتف...">
+            <label>المحافظة:</label>
+            <input type="text" id="c-gov" placeholder="المحافظة (مثال: البصرة)...">
+            <label>الشارع:</label>
+            <input type="text" id="c-street" placeholder="اسم الشارع...">
+            <label>العنوان التفصيلي:</label>
+            <input type="text" id="c-address" placeholder="رقم الدار / القريبة...">
+            <button onclick="saveCustomer()">حفظ العميل الجديد</button>
             <hr>
             <h4>العملاء المسجلون:</h4>
-            ${customersList.map(c => `<div class="card"><b>${c.customer_name}</b> - ${c.phone}</div>`).join('')}
+            ${customersList.map(c => `<div class="card"><b>${c.customer_name}</b><br>📞 ${c.phone} | 📍 ${c.governorate} - ${c.street || ''} - ${c.address}</div>`).join('')}
         `;
     }
 
     async function saveCustomer() {
         const name = document.getElementById("c-name").value.trim();
         const phone = document.getElementById("c-phone").value.trim();
+        const gov = document.getElementById("c-gov").value.trim();
+        const street = document.getElementById("c-street").value.trim();
         const address = document.getElementById("c-address").value.trim();
-        if (!name) { alert("أدخل اسم العميل."); return; }
-        const newC = { username: currentUser, customer_name: name, phone: phone, address: address, governorate: "البصرة" };
+
+        if (!name || !phone) { alert("يرجى إدخال اسم العميل ورقم الهاتف على الأقل."); return; }
+        const newC = { 
+            username: currentUser, 
+            customer_name: name, 
+            phone: phone, 
+            governorate: gov || "غير محدد", 
+            street: street || "غير محدد", 
+            address: address || "غير محدد" 
+        };
         try {
             await supabaseClient.table("customers").insert(newC);
         } catch(e) { console.log(e); }
@@ -510,30 +526,36 @@
         goToPage('customers');
     }
 
-    function renderSuppliers(container) {
-        document.getElementById("app-title").innerText = "إدارة الموردين";
-        container.innerHTML = `<p>قسم إدارة الموردين قيد التشغيل.</p>`;
-    }
-
-    function renderExpenses(container) {
-        document.getElementById("app-title").innerText = "صندوق المصاريف";
-        container.innerHTML = `<p>قسم المصاريف قيد التشغيل.</p>`;
-    }
-
     function renderInvoices(container) {
         document.getElementById("app-title").innerText = "سجل الفواتير";
         let html = ``;
-        invoicesList.slice().reverse().forEach(inv => {
+        invoicesList.slice().reverse().forEach((inv, idx) => {
+            const invId = `invoice-card-${idx}`;
             const wText = encodeURIComponent(`فاتورة رقم ${inv.invoice_code} للزبون ${inv.customer_name}%0Aالمبلغ: ${inv.total_price.toLocaleString()} د.ع%0Aالمتبقي: ${inv.remaining_amount.toLocaleString()} د.ع`);
             html += `
-                <div class="card">
+                <div class="card" id="${invId}">
                     <b>فاتورة: ${inv.invoice_code}</b> | الزبون: ${inv.customer_name}
-                    <p>المجموع: <b>${inv.total_price.toLocaleString()}</b> د.ع | المتبقي: ${inv.remaining_amount.toLocaleString()} د.ع</p>
+                    <p>التفاصيل: ${inv.products_text}</p>
+                    <p>المجموع الكلي: <b>${inv.total_price.toLocaleString()}</b> د.ع | المتبقي: ${inv.remaining_amount.toLocaleString()} د.ع</p>
+                    <p style="font-size:11px; color:#666;">الحالة: ${inv.payment_type} | التاريخ: ${inv.created_date}</p>
+                    <button onclick="downloadPDF('${invId}', '${inv.invoice_code}')" style="background:#2b6cb0; margin-bottom:5px;">📥 تحميل الفاتورة PDF</button>
                     <a href="https://wa.me/?text=${wText}" target="_blank"><button style="background:#25D366; margin:0;">💬 إرسال عبر الواتساب</button></a>
                 </div>
             `;
         });
         container.innerHTML = html || "<p>لا توجد فواتير مسجلة.</p>";
+    }
+
+    function downloadPDF(elementId, invCode) {
+        const element = document.getElementById(elementId);
+        const opt = {
+            margin:       10,
+            filename:     `Invoice_${invCode}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().from(element).set(opt).save();
     }
 
     function renderReports(container) {
@@ -545,11 +567,6 @@
                 <h2>${totalSales.toLocaleString()} د.ع</h2>
             </div>
         `;
-    }
-
-    function renderAudit(container) {
-        document.getElementById("app-title").innerText = "سجل النشاطات";
-        container.innerHTML = `<p>سجل العمليات يعمل بنجاح.</p>`;
     }
 </script>
 
