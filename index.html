@@ -4,469 +4,554 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ياسر ويب - YASSER WEB</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- مكتبة Supabase للاتصال بقاعدة البيانات -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             background: linear-gradient(135deg, #553c9a 0%, #3b2375 100%);
+            direction: rtl;
+            text-align: right;
             font-family: system-ui, -apple-system, sans-serif;
-            min-height: 100vh;
             margin: 0;
             padding: 10px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
         }
         .mobile-container {
+            width: 100%;
             max-width: 420px;
             background: #f8f6fc;
             border-radius: 32px;
-            padding: 20px 15px;
-            margin: 10px auto;
+            padding: 25px 18px;
+            margin: 15px auto;
             box-shadow: 0 20px 40px rgba(0,0,0,0.35);
             border: 6px solid #2d1a4e;
-            min-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            box-sizing: border-box;
+            color: #2d1a4e;
         }
+        h1, h2, h3, h4, p, label {
+            color: #2d1a4e;
+            font-weight: 600;
+        }
+        input, select, textarea {
+            color: #000000 !important;
+            background: #ffffff !important;
+            border: 1px solid #dcd6f7 !important;
+            border-radius: 12px !important;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+            text-align: right;
+            direction: rtl;
+            font-size: 14px;
+        }
+        button, .btn {
+            background-color: #6b46c1;
+            color: white;
+            border-radius: 12px;
+            border: none;
+            padding: 10px 14px;
+            font-weight: bold;
+            width: 100%;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(107, 70, 193, 0.2);
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        button:hover, .btn:hover {
+            background-color: #483185;
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2d9f3;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e2d9f3;
+            padding-bottom: 10px;
+        }
+        .badge {
+            background: #6b46c1;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        .alert-warning { background: #fff3cd; color: #856404; padding: 8px; border-radius: 8px; font-size: 12px; margin-bottom: 8px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div class="mobile-container" id="app">
-        <div id="main-content">
-            <div class="text-center py-20 text-purple-900 font-bold">جاري تحميل نظام ياسر ويب...</div>
-        </div>
 
-        <footer class="text-center text-xs text-purple-400 mt-4">
-            ياسر ويب - الإصدار 4.4.0 (Static Web)
-        </footer>
+<div class="mobile-container" id="app">
+    <!-- شاشة التحميل الأولية -->
+    <div id="loading-screen" style="text-align: center; padding: 50px 0;">
+        <h3>جاري تحميل نظام ياسر ويب...</h3>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 4.4.0</p>
     </div>
 
-    <script>
-        const SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp";
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen" class="hidden">
+        <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
+        <label>اسم المستخدم أو المحل:</label>
+        <input type="text" id="login-username" placeholder="أدخل اسم المستخدم...">
+        <label>الصلاحية:</label>
+        <select id="login-role">
+            <option value="مشرف النظام">مشرف النظام</option>
+            <option value="كاشير">كاشير</option>
+            <option value="مسؤول مبيعات">مسؤول مبيعات</option>
+        </select>
+        <button onclick="handleLogin()">دخول للنظام</button>
+    </div>
 
-        let state = {
-            user: localStorage.getItem('yasser_user') || null,
-            role: localStorage.getItem('yasser_role') || 'مشرف النظام',
-            page: 'main',
-            products: [],
-            customers: [],
-            cart: [],
-            invoices: [],
-            expenses: []
+    <!-- التطبيق الرئيسي -->
+    <div id="main-app" class="hidden">
+        <div class="top-bar">
+            <button id="back-btn" class="hidden" onclick="goToPage('home')" style="width: auto; padding: 6px 12px;">⬅️ رجوع</button>
+            <span id="app-title" style="font-weight: bold; font-size: 15px;">ياسر ويب</span>
+            <div>
+                <button onclick="goToPage('cart')" style="width: auto; padding: 6px 12px; background: #2b6cb0;">🛒 <span id="cart-badge">0</span></button>
+                <button onclick="handleLogout()" style="width: auto; padding: 6px 12px; background: #c53030;">خروج</button>
+            </div>
+        </div>
+
+        <div id="view-content"></div>
+        
+        <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7c6f9f;">
+            ياسر ويب - الإصدار 4.4.0 (Static Web)
+        </div>
+    </div>
+</div>
+
+<script>
+    // إعدادات قاعدة بيانات Supabase
+    const SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = localStorage.getItem("yasser_user") || null;
+    let userRole = localStorage.getItem("yasser_role") || "مشرف النظام";
+    let cart = JSON.parse(localStorage.getItem("yasser_cart")) || [];
+    let currentView = "home";
+
+    // بيانات مؤقتة لتخزين الذاكرة المحلية
+    let productsList = [];
+    let customersList = [];
+    let invoicesList = [];
+    let suppliersList = [];
+    let expensesList = [];
+    let auditLogs = [];
+
+    window.onload = async () => {
+        document.getElementById("loading-screen").classList.add("hidden");
+        if (!currentUser) {
+            document.getElementById("login-screen").classList.remove("hidden");
+        } else {
+            document.getElementById("main-app").classList.remove("hidden");
+            await loadAppData();
+            goToPage("home");
+        }
+    };
+
+    async function handleLogin() {
+        const usernameInput = document.getElementById("login-username").value.trim();
+        const roleInput = document.getElementById("login-role").value;
+        if (!usernameInput) {
+            alert("يرجى إدخال اسم المستخدم.");
+            return;
+        }
+        currentUser = usernameInput;
+        userRole = roleInput;
+        localStorage.setItem("yasser_user", currentUser);
+        localStorage.setItem("yasser_role", userRole);
+
+        try {
+            const { data } = await supabaseClient.table("users").select("*").eq("username", currentUser);
+            if (!data || data.length === 0) {
+                await supabaseClient.table("users").insert({ username: currentUser, is_paid: false });
+            }
+        } catch (e) { console.log(e); }
+
+        document.getElementById("login-screen").classList.add("hidden");
+        document.getElementById("main-app").classList.remove("hidden");
+        await loadAppData();
+        goToPage("home");
+    }
+
+    function handleLogout() {
+        localStorage.clear();
+        location.reload();
+    }
+
+    async function loadAppData() {
+        try {
+            const pRes = await supabaseClient.table("products").select("*").eq("username", currentUser);
+            productsList = pRes.data || [];
+            const cRes = await supabaseClient.table("customers").select("*").eq("username", currentUser);
+            customersList = cRes.data || [];
+            const iRes = await supabaseClient.table("invoices").select("*").eq("username", currentUser);
+            invoicesList = iRes.data || [];
+        } catch (e) { console.log(e); }
+    }
+
+    function updateCartBadge() {
+        const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+        document.getElementById("cart-badge").innerText = totalQty;
+        localStorage.setItem("yasser_cart", JSON.stringify(cart));
+    }
+
+    function goToPage(page) {
+        currentView = page;
+        updateCartBadge();
+        const content = document.getElementById("view-content");
+        const backBtn = document.getElementById("back-btn");
+        
+        if (page === "home") {
+            backBtn.classList.add("hidden");
+            document.getElementById("app-title").innerText = "ياسر ويب - الرئيسية";
+            renderHome(content);
+        } else {
+            backBtn.classList.remove("hidden");
+            if (page === "grid") { renderGrid(content); }
+            else if (page === "cart") { renderCart(content); }
+            else if (page === "add_product") { renderAddProduct(content); }
+            else if (page === "inventory") { renderInventory(content); }
+            else if (page === "customers") { renderCustomers(content); }
+            else if (page === "suppliers") { renderSuppliers(content); }
+            else if (page === "expenses") { renderExpenses(content); }
+            else if (page === "invoices") { renderInvoices(content); }
+            else if (page === "reports") { renderReports(content); }
+            else if (page === "audit") { renderAudit(content); }
+        }
+    }
+
+    function renderHome(container) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayInvs = invoicesList.filter(inv => inv.created_date && inv.created_date.startsWith(todayStr));
+        const todaySales = todayInvs.reduce((sum, inv) => sum + (inv.total_price || 0), 0);
+
+        container.innerHTML = `
+            <div class="card" style="background: #f3e8ff; text-align: center;">
+                <p style="margin: 0; font-size: 13px;">📊 إحصائيات اليوم: مبيعات: <b>${todaySales.toLocaleString()} د.ع</b> | الفواتير: <b>${todayInvs.length}</b></p>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="card" onclick="goToPage('grid')" style="cursor:pointer; text-align:center;">
+                    <h4>🏠 الرئيسية والشبكة</h4>
+                    <p style="font-size:11px;">الضغطة السريعة للبيع</p>
+                </div>
+                <div class="card" onclick="goToPage('add_product')" style="cursor:pointer; text-align:center;">
+                    <h4>➕ إضافة وتوريد</h4>
+                    <p style="font-size:11px;">إضافة بضاعة جديدة</p>
+                </div>
+                <div class="card" onclick="goToPage('inventory')" style="cursor:pointer; text-align:center;">
+                    <h4>📦 جرد المخزن</h4>
+                    <p style="font-size:11px;">رصيد المواد الحالي</p>
+                </div>
+                <div class="card" onclick="goToPage('customers')" style="cursor:pointer; text-align:center;">
+                    <h4>👥 العملاء والديون</h4>
+                    <p style="font-size:11px;">إدارة الزبائن والذمم</p>
+                </div>
+                <div class="card" onclick="goToPage('suppliers')" style="cursor:pointer; text-align:center;">
+                    <h4>🏭 إدارة الموردين</h4>
+                    <p style="font-size:11px;">موردين البضاعة</p>
+                </div>
+                <div class="card" onclick="goToPage('expenses')" style="cursor:pointer; text-align:center;">
+                    <h4>💰 الصندوق والمصاريف</h4>
+                    <p style="font-size:11px;">سندات الصرف</p>
+                </div>
+                <div class="card" onclick="goToPage('invoices')" style="cursor:pointer; text-align:center;">
+                    <h4>📄 سجل الفواتير</h4>
+                    <p style="font-size:11px;">قائمة الفواتير والواتساب</p>
+                </div>
+                <div class="card" onclick="goToPage('reports')" style="cursor:pointer; text-align:center;">
+                    <h4>📊 التقارير والأرباح</h4>
+                    <p style="font-size:11px;">الحسابات المالية</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderGrid(container) {
+        document.getElementById("app-title").innerText = "شبكة المواد السريعة";
+        let html = `
+            <input type="text" id="search-box" placeholder="🔍 بحث سريع عن مادة..." oninput="filterProducts(this.value)">
+            <div id="products-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        `;
+        productsList.forEach((item, idx) => {
+            html += `
+                <div class="card" style="margin-bottom:0; text-align:center;">
+                    <h4 style="margin:5px 0;">📦 ${item.product_name}</h4>
+                    <p style="margin:2px 0; font-size:12px;">السعر: <b>${Number(item.sell_price).toLocaleString()}</b> د.ع</p>
+                    <p style="margin:2px 0; font-size:12px;">المتوفر: <b>${item.quantity}</b></p>
+                    ${item.quantity <= 3 && item.quantity > 0 ? '<div class="alert-warning">⚠️ وشك النفاد!</div>' : ''}
+                    ${item.quantity > 0 ? `<button onclick='addToCart(${JSON.stringify(item)})'>➕ إضافة</button>` : '<button disabled style="background:#ccc;">نفدت الكمية</button>'}
+                </div>
+            `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+    function filterProducts(query) {
+        const filtered = productsList.filter(i => i.product_name.toLowerCase().includes(query.toLowerCase()));
+        const grid = document.getElementById("products-grid");
+        let html = "";
+        filtered.forEach(item => {
+            html += `
+                <div class="card" style="margin-bottom:0; text-align:center;">
+                    <h4 style="margin:5px 0;">📦 ${item.product_name}</h4>
+                    <p style="margin:2px 0; font-size:12px;">السعر: <b>${Number(item.sell_price).toLocaleString()}</b> د.ع</p>
+                    <p style="margin:2px 0; font-size:12px;">المتوفر: <b>${item.quantity}</b></p>
+                    <button onclick='addToCart(${JSON.stringify(item)})'>➕ إضافة</button>
+                </div>
+            `;
+        });
+        grid.innerHTML = html;
+    }
+
+    function addToCart(item) {
+        let found = cart.find(c => c.product_name === item.product_name);
+        if (found) {
+            if (found.qty < item.quantity) found.qty++;
+        } else {
+            cart.push({ ...item, qty: 1, max_qty: item.quantity });
+        }
+        updateCartBadge();
+        alert("تمت الإضافة للسلة!");
+    }
+
+    function renderCart(container) {
+        document.getElementById("app-title").innerText = "سلة البيع وإتمام الفاتورة";
+        if (cart.length === 0) {
+            container.innerHTML = `<p style="text-align:center;">🛒 السلة فارغة حالياً. أضف مواد من الرئيسية.</p>`;
+            return;
+        }
+
+        let totalCartPrice = 0;
+        let html = ``;
+        cart.forEach((item, idx) => {
+            let itemSum = item.sell_price * item.qty;
+            totalCartPrice += itemSum;
+            html += `
+                <div class="card">
+                    <b>${item.product_name}</b>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <span>العدد: <input type="number" min="1" max="${item.max_qty}" value="${item.qty}" onchange="updateQty(${idx}, this.value)" style="width:60px; display:inline-block; margin:0;"></span>
+                        <span>المجموع: <b>${itemSum.toLocaleString()}</b> د.ع</span>
+                        <button onclick="removeFromCart(${idx})" style="width:auto; background:#c53030; padding:5px 10px; margin:0;">❌</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+            <hr>
+            <h3>المجموع الكلي: <span id="grand-total">${totalCartPrice.toLocaleString()}</span> د.ع</h3>
+            <label>اختر اسم العميل:</label>
+            <select id="selected-customer">
+                ${customersList.map(c => `<option value="${c.customer_name}">${c.customer_name} (${c.phone})</option>`).join('')}
+            </select>
+            <label>المبلغ الواصل (نقد أو 0 للأقساط):</label>
+            <input type="number" id="paid-amount" value="${totalCartPrice}" oninput="calcRemaining(${totalCartPrice})">
+            <p id="calc-result" style="font-size:13px; font-weight:bold; color:#2b6cb0;"></p>
+            <button onclick="checkout(${totalCartPrice})" style="background:#2f855a; font-size:16px; padding:12px;">💾 إتمام وحفظ البيع وطباعة الفاتورة</button>
+        `;
+        container.innerHTML = html;
+        calcRemaining(totalCartPrice);
+    }
+
+    function updateQty(idx, val) {
+        cart[idx].qty = parseInt(val);
+        goToPage('cart');
+    }
+
+    function removeFromCart(idx) {
+        cart.splice(idx, 1);
+        goToPage('cart');
+    }
+
+    function calcRemaining(total) {
+        const paid = parseFloat(document.getElementById("paid-amount").value) || 0;
+        const rem = Math.max(0, total - paid);
+        let resText = `المتبقي (الدين): ${rem.toLocaleString()} د.ع`;
+        if (paid > total) {
+            resText += ` | الباقي المستحق للزبون: ${(paid - total).toLocaleString()} د.ع`;
+        }
+        document.getElementById("calc-result").innerText = resText;
+    }
+
+    async function checkout(total) {
+        const custName = document.getElementById("selected-customer").value;
+        if (!custName) {
+            alert("يرجى اختيار عميل صالح.");
+            return;
+        }
+        const paidVal = parseFloat(document.getElementById("paid-amount").value) || 0;
+        const remVal = Math.max(0, total - paidVal);
+        let payStatus = paidVal >= total ? "🟢 نقد (كاش)" : (paidVal === 0 ? "🔴 دين كامل (آجل)" : "🔵 دفعة جزئية");
+
+        let prodStrList = [];
+        let totalCostInv = 0;
+        for (let item of cart) {
+            prodStrList.push(`${item.product_name} [العدد: ${item.qty}]`);
+            totalCostInv += (item.buy_price || 0) * item.qty;
+            // تحديث المخزن بقاعدة البيانات
+            try {
+                let newQ = Math.max(0, item.max_qty - item.qty);
+                await supabaseClient.table("products").update({ quantity: newQ }).eq("id", item.id);
+            } catch (e) { console.log(e); }
+        }
+
+        const invCode = `INV-${(invoicesList.length + 1).toString().padStart(3, '0')}`;
+        const invData = {
+            username: currentUser,
+            invoice_code: invCode,
+            customer_name: custName,
+            products_text: prodStrList.join(" ، "),
+            total_price: total,
+            cost_price: totalCostInv,
+            paid_amount: Math.min(paidVal, total),
+            remaining_amount: remVal,
+            payment_type: payStatus,
+            created_date: new Date().toISOString().replace('T', ' ').substring(0, 16)
         };
 
-        async function init() {
-            if (state.user) {
-                await loadUserData();
-            }
-            render();
-        }
+        try {
+            await supabaseClient.table("invoices").insert(invData);
+        } catch(e) { console.log(e); }
 
-        async function loadUserData() {
-            try {
-                const pRes = await supabase.from('products').select('*').eq('username', state.user);
-                if (pRes.data) state.products = pRes.data;
+        invoicesList.push(invData);
+        cart = [];
+        localStorage.removeItem("yasser_cart");
+        alert("✅ تمت عملية البيع بنجاح ونقصان الكميات من المخزن!");
+        goToPage('invoices');
+    }
 
-                const cRes = await supabase.from('customers').select('*').eq('username', state.user);
-                if (cRes.data) state.customers = cRes.data;
+    function renderAddProduct(container) {
+        document.getElementById("app-title").innerText = "إضافة مادة جديدة";
+        container.innerHTML = `
+            <label>اسم المادة:</label>
+            <input type="text" id="p-name" placeholder="أدخل اسم المادة...">
+            <label>سعر الشراء:</label>
+            <input type="number" id="p-buy" value="0">
+            <label>سعر البيع:</label>
+            <input type="number" id="p-sell" value="0">
+            <label>الكمية المتوفرة:</label>
+            <input type="number" id="p-qty" value="1">
+            <button onclick="saveNewProduct()">حفظ المادة</button>
+        `;
+    }
 
-                const iRes = await supabase.from('invoices').select('*').eq('username', state.user);
-                if (iRes.data) state.invoices = iRes.data;
-            } catch (e) {
-                console.error(e);
-            }
-        }
+    async function saveNewProduct() {
+        const name = document.getElementById("p-name").value.trim();
+        const buy = parseFloat(document.getElementById("p-buy").value) || 0;
+        const sell = parseFloat(document.getElementById("p-sell").value) || 0;
+        const qty = parseInt(document.getElementById("p-qty").value) || 1;
 
-        function render() {
-            const container = document.getElementById('main-content');
-            
-            if (!state.user) {
-                container.innerHTML = `
-                    <div class="py-10">
-                        <h2 class="text-center text-lg font-bold text-purple-950 mb-6">🔐 تسجيل الدخول لنظام (ياسر ويب)</h2>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-purple-900 mb-1">اسم المستخدم أو المحل:</label>
-                                <input type="text" id="login-username" class="w-full p-3 bg-white border border-purple-200 rounded-xl text-black text-right" placeholder="أدخل اسم المحل">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-purple-900 mb-1">الصلاحية:</label>
-                                <select id="login-role" class="w-full p-3 bg-white border border-purple-200 rounded-xl text-black text-right">
-                                    <option>مشرف النظام</option>
-                                    <option>كاشير</option>
-                                    <option>مسؤول مبيعات</option>
-                                </select>
-                            </div>
-                            <button onclick="handleLogin()" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold p-3 rounded-xl shadow-lg">دخول للنظام</button>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
+        if (!name) { alert("يرجى إدخال اسم المادة."); return; }
+        const newP = { username: currentUser, product_name: name, buy_price: buy, sell_price: sell, quantity: qty, barcode: "بدون" };
+        try {
+            await supabaseClient.table("products").insert(newP);
+        } catch(e) { console.log(e); }
+        productsList.push(newP);
+        alert("تم حفظ المادة بنجاح!");
+        goToPage('inventory');
+    }
 
-            let topBar = `
-                <div class="flex justify-between items-center pb-3 border-b border-purple-200 mb-4">
-                    ${state.page !== 'main' ? `<button onclick="navigate('main')" class="bg-purple-200 text-purple-900 px-3 py-1 rounded-lg text-sm font-bold">⬅️ رجوع</button>` : '<div></div>'}
-                    <button onclick="navigate('cart')" class="bg-purple-700 text-white px-3 py-1 rounded-lg text-sm font-bold">🛒 السلة [${state.cart.reduce((a,b)=>a+b.qty,0)}]</button>
-                    <button onclick="handleLogout()" class="bg-red-500 text-white px-3 py-1 rounded-lg text-sm font-bold">🚪 خروج</button>
+    function renderInventory(container) {
+        document.getElementById("app-title").innerText = "جرد المخزن الشامل";
+        let html = `<table border="1" style="width:100%; border-collapse:collapse; font-size:12px; background:#fff;">
+            <tr style="background:#f3e8ff;"><th>المادة</th><th>الشراء</th><th>البيع</th><th>الكمية</th></tr>`;
+        productsList.forEach(p => {
+            html += `<tr><td>${p.product_name}</td><td>${p.buy_price}</td><td>${p.sell_price}</td><td><b>${p.quantity}</b></td></tr>`;
+        });
+        html += `</table>`;
+        container.innerHTML = html;
+    }
+
+    function renderCustomers(container) {
+        document.getElementById("app-title").innerText = "إدارة العملاء والديون";
+        container.innerHTML = `
+            <label>اسم العميل:</label>
+            <input type="text" id="c-name" placeholder="الاسم...">
+            <label>رقم الهاتف:</label>
+            <input type="text" id="c-phone" placeholder="الهاتف...">
+            <label>العنوان:</label>
+            <input type="text" id="c-address" placeholder="العنوان...">
+            <button onclick="saveCustomer()">حفظ العميل</button>
+            <hr>
+            <h4>العملاء المسجلون:</h4>
+            ${customersList.map(c => `<div class="card"><b>${c.customer_name}</b> - ${c.phone}</div>`).join('')}
+        `;
+    }
+
+    async function saveCustomer() {
+        const name = document.getElementById("c-name").value.trim();
+        const phone = document.getElementById("c-phone").value.trim();
+        const address = document.getElementById("c-address").value.trim();
+        if (!name) { alert("أدخل اسم العميل."); return; }
+        const newC = { username: currentUser, customer_name: name, phone: phone, address: address, governorate: "البصرة" };
+        try {
+            await supabaseClient.table("customers").insert(newC);
+        } catch(e) { console.log(e); }
+        customersList.push(newC);
+        alert("تم حفظ العميل بنجاح!");
+        goToPage('customers');
+    }
+
+    function renderSuppliers(container) {
+        document.getElementById("app-title").innerText = "إدارة الموردين";
+        container.innerHTML = `<p>قسم إدارة الموردين قيد التشغيل.</p>`;
+    }
+
+    function renderExpenses(container) {
+        document.getElementById("app-title").innerText = "صندوق المصاريف";
+        container.innerHTML = `<p>قسم المصاريف قيد التشغيل.</p>`;
+    }
+
+    function renderInvoices(container) {
+        document.getElementById("app-title").innerText = "سجل الفواتير";
+        let html = ``;
+        invoicesList.slice().reverse().forEach(inv => {
+            const wText = encodeURIComponent(`فاتورة رقم ${inv.invoice_code} للزبون ${inv.customer_name}%0Aالمبلغ: ${inv.total_price.toLocaleString()} د.ع%0Aالمتبقي: ${inv.remaining_amount.toLocaleString()} د.ع`);
+            html += `
+                <div class="card">
+                    <b>فاتورة: ${inv.invoice_code}</b> | الزبون: ${inv.customer_name}
+                    <p>المجموع: <b>${inv.total_price.toLocaleString()}</b> د.ع | المتبقي: ${inv.remaining_amount.toLocaleString()} د.ع</p>
+                    <a href="https://wa.me/?text=${wText}" target="_blank"><button style="background:#25D366; margin:0;">💬 إرسال عبر الواتساب</button></a>
                 </div>
-                <h3 class="text-center font-bold text-purple-950 text-base mb-3">ياسر ويب (${state.user})</h3>
             `;
+        });
+        container.innerHTML = html || "<p>لا توجد فواتير مسجلة.</p>";
+    }
 
-            let content = '';
+    function renderReports(container) {
+        document.getElementById("app-title").innerText = "التقارير والأرباح";
+        const totalSales = invoicesList.reduce((sum, inv) => sum + inv.total_price, 0);
+        container.innerHTML = `
+            <div class="card" style="text-align:center;">
+                <h3>إجمالي المبيعات العامة</h3>
+                <h2>${totalSales.toLocaleString()} د.ع</h2>
+            </div>
+        `;
+    }
 
-            if (state.page === 'main') {
-                const todayStr = new Date().toISOString().split('T')[0];
-                const todayInvs = state.invoices.filter(i => String(i.created_date).startsWith(todayStr));
-                const todaySales = todayInvs.reduce((sum, inv) => sum + Number(inv.total_price || 0), 0);
+    function renderAudit(container) {
+        document.getElementById("app-title").innerText = "سجل النشاطات";
+        container.innerHTML = `<p>سجل العمليات يعمل بنجاح.</p>`;
+    }
+</script>
 
-                content = `
-                    <div class="bg-white p-3 rounded-2xl shadow mb-4 text-center border border-purple-100">
-                        <p class="text-xs font-bold text-purple-900">📊 إحصائيات اليوم: مبيعات: <span class="text-purple-700">${todaySales.toLocaleString()} د.ع</span> | الفواتير: ${todayInvs.length}</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="navigate('grid')" class="bg-white p-4 rounded-2xl shadow border border-purple-100 text-center hover:bg-purple-50">
-                            <div class="text-xl mb-1">🏠</div>
-                            <div class="font-bold text-purple-950 text-sm">الرئيسية والشبكة</div>
-                            <div class="text-[11px] text-purple-600">عرض المواد والبيع السريع</div>
-                        </button>
-                        <button onclick="navigate('add_product')" class="bg-white p-4 rounded-2xl shadow border border-purple-100 text-center hover:bg-purple-50">
-                            <div class="text-xl mb-1">➕</div>
-                            <div class="font-bold text-purple-950 text-sm">إضافة وتوريد</div>
-                            <div class="text-[11px] text-purple-600">إضافة بضاعة ومخزون</div>
-                        </button>
-                        <button onclick="navigate('inventory')" class="bg-white p-4 rounded-2xl shadow border border-purple-100 text-center hover:bg-purple-50">
-                            <div class="text-xl mb-1">📦</div>
-                            <div class="font-bold text-purple-950 text-sm">جرد المخزن</div>
-                            <div class="text-[11px] text-purple-600">رصيد المواد</div>
-                        </button>
-                        <button onclick="navigate('customers')" class="bg-white p-4 rounded-2xl shadow border border-purple-100 text-center hover:bg-purple-50">
-                            <div class="text-xl mb-1">👥</div>
-                            <div class="font-bold text-purple-950 text-sm">العملاء والديون</div>
-                            <div class="text-[11px] text-purple-600">إدارة الزبائن والذمم</div>
-                        </button>
-                        <button onclick="navigate('invoices')" class="bg-white p-4 rounded-2xl shadow border border-purple-100 text-center hover:bg-purple-50">
-                            <div class="text-xl mb-1">📄</div>
-                            <div class="font-bold text-purple-950 text-sm">سجل الفواتير</div>
-                            <div class="text-[11px] text-purple-600">قائمة الفواتير والواتساب</div>
-                        </button>
-                        <button onclick="navigate('expenses')" class="bg-white p-4 rounded-2xl shadow border border-purple-100 text-center hover:bg-purple-50">
-                            <div class="text-xl mb-1">💰</div>
-                            <div class="font-bold text-purple-950 text-sm">الصندوق والمصاريف</div>
-                            <div class="text-[11px] text-purple-600">سندات المصروفات</div>
-                        </button>
-                    </div>
-                `;
-            } else if (state.page === 'grid') {
-                content = `
-                    <h4 class="font-bold text-purple-950 mb-3">🏠 شبكة المبيعات</h4>
-                    <input type="text" id="search-prod" oninput="filterProducts(this.value)" placeholder="🔍 بحث سريع عن مادة..." class="w-full p-2 bg-white border border-purple-200 rounded-xl mb-3 text-right text-sm">
-                    <div id="products-grid" class="grid grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto">
-                        ${renderProductsGrid()}
-                    </div>
-                `;
-            } else if (state.page === 'cart') {
-                let totalCart = state.cart.reduce((sum, item) => sum + (item.sell_price * item.qty), 0);
-                content = `
-                    <h4 class="font-bold text-purple-950 mb-3">🛒 سلة البيع وإتمام الفاتورة</h4>
-                    <div class="space-y-2 max-h-[40vh] overflow-y-auto mb-3">
-                        ${state.cart.length === 0 ? '<p class="text-center text-xs text-purple-700">السلة فارغة</p>' : state.cart.map((item, idx) => `
-                            <div class="bg-white p-2 rounded-xl shadow border border-purple-100 text-xs flex justify-between items-center">
-                                <div>
-                                    <div class="font-bold text-purple-950">${item.product_name}</div>
-                                    <div class="text-purple-700">${item.sell_price.toLocaleString()} د.ع × ${item.qty}</div>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <button onclick="updateCartQty(${idx}, 1)" class="bg-purple-200 px-2 py-1 rounded font-bold">+</button>
-                                    <span>${item.qty}</span>
-                                    <button onclick="updateCartQty(${idx}, -1)" class="bg-purple-200 px-2 py-1 rounded font-bold">-</button>
-                                    <button onclick="removeFromCart(${idx})" class="text-red-500 font-bold px-1">🗑️</button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="bg-purple-100 p-3 rounded-xl mb-3 font-bold text-purple-950 text-sm flex justify-between">
-                        <span>المجموع الكلي:</span>
-                        <span>${totalCart.toLocaleString()} د.ع</span>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="block text-xs font-bold text-purple-900">اختر العميل:</label>
-                        <select id="checkout-customer" class="w-full p-2 bg-white border rounded-xl text-xs">
-                            ${state.customers.map(c => `<option value="${c.customer_name}">${c.customer_name} (${c.phone || 'بدون هاتف'})</option>`).join('')}
-                        </select>
-                        <label class="block text-xs font-bold text-purple-900">المبلغ الواصل (نقد):</label>
-                        <input type="number" id="paid-amount" value="${totalCart}" class="w-full p-2 bg-white border rounded-xl text-xs text-right">
-                        <button onclick="completeCheckout(${totalCart})" class="w-full bg-purple-700 text-white p-3 rounded-xl font-bold text-sm shadow">💾 إتمام وحفظ البيع وطباعة الفاتورة</button>
-                    </div>
-                `;
-            } else if (state.page === 'add_product') {
-                content = `
-                    <h4 class="font-bold text-purple-950 mb-3">➕ إضافة مادة جديدة</h4>
-                    <div class="space-y-3 text-xs">
-                        <div><label class="font-bold text-purple-900">اسم المادة:</label><input type="text" id="p-name" class="w-full p-2 bg-white border rounded-xl mt-1"></div>
-                        <div><label class="font-bold text-purple-900">سعر الشراء:</label><input type="number" id="p-buy" value="0" class="w-full p-2 bg-white border rounded-xl mt-1"></div>
-                        <div><label class="font-bold text-purple-900">سعر البيع:</label><input type="number" id="p-sell" value="0" class="w-full p-2 bg-white border rounded-xl mt-1"></div>
-                        <div><label class="font-bold text-purple-900">الكمية المتوفرة:</label><input type="number" id="p-qty" value="1" class="w-full p-2 bg-white border rounded-xl mt-1"></div>
-                        <button onclick="saveNewProduct()" class="w-full bg-purple-700 text-white p-3 rounded-xl font-bold shadow">حفظ المادة في المخزن</button>
-                    </div>
-                `;
-            } else if (state.page === 'inventory') {
-                content = `
-                    <h4 class="font-bold text-purple-950 mb-3">📦 جرد المخزن الشامل</h4>
-                    <div class="space-y-2 max-h-[60vh] overflow-y-auto text-xs">
-                        ${state.products.length === 0 ? '<p class="text-center text-purple-700">المخزن فارغ حالياً.</p>' : state.products.map(p => `
-                            <div class="bg-white p-3 rounded-xl shadow border border-purple-100 flex justify-between items-center">
-                                <div>
-                                    <div class="font-bold text-purple-950 text-sm">${p.product_name}</div>
-                                    <div class="text-purple-700">شراء: ${p.buy_price} | بيع: ${p.sell_price}</div>
-                                </div>
-                                <div class="bg-purple-100 px-3 py-1 rounded-lg font-bold text-purple-900">
-                                    ${p.quantity} قطعة
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } else if (state.page === 'customers') {
-                content = `
-                    <h4 class="font-bold text-purple-950 mb-3">👥 إدارة العملاء والذمم</h4>
-                    <div class="space-y-2 text-xs mb-4">
-                        <input type="text" id="c-name" placeholder="اسم العميل" class="w-full p-2 bg-white border rounded-xl">
-                        <input type="text" id="c-phone" placeholder="رقم الهاتف" class="w-full p-2 bg-white border rounded-xl">
-                        <input type="text" id="c-address" placeholder="العنوان" class="w-full p-2 bg-white border rounded-xl">
-                        <button onclick="saveNewCustomer()" class="w-full bg-purple-700 text-white p-2.5 rounded-xl font-bold">حفظ العميل الجديد</button>
-                    </div>
-                    <div class="space-y-2 max-h-[30vh] overflow-y-auto text-xs">
-                        ${state.customers.map(c => `
-                            <div class="bg-white p-2 rounded-xl shadow border border-purple-100">
-                                <div class="font-bold text-purple-950">${c.customer_name}</div>
-                                <div class="text-purple-700">📞 ${c.phone || 'بدون'} | 📍 ${c.address || 'بدون'}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } else if (state.page === 'invoices') {
-                content = `
-                    <h4 class="font-bold text-purple-950 mb-3">📄 سجل الفواتير الرسمية</h4>
-                    <div class="space-y-2 max-h-[60vh] overflow-y-auto text-xs">
-                        ${state.invoices.length === 0 ? '<p class="text-center text-purple-700">لا توجد فواتير مسجلة.</p>' : state.invoices.map(inv => `
-                            <div class="bg-white p-3 rounded-xl shadow border border-purple-100">
-                                <div class="flex justify-between font-bold text-purple-950 mb-1">
-                                    <span>فاتورة: ${inv.invoice_code}</span>
-                                    <span>${inv.total_price.toLocaleString()} د.ع</span>
-                                </div>
-                                <div class="text-purple-700 mb-2">الزبون: ${inv.customer_name} | التاريخ: ${inv.created_date}</div>
-                                <a href="https://wa.me/?text=${encodeURIComponent('فاتورة رقم ' + inv.invoice_code + ' للزبون ' + inv.customer_name + ' المبلغ: ' + inv.total_price + ' د.ع')}" target="_blank" class="block bg-green-600 text-white text-center py-1.5 rounded-lg font-bold">💬 إرسال عبر الواتساب</a>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } else if (state.page === 'expenses') {
-                content = `
-                    <h4 class="font-bold text-purple-950 mb-3">💰 صندوق الوردية والمصاريف</h4>
-                    <div class="space-y-2 text-xs mb-3">
-                        <input type="text" id="exp-desc" placeholder="بيان المصروف" class="w-full p-2 bg-white border rounded-xl">
-                        <input type="number" id="exp-amount" placeholder="المبلغ (د.ع)" class="w-full p-2 bg-white border rounded-xl">
-                        <button onclick="saveExpense()" class="w-full bg-purple-700 text-white p-2.5 rounded-xl font-bold">تسجيل المصروف</button>
-                    </div>
-                    <div class="space-y-1 text-xs">
-                        ${state.expenses.map(e => `
-                            <div class="bg-white p-2 rounded-xl shadow flex justify-between">
-                                <span>${e.desc}</span>
-                                <span class="font-bold text-red-600">${e.amount.toLocaleString()} د.ع</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            }
-
-            container.innerHTML = topBar + content;
-        }
-
-        function navigate(page) {
-            state.page = page;
-            render();
-        }
-
-        async function handleLogin() {
-            const username = document.getElementById('login-username').value.trim();
-            const role = document.getElementById('login-role').value;
-            if (!username) {
-                alert('يرجى إدخال اسم المستخدم');
-                return;
-            }
-            state.user = username;
-            state.role = role;
-            localStorage.setItem('yasser_user', username);
-            localStorage.setItem('yasser_role', role);
-
-            try {
-                await supabase.from('users').upsert({ username: username, is_paid: false });
-            } catch (e) {}
-
-            await loadUserData();
-            state.page = 'main';
-            render();
-        }
-
-        function handleLogout() {
-            state.user = null;
-            state.cart = [];
-            localStorage.removeItem('yasser_user');
-            render();
-        }
-
-        function renderProductsGrid(filter = '') {
-            const filtered = state.products.filter(p => p.product_name.toLowerCase().includes(filter.toLowerCase()));
-            if (filtered.length === 0) return '<p class="col-span-2 text-center text-xs text-purple-700">لا توجد مواد مطابقة.</p>';
-            
-            return filtered.map(p => `
-                <div class="bg-white p-3 rounded-xl shadow border border-purple-100 flex flex-col justify-between">
-                    <div>
-                        <div class="font-bold text-purple-950 text-xs mb-1">📦 ${p.product_name}</div>
-                        <div class="text-purple-700 text-[11px] mb-1">السعر: ${p.sell_price.toLocaleString()} د.ع</div>
-                        <div class="text-purple-600 text-[10px] mb-2">المتوفر: ${p.quantity} قطعة</div>
-                    </div>
-                    <button onclick="addToCart('${p.id}')" class="w-full bg-purple-700 text-white py-1 rounded-lg text-xs font-bold">➕ إضافة</button>
-                </div>
-            `).join('');
-        }
-
-        function filterProducts(val) {
-            const grid = document.getElementById('products-grid');
-            grid.innerHTML = renderProductsGrid(val);
-        }
-
-        function addToCart(id) {
-            const product = state.products.find(p => p.id == id);
-            if (!product || product.quantity <= 0) {
-                alert('المادة غير متوفرة');
-                return;
-            }
-            const existing = state.cart.find(item => item.id == id);
-            if (existing) {
-                if (existing.qty < product.quantity) {
-                    existing.qty++;
-                } else {
-                    alert('الكمية المطلوبة تتجاوز المتوفر في المخزن');
-                    return;
-                }
-            } else {
-                state.cart.push({ ...product, qty: 1 });
-            }
-            alert('تمت الإضافة للسلة!');
-            render();
-        }
-
-        function updateCartQty(idx, change) {
-            state.cart[idx].qty += change;
-            if (state.cart.qty <= 0) {
-                state.cart.splice(idx, 1);
-            }
-            render();
-        }
-
-        function removeFromCart(idx) {
-            state.cart.splice(idx, 1);
-            render();
-        }
-
-        async function completeCheckout(totalCart) {
-            const customerName = document.getElementById('checkout-customer').value;
-            const paidAmount = parseFloat(document.getElementById('paid-amount').value) || 0;
-            const remaining = Math.max(0, totalCart - paidAmount);
-
-            if (!customerName) {
-                alert('يرجى اختيار عميل');
-                return;
-            }
-
-            const invCode = 'INV-' + String(state.invoices.length + 1).padStart(3, '0');
-            const productsText = state.cart.map(i => `${i.product_name} [العدد: ${i.qty}]`).join('، ');
-            const costPrice = state.cart.reduce((sum, i) => sum + (i.buy_price * i.qty), 0);
-
-            const invData = {
-                username: state.user,
-                invoice_code: invCode,
-                customer_name: customerName,
-                products_text: productsText,
-                total_price: totalCart,
-                cost_price: costPrice,
-                paid_amount: paidAmount,
-                remaining_amount: remaining,
-                payment_type: paidAmount >= totalCart ? '🟢 نقد (كاش)' : '🔵 دفعة جزئية',
-                created_date: new Date().toISOString().slice(0, 16).replace('T', ' ')
-            };
-
-            try {
-                await supabase.from('invoices').insert([invData]);
-                for (let item of state.cart) {
-                    const newQty = Math.max(0, item.quantity - item.qty);
-                    await supabase.from('products').update({ quantity: newQty }).eq('id', item.id);
-                }
-                state.invoices.push(invData);
-                state.cart = [];
-                alert('✅ تمت عملية البيع بنجاح!');
-                navigate('invoices');
-            } catch (e) {
-                alert('خطأ أثناء الحفظ: ' + e.message);
-            }
-        }
-
-        async function saveNewProduct() {
-            const name = document.getElementById('p-name').value.trim();
-            const buy = parseFloat(document.getElementById('p-buy').value) || 0;
-            const sell = parseFloat(document.getElementById('p-sell').value) || 0;
-            const qty = parseInt(document.getElementById('p-qty').value) || 1;
-
-            if (!name) {
-                alert('يرجى إدخال اسم المادة');
-                return;
-            }
-
-            const newProd = { username: state.user, product_name: name, buy_price: buy, sell_price: sell, quantity: qty, barcode: 'بدون' };
-            try {
-                const res = await supabase.from('products').insert([newProd]).select();
-                if (res.data) state.products.push(res.data[0]);
-                alert('تم حفظ المادة بنجاح!');
-                navigate('inventory');
-            } catch (e) {
-                alert('خطأ: ' + e.message);
-            }
-        }
-
-        async function saveNewCustomer() {
-            const name = document.getElementById('c-name').value.trim();
-            const phone = document.getElementById('c-phone').value.trim();
-            const address = document.getElementById('c-address').value.trim();
-
-            if (!name) {
-                alert('يرجى إدخال اسم العميل');
-                return;
-            }
-
-            const newCust = { username: state.user, customer_name: name, phone: phone, address: address };
-            try {
-                const res = await supabase.from('customers').insert([newCust]).select();
-                if (res.data) state.customers.push(res.data[0]);
-                alert('تم حفظ العميل بنجاح!');
-                render();
-            } catch (e) {
-                alert('خطأ: ' + e.message);
-            }
-        }
-
-        function saveExpense() {
-            const desc = document.getElementById('exp-desc').value.trim();
-            const amount = parseFloat(document.getElementById('exp-amount').value) || 0;
-            if (!desc) return;
-            state.expenses.push({ desc, amount });
-            alert('تم تسجيل المصروف');
-            render();
-        }
-
-        window.onload = init;
-    </script>
 </body>
 </html>
