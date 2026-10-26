@@ -93,7 +93,7 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 6.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 7.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
@@ -124,14 +124,14 @@
         <div id="view-content"></div>
         
         <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7c6f9f;">
-            ياسر ويب - الإصدار 6.0.0 (فحص دقيق للربط)
+            ياسر ويب - الإصدار 7.0.0 (المفتاح السري الإداري)
         </div>
     </div>
 </div>
 
 <script>
     const SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp";
+    const SUPABASE_KEY = "sb_secret_LAtiPeQXJdXBldBsJgZ0_A_8QetHxRY";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = localStorage.getItem("yasser_user") || "ياسر";
@@ -176,18 +176,18 @@
         if (!currentUser) currentUser = "ياسر";
         try {
             const pRes = await supabaseClient.from("products").select("*");
-            if (pRes.error) alert("خطأ جلب المنتجات: " + pRes.error.message);
+            if (pRes.error) console.log("خطأ جلب المنتجات: " + pRes.error.message);
             else productsList = pRes.data || [];
             
             const cRes = await supabaseClient.from("customers").select("*");
-            if (cRes.error) alert("خطأ جلب العملاء: " + cRes.error.message);
+            if (cRes.error) console.log("خطأ جلب العملاء: " + cRes.error.message);
             else customersList = cRes.data || [];
             
             const iRes = await supabaseClient.from("invoices").select("*");
-            if (iRes.error) alert("خطأ جلب الفواتير: " + iRes.error.message);
+            if (iRes.error) console.log("خطأ جلب الفواتير: " + iRes.error.message);
             else invoicesList = iRes.data || [];
         } catch (e) { 
-            alert("خطأ في الاتصال بالسحابة: " + e.message); 
+            console.log("خطأ في الاتصال بالسحابة: " + e.message); 
         }
     }
 
@@ -465,7 +465,6 @@
         if (!name) { alert("يرجى إدخال اسم المادة."); return; }
         const newP = { username: currentUser, product_name: name, buy_price: buy, sell_price: sell, quantity: qty, barcode: "بدون" };
         
-        // إرسال حقيقي وإجباري للسحابة مع طباعة الخطأ إن وجد
         const { data, error } = await supabaseClient.from("products").insert([newP]).select();
         
         if (error) {
