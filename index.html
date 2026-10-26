@@ -93,7 +93,7 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 4.5.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 4.7.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
@@ -124,7 +124,7 @@
         <div id="view-content"></div>
         
         <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7c6f9f;">
-            ياسر ويب - الإصدار 4.5.0
+            ياسر ويب - الإصدار 4.7.0
         </div>
     </div>
 </div>
@@ -137,8 +137,7 @@
     let currentUser = localStorage.getItem("yasser_user") || null;
     let userRole = localStorage.getItem("yasser_role") || "مشرف النظام";
     let cart = JSON.parse(localStorage.getItem("yasser_cart")) || [];
-    let currentView = "home";
-
+    
     let productsList = [];
     let customersList = [];
     let invoicesList = [];
@@ -148,8 +147,9 @@
         if (!currentUser) {
             document.getElementById("login-screen").classList.remove("hidden");
         } else {
-            document.getElementById("main-app").classList.remove("hidden");
             await loadAppData();
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("main-app").classList.remove("hidden");
             goToPage("home");
         }
     };
@@ -158,38 +158,41 @@
         const usernameInput = document.getElementById("login-username").value.trim();
         const roleInput = document.getElementById("login-role").value;
         if (!usernameInput) { alert("يرجى إدخال اسم المستخدم."); return; }
+        
         currentUser = usernameInput;
         userRole = roleInput;
         localStorage.setItem("yasser_user", currentUser);
         localStorage.setItem("yasser_role", userRole);
 
-        try {
-            const { data } = await supabaseClient.table("users").select("*").eq("username", currentUser);
-            if (!data || data.length === 0) {
-                await supabaseClient.table("users").insert({ username: currentUser, is_paid: false });
-            }
-        } catch (e) { console.log(e); }
+        // سحب البيانات من السحابة فوراً قبل فتح الواجهة
+        await loadAppData();
 
         document.getElementById("login-screen").classList.add("hidden");
         document.getElementById("main-app").classList.remove("hidden");
-        await loadAppData();
         goToPage("home");
     }
 
     function handleLogout() {
-        localStorage.clear();
+        localStorage.removeItem("yasser_user");
+        localStorage.removeItem("yasser_role");
+        localStorage.removeItem("yasser_cart");
         location.reload();
     }
 
     async function loadAppData() {
+        if (!currentUser) return;
         try {
             const pRes = await supabaseClient.table("products").select("*").eq("username", currentUser);
             productsList = pRes.data || [];
+            
             const cRes = await supabaseClient.table("customers").select("*").eq("username", currentUser);
             customersList = cRes.data || [];
+            
             const iRes = await supabaseClient.table("invoices").select("*").eq("username", currentUser);
             invoicesList = iRes.data || [];
-        } catch (e) { console.log(e); }
+        } catch (e) { 
+            console.log("خطأ في جلب البيانات السحابية:", e); 
+        }
     }
 
     function updateCartBadge() {
@@ -198,8 +201,9 @@
         localStorage.setItem("yasser_cart", JSON.stringify(cart));
     }
 
-    function goToPage(page) {
-        currentView = page;
+    async function goToPage(page) {
+        // تحديث إجباري للبيانات من السحابة عند التنقل لضمان رؤية أحدث المواد والعملاء
+        await loadAppData();
         updateCartBadge();
         const content = document.getElementById("view-content");
         const backBtn = document.getElementById("back-btn");
@@ -215,11 +219,11 @@
             else if (page === "add_product") { renderAddProduct(content); }
             else if (page === "inventory") { renderInventory(content); }
             else if (page === "customers") { renderCustomers(content); }
-            else if (page === "suppliers") { content.innerHTML = `<p>إدارة الموردين قيد التشغيل.</p>`; }
-            else if (page === "expenses") { content.innerHTML = `<p>الصندوق قيد التشغيل.</p>`; }
+            else if (page === "suppliers") { content.innerHTML = `<p style="text-align:center;">إدارة الموردين قيد التشغيل.</p>`; }
+            else if (page === "expenses") { content.innerHTML = `<p style="text-align:center;">الصندوق قيد التشغيل.</p>`; }
             else if (page === "invoices") { renderInvoices(content); }
             else if (page === "reports") { renderReports(content); }
-            else if (page === "audit") { content.innerHTML = `<p>سجل النشاطات يعمل.</p>`; }
+            else if (page === "audit") { content.innerHTML = `<p style="text-align:center;">سجل النشاطات يعمل.</p>`; }
         }
     }
 
@@ -282,7 +286,7 @@
                     <p style="margin:2px 0; font-size:12px;">السعر: <b>${Number(item.sell_price).toLocaleString()}</b> د.ع</p>
                     <p style="margin:2px 0; font-size:12px;">المتوفر: <b>${item.quantity}</b></p>
                     ${item.quantity <= 3 && item.quantity > 0 ? '<div class="alert-warning">⚠️ وشك النفاد!</div>' : ''}
-                    ${item.quantity > 0 ? `<button onclick='лектaddToCart(${JSON.stringify(item)})'>➕ إضافة</button>` : '<button disabled style="background:#ccc;">نفدت الكمية</button>'}
+                    ${item.quantity > 0 ? `<button onclick='addToCart(${JSON.stringify(item)})'>➕ إضافة</button>` : '<button disabled style="background:#ccc;">نفدت الكمية</button>'}
                 </div>
             `;
         });
@@ -543,7 +547,7 @@
                 </div>
             `;
         });
-        container.innerHTML = html || "<p>لا توجد فواتير مسجلة.</p>";
+        container.innerHTML = html || "<p style='text-align:center;'>لا توجد فواتير مسجلة.</p>";
     }
 
     function downloadPDF(elementId, invCode) {
