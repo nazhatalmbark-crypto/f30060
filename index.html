@@ -93,13 +93,13 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 5.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 6.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
     <div id="login-screen" class="hidden">
         <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
-        <label>اسم المستخدم أو المحل (مثلاً: ياسر):</label>
+        <label>اسم المستخدم أو المحل:</label>
         <input type="text" id="login-username" value="ياسر" placeholder="أدخل اسم المستخدم...">
         <label>الصلاحية:</label>
         <select id="login-role">
@@ -124,7 +124,7 @@
         <div id="view-content"></div>
         
         <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7c6f9f;">
-            ياسر ويب - الإصدار 5.0.0 (متصل بالسحابة)
+            ياسر ويب - الإصدار 6.0.0 (فحص دقيق للربط)
         </div>
     </div>
 </div>
@@ -134,7 +134,6 @@
     const SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // تثبيت اسم المستخدم افتراضياً لمنع الخطأ
     let currentUser = localStorage.getItem("yasser_user") || "ياسر";
     let userRole = localStorage.getItem("yasser_role") || "مشرف النظام";
     let cart = JSON.parse(localStorage.getItem("yasser_cart")) || [];
@@ -145,14 +144,14 @@
 
     window.onload = async () => {
         document.getElementById("loading-screen").classList.add("hidden");
-        // جلب البيانات فوراً اعتماداً على اسم "ياسر" الموحد
-        currentUser = "ياسر";
-        localStorage.setItem("yasser_user", currentUser);
         await loadAppData();
-        
-        document.getElementById("login-screen").classList.add("hidden");
-        document.getElementById("main-app").classList.remove("hidden");
-        goToPage("home");
+        if (!currentUser) {
+            document.getElementById("login-screen").classList.remove("hidden");
+        } else {
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("main-app").classList.remove("hidden");
+            goToPage("home");
+        }
     };
 
     async function handleLogin() {
@@ -168,24 +167,27 @@
     }
 
     function handleLogout() {
-        // لا نحذف اسم المستخدم نهائياً لكي تبقى البيانات مرتبطة دائماً باسم "ياسر"
         localStorage.removeItem("yasser_cart");
-        location.reload();
+        document.getElementById("main-app").classList.add("hidden");
+        document.getElementById("login-screen").classList.remove("hidden");
     }
 
     async function loadAppData() {
         if (!currentUser) currentUser = "ياسر";
         try {
-            const pRes = await supabaseClient.table("products").select("*");
-            productsList = pRes.data || [];
+            const pRes = await supabaseClient.from("products").select("*");
+            if (pRes.error) alert("خطأ جلب المنتجات: " + pRes.error.message);
+            else productsList = pRes.data || [];
             
-            const cRes = await supabaseClient.table("customers").select("*");
-            customersList = cRes.data || [];
+            const cRes = await supabaseClient.from("customers").select("*");
+            if (cRes.error) alert("خطأ جلب العملاء: " + cRes.error.message);
+            else customersList = cRes.data || [];
             
-            const iRes = await supabaseClient.table("invoices").select("*");
-            invoicesList = iRes.data || [];
+            const iRes = await supabaseClient.from("invoices").select("*");
+            if (iRes.error) alert("خطأ جلب الفواتير: " + iRes.error.message);
+            else invoicesList = iRes.data || [];
         } catch (e) { 
-            console.log("خطأ في جلب البيانات:", e); 
+            alert("خطأ في الاتصال بالسحابة: " + e.message); 
         }
     }
 
@@ -408,7 +410,7 @@
             totalCostInv += (item.buy_price || 0) * item.qty;
             try {
                 let newQ = Math.max(0, item.max_qty - item.qty);
-                await supabaseClient.table("products").update({ quantity: newQ }).eq("id", item.id);
+                await supabaseClient.from("products").update({ quantity: newQ }).eq("id", item.id);
             } catch (e) { console.log(e); }
         }
 
@@ -426,14 +428,16 @@
             created_date: new Date().toISOString().replace('T', ' ').substring(0, 16)
         };
 
-        try {
-            await supabaseClient.table("invoices").insert(invData);
-        } catch(e) { console.log(e); }
+        const { error } = await supabaseClient.from("invoices").insert([invData]);
+        if (error) {
+            alert("فشل حفظ الفاتورة في السحابة: " + error.message);
+            return;
+        }
 
         invoicesList.push(invData);
         cart = [];
         localStorage.removeItem("yasser_cart");
-        alert("✅ تمت عملية البيع بنجاح!");
+        alert("✅ تمت عملية البيع بنجاح وحُفظت بالسحابة!");
         goToPage('invoices');
     }
 
@@ -460,11 +464,17 @@
 
         if (!name) { alert("يرجى إدخال اسم المادة."); return; }
         const newP = { username: currentUser, product_name: name, buy_price: buy, sell_price: sell, quantity: qty, barcode: "بدون" };
-        try {
-            await supabaseClient.table("products").insert(newP);
-        } catch(e) { console.log(e); }
-        productsList.push(newP);
-        alert("تم حفظ المادة بنجاح!");
+        
+        // إرسال حقيقي وإجباري للسحابة مع طباعة الخطأ إن وجد
+        const { data, error } = await supabaseClient.from("products").insert([newP]).select();
+        
+        if (error) {
+            alert("❌ فشل حفظ المادة بالسحابة! السبب: " + error.message);
+            return;
+        }
+
+        alert("✅ تم حفظ المادة بنجاح في السحابة!");
+        await loadAppData();
         goToPage('inventory');
     }
 
@@ -515,11 +525,15 @@
             street: street || "غير محدد", 
             address: address || "غير محدد" 
         };
-        try {
-            await supabaseClient.table("customers").insert(newC);
-        } catch(e) { console.log(e); }
-        customersList.push(newC);
-        alert("تم حفظ العميل بنجاح!");
+        
+        const { error } = await supabaseClient.from("customers").insert([newC]);
+        if (error) {
+            alert("❌ فشل حفظ العميل بالسحابة! السبب: " + error.message);
+            return;
+        }
+
+        alert("✅ تم حفظ العميل بنجاح في السحابة!");
+        await loadAppData();
         goToPage('customers');
     }
 
