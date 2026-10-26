@@ -93,14 +93,14 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 4.9.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 5.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
     <div id="login-screen" class="hidden">
         <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
-        <label>اسم المستخدم أو المحل:</label>
-        <input type="text" id="login-username" placeholder="أدخل اسم المستخدم...">
+        <label>اسم المستخدم أو المحل (مثلاً: ياسر):</label>
+        <input type="text" id="login-username" value="ياسر" placeholder="أدخل اسم المستخدم...">
         <label>الصلاحية:</label>
         <select id="login-role">
             <option value="مشرف النظام">مشرف النظام</option>
@@ -124,7 +124,7 @@
         <div id="view-content"></div>
         
         <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7c6f9f;">
-            ياسر ويب - الإصدار 4.9.0
+            ياسر ويب - الإصدار 5.0.0 (متصل بالسحابة)
         </div>
     </div>
 </div>
@@ -134,7 +134,8 @@
     const SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let currentUser = localStorage.getItem("yasser_user") || null;
+    // تثبيت اسم المستخدم افتراضياً لمنع الخطأ
+    let currentUser = localStorage.getItem("yasser_user") || "ياسر";
     let userRole = localStorage.getItem("yasser_role") || "مشرف النظام";
     let cart = JSON.parse(localStorage.getItem("yasser_cart")) || [];
     
@@ -144,25 +145,20 @@
 
     window.onload = async () => {
         document.getElementById("loading-screen").classList.add("hidden");
-        if (!currentUser) {
-            document.getElementById("login-screen").classList.remove("hidden");
-        } else {
-            await loadAppData();
-            document.getElementById("login-screen").classList.add("hidden");
-            document.getElementById("main-app").classList.remove("hidden");
-            goToPage("home");
-        }
+        // جلب البيانات فوراً اعتماداً على اسم "ياسر" الموحد
+        currentUser = "ياسر";
+        localStorage.setItem("yasser_user", currentUser);
+        await loadAppData();
+        
+        document.getElementById("login-screen").classList.add("hidden");
+        document.getElementById("main-app").classList.remove("hidden");
+        goToPage("home");
     };
 
     async function handleLogin() {
-        const usernameInput = document.getElementById("login-username").value.trim();
-        const roleInput = document.getElementById("login-role").value;
-        if (!usernameInput) { alert("يرجى إدخال اسم المستخدم."); return; }
-        
+        const usernameInput = document.getElementById("login-username").value.trim() || "ياسر";
         currentUser = usernameInput;
-        userRole = roleInput;
         localStorage.setItem("yasser_user", currentUser);
-        localStorage.setItem("yasser_role", userRole);
 
         await loadAppData();
 
@@ -172,22 +168,21 @@
     }
 
     function handleLogout() {
-        localStorage.removeItem("yasser_user");
-        localStorage.removeItem("yasser_role");
+        // لا نحذف اسم المستخدم نهائياً لكي تبقى البيانات مرتبطة دائماً باسم "ياسر"
         localStorage.removeItem("yasser_cart");
         location.reload();
     }
 
     async function loadAppData() {
-        if (!currentUser) return;
+        if (!currentUser) currentUser = "ياسر";
         try {
-            const pRes = await supabaseClient.table("products").select("*").eq("username", currentUser);
+            const pRes = await supabaseClient.table("products").select("*");
             productsList = pRes.data || [];
             
-            const cRes = await supabaseClient.table("customers").select("*").eq("username", currentUser);
+            const cRes = await supabaseClient.table("customers").select("*");
             customersList = cRes.data || [];
             
-            const iRes = await supabaseClient.table("invoices").select("*").eq("username", currentUser);
+            const iRes = await supabaseClient.table("invoices").select("*");
             invoicesList = iRes.data || [];
         } catch (e) { 
             console.log("خطأ في جلب البيانات:", e); 
