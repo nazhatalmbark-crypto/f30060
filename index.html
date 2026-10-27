@@ -93,7 +93,7 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 11.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 13.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
@@ -101,20 +101,21 @@
         <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
         <label>اسم المستخدم أو المحل:</label>
         <input type="text" id="login-username" value="ياسر" placeholder="أدخل اسم المستخدم...">
-        <label>الصلاحية:</label>
-        <select id="login-role">
-            <option value="مشرف النظام">مشرف النظام</option>
-            <option value="كاشير">كاشير</option>
-            <option value="مسؤول مبيعات">مسؤول مبيعات</option>
-        </select>
+        
+        <label>كود التفعيل (اختياري للنسخة المدفوعة):</label>
+        <input type="text" id="activation-code-input" placeholder="أدخل كود اشتراك الشهر...">
+        
         <button onclick="handleLogin()">دخول للنظام</button>
         <div style="text-align: center; margin-top: 15px; font-size: 12px;">
-            للتواصل والدعم الفني: <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #6b46c1; font-weight: bold; text-decoration: none;">📸 @yaser120120120120</a>
+            لطلب أو تجديد كود النسخة المدفوعة: <br>
+            <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #6b46c1; font-weight: bold; text-decoration: none;">📸 انستغرام: @yaser120120120120</a>
         </div>
     </div>
 
     <!-- التطبيق الرئيسي -->
     <div id="main-app" class="hidden">
+        <div id="subscription-banner" style="background: #2f855a; color: white; padding: 6px; border-radius: 8px; text-align: center; font-size: 11px; margin-bottom: 10px; font-weight: bold;"></div>
+        
         <div class="top-bar">
             <button id="back-btn" class="hidden" onclick="goToPage('home')" style="width: auto; padding: 6px 12px;">⬅️ رجوع</button>
             <span id="app-title" style="font-weight: bold; font-size: 15px;">ياسر ويب</span>
@@ -138,34 +139,89 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = localStorage.getItem("yasser_user") || "ياسر";
-    let userRole = localStorage.getItem("yasser_role") || "مشرف النظام";
     let cart = JSON.parse(localStorage.getItem("yasser_cart")) || [];
     
     let productsList = [];
     let customersList = [];
     let invoicesList = [];
 
+    function checkSubscriptionStatus() {
+        let subExpireDate = localStorage.getItem("yasser_sub_expire");
+        let isVip = localStorage.getItem("yasser_is_vip") === "true";
+
+        if (!isVip || !subExpireDate) {
+            return { type: "مجانية", daysLeft: 0, active: true };
+        }
+
+        let now = new Date().getTime();
+        let expire = parseInt(subExpireDate);
+        let diffDays = Math.ceil((expire - now) / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 0) {
+            return { type: "مجانية (انتهت المدفوعة)", daysLeft: 0, active: true }; // تعود للمجانية ولا تحذف بضاعته
+        }
+        return { type: "مدفوعة", daysLeft: diffDays, active: true };
+    }
+
     window.onload = async () => {
         document.getElementById("loading-screen").classList.add("hidden");
         await loadAppData();
+        
         if (!currentUser) {
             document.getElementById("login-screen").classList.remove("hidden");
         } else {
             document.getElementById("login-screen").classList.add("hidden");
             document.getElementById("main-app").classList.remove("hidden");
+            updateBanner();
             goToPage("home");
         }
     };
 
+    function updateBanner() {
+        const sub = checkSubscriptionStatus();
+        const banner = document.getElementById("subscription-banner");
+        if (sub.type === "مدفوعة") {
+            banner.style.background = "#2f855a";
+            banner.innerHTML = `🌟 النسخة المدفوعة مفعلة | متبقي من الاشتراك: <b>${sub.daysLeft} يوم</b>`;
+        } else {
+            banner.style.background = "#b7791f";
+            banner.innerHTML = `⚠️ أنت تستخدم النسخة المجانية المحدودة. <a href="#" onclick="goToPage('guide')" style="color:#fff; text-decoration:underline;">شاهد تفاصيل الترقية</a>`;
+        }
+    }
+
     async function handleLogin() {
         const usernameInput = document.getElementById("login-username").value.trim() || "ياسر";
+        const codeInput = document.getElementById("activation-code-input").value.trim();
+        
         currentUser = usernameInput;
         localStorage.setItem("yasser_user", currentUser);
 
-        await loadAppData();
+        if (codeInput !== "") {
+            let usedCodes = JSON.parse(localStorage.getItem("yasser_used_codes")) || [];
+            
+            // التحقق هل الكود حقيقي وصحيح
+            if (codeInput === "YASSER-VIP-2026") {
+                // التحقق هل سبق استخدام هذا الكود القديم لنفس الزبون (لمنع تكراره)
+                if (usedCodes.includes(codeInput)) {
+                    alert("⚠️ عذراً، هذا الكود تم استخدامه مسبقاً وانتهت صلاحيته! يرجى التواصل عبر انستغرام للحصول على كود جديد لشهر جديد.");
+                } else {
+                    usedCodes.push(codeInput);
+                    localStorage.setItem("yasser_used_codes", JSON.stringify(usedCodes));
+                    
+                    let expireTime = new Date().getTime() + (30 * 24 * 60 * 60 * 1000);
+                    localStorage.setItem("yasser_is_vip", "true");
+                    localStorage.setItem("yasser_sub_expire", expireTime.toString());
+                    alert("✅ تم تفعيل النسخة المدفوعة بنجاح لمدة 30 يوماً!");
+                }
+            } else {
+                alert("❌ كود التفعيل غير صحيح! تم تسجيل دخولك على النسخة المجانية.");
+            }
+        }
 
+        await loadAppData();
         document.getElementById("login-screen").classList.add("hidden");
         document.getElementById("main-app").classList.remove("hidden");
+        updateBanner();
         goToPage("home");
     }
 
@@ -199,6 +255,7 @@
 
     async function goToPage(page) {
         await loadAppData();
+        updateBanner();
         updateCartBadge();
         const content = document.getElementById("view-content");
         const backBtn = document.getElementById("back-btn");
@@ -220,7 +277,6 @@
             else if (page === "invoices") { renderInvoices(content); }
             else if (page === "reports") { renderReports(content); }
             else if (page === "guide") { renderGuide(content); }
-            else if (page === "audit") { content.innerHTML = `<p style="text-align:center;">سجل النشاطات يعمل.</p>`; }
         }
     }
 
@@ -271,48 +327,40 @@
                     <p style="font-size:11px;">الحسابات المالية</p>
                 </div>
                 <div class="card" onclick="goToPage('guide')" style="cursor:pointer; text-align:center; background:#fffaf0; grid-column: span 2;">
-                    <h4>📖 دليل المستخدم الشامل</h4>
-                    <p style="font-size:11px;">شرح تفصيلي لكافة أقسام النظام وطريقة الاستخدام</p>
+                    <h4>📖 دليل المستخدم والفرق بين النسخ</h4>
+                    <p style="font-size:11px;">شرح تفصيلي لكافة الخانات والنسخ المجانية والمدفوعة</p>
                 </div>
             </div>
         `;
     }
 
-    // دليل المستخدم المفصل والمرتب
+    // دليل المستخدم المفصل والشامل لشرح الفرق بين النسختين والخانَات
     function renderGuide(container) {
-        document.getElementById("app-title").innerText = "دليل المستخدم الشامل";
+        document.getElementById("app-title").innerText = "دليل المستخدم والفرق بين النسخ";
         container.innerHTML = `
             <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
-                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🌟 أهلاً بك في دليل نظام ياسر ويب</h3>
-                <p>هذا الدليل يشرح لك كل تبويب في التطبيق وكيفية الاستفادة منه بأفضل شكل ممكن لإدارة محلك أو تجارتك بكل سهولة وسلاسة.</p>
+                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🌟 دليل استخدام نظام ياسر ويب</h3>
                 
-                <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
+                <div style="background:#f3e8ff; padding:12px; border-radius:12px; margin-bottom:15px;">
+                    <h4 style="color:#2d1a4e; margin-top:0;">💎 الفرق بين النسخة المجانية والنسخة المدفوعة</h4>
+                    <p><b>1️⃣ النسخة المجانية:</b> تتيح لك فتح النظام وتجربته بشكل مباشر ومبسط، مع حدود أساسية في إدارة المتجر ومعرفة كفاءة التطبيق.</p>
+                    <p><b>2️⃣ النسخة المدفوعة (الاشتراك الشهري):</b> تمنحك الصلاحيات الكاملة والمفتوحة بدون أي قيود، مع عداد تنازلي ومميزات متقدمة ودعم فني مستمر.</p>
+                    <p style="color:#2f855a; font-weight:bold; margin-bottom:0;">📌 أمان تام لبياناتك: عند انتهاء اشتراك الشهر وحاولت إدخال نفس الكود القديم سيرفضه النظام، لكن بضاعتك وزبائنك وفواتيرك تظل محفوظة في السحابة ولن تنحذف أبداً، وكل ما عليك هو مراسلتي للحصول على كود جديد لشهر جديد!</p>
+                </div>
 
-                <h4 style="color:#2d1a4e;">1️⃣ الرئيسية والشبكة (للبيع السريع)</h4>
-                <p>تتيح لك مشاهدة جميع المواد المعروضة للبيع مع أسعارها والكميات المتوفرة. يمكنك الضغط على زر (إضافة) لأي مادة لتنزل فوراً إلى سلة التسوق.</p>
-
-                <h4 style="color:#2d1a4e;">2️⃣ إضافة مادة جديدة</h4>
-                <p>استخدم هذا التبويب عندما تريد إدخال <b>مادة جديدة كلياً</b> لم تدخل إلى المخزن من قبل. تطلب منك إدخال اسم المادة، سعر الشراء، سعر البيع، والكمية الأولية.</p>
-
-                <h4 style="color:#2d1a4e;">3️⃣ إضافة كمية لمادة (المخزن القديم)</h4>
-                <p>مخصص لزيادة رصيد المواد المخزنة مسبقاً بدون الحاجة لإعادة كتابة اسم المادة من جديد. تختار المادة من القائمة، وتكتب الكمية الإضافية، وسيتم جمعها تلقائياً على الرصيد الحالي!</p>
-
-                <h4 style="color:#2d1a4e;">4️⃣ جرد المخزن</h4>
-                <p>جدول شامل يعرض لك جميع المواد الموجودة في المخزن حالياً، مع أسعار الشراء والبيع والكميات المتوفرة بدقة.</p>
-
-                <h4 style="color:#2d1a4e;">5️⃣ العملاء والديون</h4>
-                <p>تسجيل بيانات العملاء الجدد (الاسم، الهاتف، المحافظة، والشارع والعنوان التفصيلي) لمتابعة ديونهم وحساباتهم بسهولة.</p>
-
-                <h4 style="color:#2d1a4e;">6️⃣ سجل الفواتير</h4>
-                <p>يعرض جميع الفواتير الصادرة مع تفاصيل المواد والمبالغ الواصلة والمتبقية (الديون). يتيح لك تحميل الفاتورة بصيغة <b>PDF</b> أو إرسالها مباشرة للزبون عبر <b>الواتساب</b>.</p>
-
-                <h4 style="color:#2d1a4e;">7️⃣ التقارير والأرباح</h4>
-                <p>ملخص مالي يعرض إجمالي المبيعات العامة لتعقب أداء المتجر المالي.</p>
+                <h4 style="color:#2d1a4e;">🛠️ شرح تفصيلي لخانات وأقسام النظام:</h4>
+                <p><b>• الرئيسية والشبكة:</b> تظهر فيها المواد المعروضة مع أسعارها والكميات، وتستطيع إضافة أي مادة للسلة بنقرة واحدة.</p>
+                <p><b>• إضافة مادة جديدة:</b> مخصصة لإدخال أي صنف جديد كلياً للمخزن (اسم المادة، سعر الشراء، سعر البيع، الكمية).</p>
+                <p><b>• إضافة كمية لمادة:</b> خاصة بالمخزن القديم؛ تختار المادة المخزنة وتزود كميتها ورصيدها مباشرة بدون إعادة كتابة اسمها.</p>
+                <p><b>• جرد المخزن:</b> جدول تفصيلي يوضح كل المواد المتوفرة في المخزن وأسعارها بدقة.</p>
+                <p><b>• العملاء والديون:</b> لتسجيل بيانات الزبائن (الاسم، الهاتف، المحافظة، العنوان) ومتابعة ديونهم.</p>
+                <p><b>• سجل الفواتير:</b> تعرض كل الفواتير الصادرة، مع خيار تحميل الفاتورة بصيغة PDF أو إرسالها للزبون عبر الواتساب.</p>
+                <p><b>• التقارير والأرباح:</b> لعرض إجمالي المبيعات والأرباح العامة للمتجر.</p>
 
                 <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
                 
                 <div style="text-align:center; background:#f8f6fc; padding:10px; border-radius:12px;">
-                    <p style="margin:0; font-weight:bold;">للتواصل والدعم الفني والاستفسارات:</p>
+                    <p style="margin:0; font-weight:bold;">لطلب أو تجديد كود النسخة المدفوعة:</p>
                     <a href="https://instagram.com/yaser120120120120" target="_blank" style="display:inline-block; margin-top:5px; color:#fff; background:#6b46c1; padding:8px 15px; border-radius:8px; text-decoration:none; font-weight:bold;">📸 انستغرام: @yaser120120120120</a>
                 </div>
             </div>
