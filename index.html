@@ -93,7 +93,7 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 14.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 15.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
@@ -251,6 +251,7 @@
             else if (page === "reports") { renderReports(content); }
             else if (page === "guide") { renderGuide(content); }
             else if (page === "activation_page") { renderActivationPage(content); }
+            else if (page === "admin_panel") { renderAdminPanel(content); }
         }
     }
 
@@ -259,11 +260,23 @@
         const todayInvs = invoicesList.filter(inv => inv.created_date && inv.created_date.startsWith(todayStr));
         const todaySales = todayInvs.reduce((sum, inv) => sum + (inv.total_price || 0), 0);
 
+        // هل المستخدم هو الأدمن ياسر؟ نظهر له لوحة التحكم الخاصة بالأدمن
+        let adminCardHTML = "";
+        if (currentUser === "ياسر" || currentUser === "yasser_admin") {
+            adminCardHTML = `
+                <div class="card" onclick="goToPage('admin_panel')" style="cursor:pointer; text-align:center; background:#fff5f5; border: 2px dashed #c53030; grid-column: span 2;">
+                    <h4 style="color:#c53030; margin:5px 0;">👑 لوحة تحكم الأدمن (توليد الأكواد)</h4>
+                    <p style="font-size:11px; margin:0;">إدارة وتوليد أكواد الاشتراكات الشهرية للزبائن</p>
+                </div>
+            `;
+        }
+
         container.innerHTML = `
             <div class="card" style="background: #f3e8ff; text-align: center;">
                 <p style="margin: 0; font-size: 13px;">📊 إحصائيات اليوم: مبيعات: <b>${todaySales.toLocaleString()} د.ع</b> | الفواتير: <b>${todayInvs.length}</b></p>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                ${adminCardHTML}
                 <div class="card" onclick="goToPage('grid')" style="cursor:pointer; text-align:center;">
                     <h4>🏠 الرئيسية والشبكة</h4>
                     <p style="font-size:11px;">الضغطة السريعة للبيع</p>
@@ -312,6 +325,41 @@
         `;
     }
 
+    // لوحة تحكم الأدمن لتوليد الأكواد وإدارتها
+    function renderAdminPanel(container) {
+        document.getElementById("app-title").innerText = "لوحة تحكم الأدمن";
+        let generatedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
+        
+        container.innerHTML = `
+            <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
+                <h3 style="color:#c53030; margin-top:0; text-align:center;">👑 لوحة الأدمن لتوليد الأكواد</h3>
+                <p>من هنا يمكنك توليد أكواد اشتراك شهرية جديدة وإعطائها للزبائن المشتركين:</p>
+                
+                <button onclick="generateNewVipCode()" style="background:#c53030; font-size:15px; padding:12px; margin-bottom:15px;">⚡ توليد كود اشتراك جديد</button>
+                
+                <h4 style="color:#2d1a4e;">📋 قائمة الأكواد الفعالة في نظامك:</h4>
+                <div style="background:#f8f6fc; padding:10px; border-radius:12px; max-height:200px; overflow-y:auto;">
+                    ${generatedCodes.map(code => `<div style="background:#fff; padding:8px; margin-bottom:5px; border-radius:8px; border:1px solid #dcd6f7; display:flex; justify-content:space-between; align-items:center;">
+                        <span>🔑 <b>${code}</b></span>
+                        <span style="font-size:10px; color:#2f855a; font-weight:bold;">نشط لمدة 30 يوم</span>
+                    </div>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function generateNewVipCode() {
+        let randomNum = Math.floor(1000 + Math.random() * 9000);
+        let newCode = `YASSER-VIP-${randomNum}`;
+        
+        let codes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
+        codes.push(newCode);
+        localStorage.setItem("yasser_admin_codes", JSON.stringify(codes));
+        
+        alert(`✅ تم توليد كود جديد بنجاح:\n${newCode}\n\nيمكنك نسخه وإرساله للزبون المشترك!`);
+        renderAdminPanel(document.getElementById("view-content"));
+    }
+
     // واجهة تفعيل الكود والنسخة المدفوعة مباشرة داخل القائمة
     function renderActivationPage(container) {
         document.getElementById("app-title").innerText = "تفعيل النسخة المدفوعة";
@@ -339,8 +387,9 @@
         if (!codeInput) return;
 
         let usedCodes = JSON.parse(localStorage.getItem("yasser_used_codes")) || [];
+        let validCodes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
 
-        if (codeInput === "YASSER-VIP-2026") {
+        if (validCodes.includes(codeInput)) {
             if (usedCodes.includes(codeInput)) {
                 alert("⚠️ عذراً، هذا الكود تم استخدامه مسبقاً وانتهت صلاحيته! يرجى التواصل عبر انستغرام للحصول على كود جديد لشهر جديد.");
             } else {
@@ -381,6 +430,7 @@
                 <p><b>• سجل الفواتير:</b> تعرض كل الفواتير الصادرة، مع خيار تحميل الفاتورة بصيغة PDF أو إرسالها للزبون عبر الواتساب.</p>
                 <p><b>• التقارير والأرباح:</b> لعرض إجمالي المبيعات والأرباح العامة للمتجر.</p>
                 <p><b>• تفعيل النسخة المدفوعة:</b> الحقل المخصص لإدخال كود الاشتراك الشهري الخاص بك.</p>
+                <p><b>• لوحة تحكم الأدمن:</b> خاصة بك لتوليد وإدارة أكواد الاشتراكات الشهرية للزبائن.</p>
 
                 <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
                 
