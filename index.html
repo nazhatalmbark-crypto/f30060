@@ -93,7 +93,7 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 8.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 9.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
@@ -124,7 +124,7 @@
         <div id="view-content"></div>
         
         <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7c6f9f;">
-            ياسر ويب - الإصدار 8.0.0 (المفتاح العام المعتمد)
+            ياسر ويب - الإصدار 9.0.0 (بدون إزعاج)
         </div>
     </div>
 </div>
@@ -176,18 +176,15 @@
         if (!currentUser) currentUser = "ياسر";
         try {
             const pRes = await supabaseClient.from("products").select("*");
-            if (pRes.error) console.log("خطأ جلب المنتجات: " + pRes.error.message);
-            else productsList = pRes.data || [];
+            if (!pRes.error) productsList = pRes.data || [];
             
             const cRes = await supabaseClient.from("customers").select("*");
-            if (cRes.error) console.log("خطأ جلب العملاء: " + cRes.error.message);
-            else customersList = cRes.data || [];
+            if (!cRes.error) customersList = cRes.data || [];
             
             const iRes = await supabaseClient.from("invoices").select("*");
-            if (iRes.error) console.log("خطأ جلب الفواتير: " + iRes.error.message);
-            else invoicesList = iRes.data || [];
+            if (!iRes.error) invoicesList = iRes.data || [];
         } catch (e) { 
-            console.log("خطأ في الاتصال بالسحابة: " + e.message); 
+            console.log(e); 
         }
     }
 
@@ -314,7 +311,7 @@
             cart.push({ ...item, qty: 1, max_qty: item.quantity });
         }
         updateCartBadge();
-        alert("تمت الإضافة للسلة!");
+        goToPage('grid'); // ترجع للشبكة مباشرة وبدون أي مربعات منبهة
     }
 
     function renderCart(container) {
@@ -395,7 +392,7 @@
 
     async function checkout(subtotal) {
         const custName = document.getElementById("selected-customer").value;
-        if (!custName) { alert("يرجى اختيار عميل صالح."); return; }
+        if (!custName) return;
         
         const discountVal = parseFloat(document.getElementById("discount-val").value) || 0;
         const finalTotal = Math.max(0, subtotal - discountVal);
@@ -429,15 +426,11 @@
         };
 
         const { error } = await supabaseClient.from("invoices").insert([invData]);
-        if (error) {
-            alert("فشل حفظ الفاتورة في السحابة: " + error.message);
-            return;
-        }
+        if (error) return;
 
         invoicesList.push(invData);
         cart = [];
         localStorage.removeItem("yasser_cart");
-        alert("✅ تمت عملية البيع بنجاح وحُفظت بالسحابة!");
         goToPage('invoices');
     }
 
@@ -462,17 +455,12 @@
         const sell = parseFloat(document.getElementById("p-sell").value) || 0;
         const qty = parseInt(document.getElementById("p-qty").value) || 1;
 
-        if (!name) { alert("يرجى إدخال اسم المادة."); return; }
+        if (!name) return;
         const newP = { username: currentUser, product_name: name, buy_price: buy, sell_price: sell, quantity: qty, barcode: "بدون" };
         
-        const { data, error } = await supabaseClient.from("products").insert([newP]).select();
-        
-        if (error) {
-            alert("❌ فشل حفظ المادة بالسحابة! السبب: " + error.message);
-            return;
-        }
+        const { error } = await supabaseClient.from("products").insert([newP]).select();
+        if (error) return;
 
-        alert("✅ تم حفظ المادة بنجاح في السحابة!");
         await loadAppData();
         goToPage('inventory');
     }
@@ -515,7 +503,7 @@
         const street = document.getElementById("c-street").value.trim();
         const address = document.getElementById("c-address").value.trim();
 
-        if (!name || !phone) { alert("يرجى إدخال اسم العميل ورقم الهاتف على الأقل."); return; }
+        if (!name || !phone) return;
         const newC = { 
             username: currentUser, 
             customer_name: name, 
@@ -526,12 +514,8 @@
         };
         
         const { error } = await supabaseClient.from("customers").insert([newC]);
-        if (error) {
-            alert("❌ فشل حفظ العميل بالسحابة! السبب: " + error.message);
-            return;
-        }
+        if (error) return;
 
-        alert("✅ تم حفظ العميل بنجاح في السحابة!");
         await loadAppData();
         goToPage('customers');
     }
