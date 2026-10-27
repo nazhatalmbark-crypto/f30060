@@ -93,7 +93,7 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 9.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 11.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
@@ -108,6 +108,9 @@
             <option value="مسؤول مبيعات">مسؤول مبيعات</option>
         </select>
         <button onclick="handleLogin()">دخول للنظام</button>
+        <div style="text-align: center; margin-top: 15px; font-size: 12px;">
+            للتواصل والدعم الفني: <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #6b46c1; font-weight: bold; text-decoration: none;">📸 @yaser120120120120</a>
+        </div>
     </div>
 
     <!-- التطبيق الرئيسي -->
@@ -124,7 +127,7 @@
         <div id="view-content"></div>
         
         <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7c6f9f;">
-            ياسر ويب - الإصدار 9.0.0 (بدون إزعاج)
+            ياسر ويب - تطوير ودعم: <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #6b46c1; text-decoration: none;">@yaser120120120120</a>
         </div>
     </div>
 </div>
@@ -209,12 +212,14 @@
             if (page === "grid") { renderGrid(content); }
             else if (page === "cart") { renderCart(content); }
             else if (page === "add_product") { renderAddProduct(content); }
+            else if (page === "add_stock") { renderAddStock(content); }
             else if (page === "inventory") { renderInventory(content); }
             else if (page === "customers") { renderCustomers(content); }
             else if (page === "suppliers") { content.innerHTML = `<p style="text-align:center;">إدارة الموردين قيد التشغيل.</p>`; }
             else if (page === "expenses") { content.innerHTML = `<p style="text-align:center;">الصندوق قيد التشغيل.</p>`; }
             else if (page === "invoices") { renderInvoices(content); }
             else if (page === "reports") { renderReports(content); }
+            else if (page === "guide") { renderGuide(content); }
             else if (page === "audit") { content.innerHTML = `<p style="text-align:center;">سجل النشاطات يعمل.</p>`; }
         }
     }
@@ -234,8 +239,12 @@
                     <p style="font-size:11px;">الضغطة السريعة للبيع</p>
                 </div>
                 <div class="card" onclick="goToPage('add_product')" style="cursor:pointer; text-align:center;">
-                    <h4>➕ إضافة وتوريد</h4>
-                    <p style="font-size:11px;">إضافة بضاعة جديدة</p>
+                    <h4>➕ إضافة مادة جديدة</h4>
+                    <p style="font-size:11px;">مادة لأول مرة للمخزن</p>
+                </div>
+                <div class="card" onclick="goToPage('add_stock')" style="cursor:pointer; text-align:center; background:#e6fffa;">
+                    <h4>📦 إضافة كمية لمادة</h4>
+                    <p style="font-size:11px;">زيادة رصيد مادة قديمة</p>
                 </div>
                 <div class="card" onclick="goToPage('inventory')" style="cursor:pointer; text-align:center;">
                     <h4>📦 جرد المخزن</h4>
@@ -260,6 +269,51 @@
                 <div class="card" onclick="goToPage('reports')" style="cursor:pointer; text-align:center;">
                     <h4>📊 التقارير والأرباح</h4>
                     <p style="font-size:11px;">الحسابات المالية</p>
+                </div>
+                <div class="card" onclick="goToPage('guide')" style="cursor:pointer; text-align:center; background:#fffaf0; grid-column: span 2;">
+                    <h4>📖 دليل المستخدم الشامل</h4>
+                    <p style="font-size:11px;">شرح تفصيلي لكافة أقسام النظام وطريقة الاستخدام</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // دليل المستخدم المفصل والمرتب
+    function renderGuide(container) {
+        document.getElementById("app-title").innerText = "دليل المستخدم الشامل";
+        container.innerHTML = `
+            <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
+                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🌟 أهلاً بك في دليل نظام ياسر ويب</h3>
+                <p>هذا الدليل يشرح لك كل تبويب في التطبيق وكيفية الاستفادة منه بأفضل شكل ممكن لإدارة محلك أو تجارتك بكل سهولة وسلاسة.</p>
+                
+                <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
+
+                <h4 style="color:#2d1a4e;">1️⃣ الرئيسية والشبكة (للبيع السريع)</h4>
+                <p>تتيح لك مشاهدة جميع المواد المعروضة للبيع مع أسعارها والكميات المتوفرة. يمكنك الضغط على زر (إضافة) لأي مادة لتنزل فوراً إلى سلة التسوق.</p>
+
+                <h4 style="color:#2d1a4e;">2️⃣ إضافة مادة جديدة</h4>
+                <p>استخدم هذا التبويب عندما تريد إدخال <b>مادة جديدة كلياً</b> لم تدخل إلى المخزن من قبل. تطلب منك إدخال اسم المادة، سعر الشراء، سعر البيع، والكمية الأولية.</p>
+
+                <h4 style="color:#2d1a4e;">3️⃣ إضافة كمية لمادة (المخزن القديم)</h4>
+                <p>مخصص لزيادة رصيد المواد المخزنة مسبقاً بدون الحاجة لإعادة كتابة اسم المادة من جديد. تختار المادة من القائمة، وتكتب الكمية الإضافية، وسيتم جمعها تلقائياً على الرصيد الحالي!</p>
+
+                <h4 style="color:#2d1a4e;">4️⃣ جرد المخزن</h4>
+                <p>جدول شامل يعرض لك جميع المواد الموجودة في المخزن حالياً، مع أسعار الشراء والبيع والكميات المتوفرة بدقة.</p>
+
+                <h4 style="color:#2d1a4e;">5️⃣ العملاء والديون</h4>
+                <p>تسجيل بيانات العملاء الجدد (الاسم، الهاتف، المحافظة، والشارع والعنوان التفصيلي) لمتابعة ديونهم وحساباتهم بسهولة.</p>
+
+                <h4 style="color:#2d1a4e;">6️⃣ سجل الفواتير</h4>
+                <p>يعرض جميع الفواتير الصادرة مع تفاصيل المواد والمبالغ الواصلة والمتبقية (الديون). يتيح لك تحميل الفاتورة بصيغة <b>PDF</b> أو إرسالها مباشرة للزبون عبر <b>الواتساب</b>.</p>
+
+                <h4 style="color:#2d1a4e;">7️⃣ التقارير والأرباح</h4>
+                <p>ملخص مالي يعرض إجمالي المبيعات العامة لتعقب أداء المتجر المالي.</p>
+
+                <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
+                
+                <div style="text-align:center; background:#f8f6fc; padding:10px; border-radius:12px;">
+                    <p style="margin:0; font-weight:bold;">للتواصل والدعم الفني والاستفسارات:</p>
+                    <a href="https://instagram.com/yaser120120120120" target="_blank" style="display:inline-block; margin-top:5px; color:#fff; background:#6b46c1; padding:8px 15px; border-radius:8px; text-decoration:none; font-weight:bold;">📸 انستغرام: @yaser120120120120</a>
                 </div>
             </div>
         `;
@@ -311,7 +365,7 @@
             cart.push({ ...item, qty: 1, max_qty: item.quantity });
         }
         updateCartBadge();
-        goToPage('grid'); // ترجع للشبكة مباشرة وبدون أي مربعات منبهة
+        goToPage('grid');
     }
 
     function renderCart(container) {
@@ -435,7 +489,7 @@
     }
 
     function renderAddProduct(container) {
-        document.getElementById("app-title").innerText = "إضافة مادة جديدة";
+        document.getElementById("app-title").innerText = "إضافة مادة جديدة للمخزن";
         container.innerHTML = `
             <label>اسم المادة:</label>
             <input type="text" id="p-name" placeholder="أدخل اسم المادة...">
@@ -445,7 +499,7 @@
             <input type="number" id="p-sell" value="0">
             <label>الكمية المتوفرة:</label>
             <input type="number" id="p-qty" value="1">
-            <button onclick="saveNewProduct()">حفظ المادة</button>
+            <button onclick="saveNewProduct()">حفظ المادة الجديدة</button>
         `;
     }
 
@@ -459,6 +513,43 @@
         const newP = { username: currentUser, product_name: name, buy_price: buy, sell_price: sell, quantity: qty, barcode: "بدون" };
         
         const { error } = await supabaseClient.from("products").insert([newP]).select();
+        if (error) return;
+
+        await loadAppData();
+        goToPage('inventory');
+    }
+
+    function renderAddStock(container) {
+        document.getElementById("app-title").innerText = "إضافة كمية لمادة مخزنة";
+        container.innerHTML = `
+            <label>اختر المادة:</label>
+            <select id="stock-product-id">
+                ${productsList.map(p => `<option value="${p.id}">📦 ${p.product_name} (المتوفر حالياً: ${p.quantity})</option>`).join('')}
+            </select>
+            <label>الكمية الإضافية المراد إضافتها:</label>
+            <input type="number" id="stock-added-qty" value="1" min="1">
+            <label>تحديث سعر البيع (اختياري):</label>
+            <input type="number" id="stock-new-sell" placeholder="اتركه فارغاً أو ادرج السعر الجديد">
+            <button onclick="saveAddedStock()" style="background:#2b6cb0;">➕ إضافة الكمية إلى رصيد المادة</button>
+        `;
+    }
+
+    async function saveAddedStock() {
+        const prodId = document.getElementById("stock-product-id").value;
+        const addedQty = parseInt(document.getElementById("stock-added-qty").value) || 0;
+        const newSellInput = document.getElementById("stock-new-sell").value;
+
+        if (!prodId || addedQty <= 0) return;
+
+        const currentProd = productsList.find(p => p.id == prodId);
+        if (!currentProd) return;
+
+        let updateData = { quantity: currentProd.quantity + addedQty };
+        if (newSellInput !== "") {
+            updateData.sell_price = parseFloat(newSellInput) || currentProd.sell_price;
+        }
+
+        const { error } = await supabaseClient.from("products").update(updateData).eq("id", prodId);
         if (error) return;
 
         await loadAppData();
