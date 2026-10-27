@@ -93,14 +93,22 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 15.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 16.0.0</p>
     </div>
 
-    <!-- تسجيل الدخول -->
+    <!-- تسجيل الدخول مع رجوع خانة الصلاحية -->
     <div id="login-screen" class="hidden">
         <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
+        
         <label>اسم المستخدم أو المحل:</label>
         <input type="text" id="login-username" value="ياسر" placeholder="أدخل اسم المستخدم...">
+        
+        <label>الصلاحية:</label>
+        <select id="login-role">
+            <option value="مشرف النظام">مشرف النظام (الأدمن)</option>
+            <option value="كاشير">كاشير</option>
+            <option value="مسؤول مبيعات">مسؤول مبيعات</option>
+        </select>
         
         <button onclick="handleLogin()">دخول للنظام</button>
         <div style="text-align: center; margin-top: 15px; font-size: 12px;">
@@ -136,6 +144,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = localStorage.getItem("yasser_user") || "ياسر";
+    let userRole = localStorage.getItem("yasser_role") || "مشرف النظام";
     let cart = JSON.parse(localStorage.getItem("yasser_cart")) || [];
     
     let productsList = [];
@@ -179,17 +188,22 @@
         const banner = document.getElementById("subscription-banner");
         if (sub.type === "مدفوعة") {
             banner.style.background = "#2f855a";
-            banner.innerHTML = `🌟 النسخة المدفوعة مفعلة | متبقي من الاشتراك: <b>${sub.daysLeft} يوم</b>`;
+            banner.innerHTML = `🌟 النسخة المدفوعة مفعلة (${userRole}) | متبقي: <b>${sub.daysLeft} يوم</b>`;
         } else {
             banner.style.background = "#b7791f";
-            banner.innerHTML = `⚠️ أنت تستخدم النسخة المجانية المحدودة. <a href="#" onclick="goToPage('activation_page')" style="color:#fff; text-decoration:underline;">أدخل كود التفعيل هنا</a>`;
+            banner.innerHTML = `⚠️ النسخة المجانية (${userRole}). <a href="#" onclick="goToPage('activation_page')" style="color:#fff; text-decoration:underline;">تفعيل الكود</a>`;
         }
     }
 
     function handleLogin() {
         const usernameInput = document.getElementById("login-username").value.trim() || "ياسر";
+        const roleInput = document.getElementById("login-role").value;
+        
         currentUser = usernameInput;
+        userRole = roleInput;
+        
         localStorage.setItem("yasser_user", currentUser);
+        localStorage.setItem("yasser_role", userRole);
 
         loadAppData();
         document.getElementById("login-screen").classList.add("hidden");
@@ -235,7 +249,7 @@
         
         if (page === "home") {
             backBtn.classList.add("hidden");
-            document.getElementById("app-title").innerText = "ياسر ويب - الرئيسية";
+            document.getElementById("app-title").innerText = `ياسر ويب - ${currentUser} (${userRole})`;
             renderHome(content);
         } else {
             backBtn.classList.remove("hidden");
@@ -260,9 +274,8 @@
         const todayInvs = invoicesList.filter(inv => inv.created_date && inv.created_date.startsWith(todayStr));
         const todaySales = todayInvs.reduce((sum, inv) => sum + (inv.total_price || 0), 0);
 
-        // هل المستخدم هو الأدمن ياسر؟ نظهر له لوحة التحكم الخاصة بالأدمن
         let adminCardHTML = "";
-        if (currentUser === "ياسر" || currentUser === "yasser_admin") {
+        if (userRole === "مشرف النظام") {
             adminCardHTML = `
                 <div class="card" onclick="goToPage('admin_panel')" style="cursor:pointer; text-align:center; background:#fff5f5; border: 2px dashed #c53030; grid-column: span 2;">
                     <h4 style="color:#c53030; margin:5px 0;">👑 لوحة تحكم الأدمن (توليد الأكواد)</h4>
@@ -325,7 +338,6 @@
         `;
     }
 
-    // لوحة تحكم الأدمن لتوليد الأكواد وإدارتها
     function renderAdminPanel(container) {
         document.getElementById("app-title").innerText = "لوحة تحكم الأدمن";
         let generatedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
@@ -360,7 +372,6 @@
         renderAdminPanel(document.getElementById("view-content"));
     }
 
-    // واجهة تفعيل الكود والنسخة المدفوعة مباشرة داخل القائمة
     function renderActivationPage(container) {
         document.getElementById("app-title").innerText = "تفعيل النسخة المدفوعة";
         container.innerHTML = `
@@ -407,7 +418,6 @@
         }
     }
 
-    // دليل المستخدم المفصل والشامل لشرح الفرق بين النسختين والخانَات
     function renderGuide(container) {
         document.getElementById("app-title").innerText = "دليل المستخدم والفرق بين النسخ";
         container.innerHTML = `
