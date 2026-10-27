@@ -93,7 +93,7 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 13.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web 14.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
@@ -101,9 +101,6 @@
         <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
         <label>اسم المستخدم أو المحل:</label>
         <input type="text" id="login-username" value="ياسر" placeholder="أدخل اسم المستخدم...">
-        
-        <label>كود التفعيل (اختياري للنسخة المدفوعة):</label>
-        <input type="text" id="activation-code-input" placeholder="أدخل كود اشتراك الشهر...">
         
         <button onclick="handleLogin()">دخول للنظام</button>
         <div style="text-align: center; margin-top: 15px; font-size: 12px;">
@@ -158,7 +155,7 @@
         let diffDays = Math.ceil((expire - now) / (1000 * 60 * 60 * 24));
 
         if (diffDays <= 0) {
-            return { type: "مجانية (انتهت المدفوعة)", daysLeft: 0, active: true }; // تعود للمجانية ولا تحذف بضاعته
+            return { type: "مجانية (انتهت المدفوعة)", daysLeft: 0, active: true };
         }
         return { type: "مدفوعة", daysLeft: diffDays, active: true };
     }
@@ -185,40 +182,16 @@
             banner.innerHTML = `🌟 النسخة المدفوعة مفعلة | متبقي من الاشتراك: <b>${sub.daysLeft} يوم</b>`;
         } else {
             banner.style.background = "#b7791f";
-            banner.innerHTML = `⚠️ أنت تستخدم النسخة المجانية المحدودة. <a href="#" onclick="goToPage('guide')" style="color:#fff; text-decoration:underline;">شاهد تفاصيل الترقية</a>`;
+            banner.innerHTML = `⚠️ أنت تستخدم النسخة المجانية المحدودة. <a href="#" onclick="goToPage('activation_page')" style="color:#fff; text-decoration:underline;">أدخل كود التفعيل هنا</a>`;
         }
     }
 
-    async function handleLogin() {
+    function handleLogin() {
         const usernameInput = document.getElementById("login-username").value.trim() || "ياسر";
-        const codeInput = document.getElementById("activation-code-input").value.trim();
-        
         currentUser = usernameInput;
         localStorage.setItem("yasser_user", currentUser);
 
-        if (codeInput !== "") {
-            let usedCodes = JSON.parse(localStorage.getItem("yasser_used_codes")) || [];
-            
-            // التحقق هل الكود حقيقي وصحيح
-            if (codeInput === "YASSER-VIP-2026") {
-                // التحقق هل سبق استخدام هذا الكود القديم لنفس الزبون (لمنع تكراره)
-                if (usedCodes.includes(codeInput)) {
-                    alert("⚠️ عذراً، هذا الكود تم استخدامه مسبقاً وانتهت صلاحيته! يرجى التواصل عبر انستغرام للحصول على كود جديد لشهر جديد.");
-                } else {
-                    usedCodes.push(codeInput);
-                    localStorage.setItem("yasser_used_codes", JSON.stringify(usedCodes));
-                    
-                    let expireTime = new Date().getTime() + (30 * 24 * 60 * 60 * 1000);
-                    localStorage.setItem("yasser_is_vip", "true");
-                    localStorage.setItem("yasser_sub_expire", expireTime.toString());
-                    alert("✅ تم تفعيل النسخة المدفوعة بنجاح لمدة 30 يوماً!");
-                }
-            } else {
-                alert("❌ كود التفعيل غير صحيح! تم تسجيل دخولك على النسخة المجانية.");
-            }
-        }
-
-        await loadAppData();
+        loadAppData();
         document.getElementById("login-screen").classList.add("hidden");
         document.getElementById("main-app").classList.remove("hidden");
         updateBanner();
@@ -277,6 +250,7 @@
             else if (page === "invoices") { renderInvoices(content); }
             else if (page === "reports") { renderReports(content); }
             else if (page === "guide") { renderGuide(content); }
+            else if (page === "activation_page") { renderActivationPage(content); }
         }
     }
 
@@ -326,12 +300,62 @@
                     <h4>📊 التقارير والأرباح</h4>
                     <p style="font-size:11px;">الحسابات المالية</p>
                 </div>
+                <div class="card" onclick="goToPage('activation_page')" style="cursor:pointer; text-align:center; background:#e6fffa;">
+                    <h4>🔑 تفعيل النسخة المدفوعة</h4>
+                    <p style="font-size:11px;">حقل إدخال كود الاشتراك الشهري</p>
+                </div>
                 <div class="card" onclick="goToPage('guide')" style="cursor:pointer; text-align:center; background:#fffaf0; grid-column: span 2;">
                     <h4>📖 دليل المستخدم والفرق بين النسخ</h4>
                     <p style="font-size:11px;">شرح تفصيلي لكافة الخانات والنسخ المجانية والمدفوعة</p>
                 </div>
             </div>
         `;
+    }
+
+    // واجهة تفعيل الكود والنسخة المدفوعة مباشرة داخل القائمة
+    function renderActivationPage(container) {
+        document.getElementById("app-title").innerText = "تفعيل النسخة المدفوعة";
+        container.innerHTML = `
+            <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
+                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🔑 بوابة التفعيل والاشتراك الشهري</h3>
+                <p>أدخل هنا كود الاشتراك الخاص بك لتفعيل النسخة المدفوعة لمدة 30 يوماً كاملة والاستمتاع بكافة مميزات النظام:</p>
+                
+                <label>كود التفعيل الشهري:</label>
+                <input type="text" id="main-activation-input" placeholder="أدخل الكود هنا...">
+                <button onclick="applyActivationCode()" style="background:#2f855a; font-size:15px; padding:12px;">✅ تفعيل الاشتراك الآن</button>
+                
+                <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
+                
+                <div style="text-align:center; background:#f8f6fc; padding:10px; border-radius:12px;">
+                    <p style="margin:0; font-weight:bold;">للحصول على كود اشتراك جديد:</p>
+                    <a href="https://instagram.com/yaser120120120120" target="_blank" style="display:inline-block; margin-top:5px; color:#fff; background:#6b46c1; padding:8px 15px; border-radius:8px; text-decoration:none; font-weight:bold;">📸 انستغرام: @yaser120120120120</a>
+                </div>
+            </div>
+        `;
+    }
+
+    function applyActivationCode() {
+        const codeInput = document.getElementById("main-activation-input").value.trim();
+        if (!codeInput) return;
+
+        let usedCodes = JSON.parse(localStorage.getItem("yasser_used_codes")) || [];
+
+        if (codeInput === "YASSER-VIP-2026") {
+            if (usedCodes.includes(codeInput)) {
+                alert("⚠️ عذراً، هذا الكود تم استخدامه مسبقاً وانتهت صلاحيته! يرجى التواصل عبر انستغرام للحصول على كود جديد لشهر جديد.");
+            } else {
+                usedCodes.push(codeInput);
+                localStorage.setItem("yasser_used_codes", JSON.stringify(usedCodes));
+                
+                let expireTime = new Date().getTime() + (30 * 24 * 60 * 60 * 1000);
+                localStorage.setItem("yasser_is_vip", "true");
+                localStorage.setItem("yasser_sub_expire", expireTime.toString());
+                alert("✅ تم تفعيل النسخة المدفوعة بنجاح لمدة 30 يوماً!");
+                goToPage("home");
+            }
+        } else {
+            alert("❌ كود التفعيل غير صحيح!");
+        }
     }
 
     // دليل المستخدم المفصل والشامل لشرح الفرق بين النسختين والخانَات
@@ -356,6 +380,7 @@
                 <p><b>• العملاء والديون:</b> لتسجيل بيانات الزبائن (الاسم، الهاتف، المحافظة، العنوان) ومتابعة ديونهم.</p>
                 <p><b>• سجل الفواتير:</b> تعرض كل الفواتير الصادرة، مع خيار تحميل الفاتورة بصيغة PDF أو إرسالها للزبون عبر الواتساب.</p>
                 <p><b>• التقارير والأرباح:</b> لعرض إجمالي المبيعات والأرباح العامة للمتجر.</p>
+                <p><b>• تفعيل النسخة المدفوعة:</b> الحقل المخصص لإدخال كود الاشتراك الشهري الخاص بك.</p>
 
                 <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
                 
