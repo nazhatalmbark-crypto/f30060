@@ -93,10 +93,10 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web 16.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web v17.0.0</p>
     </div>
 
-    <!-- تسجيل الدخول مع رجوع خانة الصلاحية -->
+    <!-- تسجيل الدخول -->
     <div id="login-screen" class="hidden">
         <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
         
@@ -121,6 +121,9 @@
     <div id="main-app" class="hidden">
         <div id="subscription-banner" style="background: #2f855a; color: white; padding: 6px; border-radius: 8px; text-align: center; font-size: 11px; margin-bottom: 10px; font-weight: bold;"></div>
         
+        <!-- تنبيهات النفاذ الذكية -->
+        <div id="stock-alerts-box"></div>
+
         <div class="top-bar">
             <button id="back-btn" class="hidden" onclick="goToPage('home')" style="width: auto; padding: 6px 12px;">⬅️ رجوع</button>
             <span id="app-title" style="font-weight: bold; font-size: 15px;">ياسر ويب</span>
@@ -150,22 +153,16 @@
     let productsList = [];
     let customersList = [];
     let invoicesList = [];
+    let expensesList = [];
 
     function checkSubscriptionStatus() {
         let subExpireDate = localStorage.getItem("yasser_sub_expire");
         let isVip = localStorage.getItem("yasser_is_vip") === "true";
-
-        if (!isVip || !subExpireDate) {
-            return { type: "مجانية", daysLeft: 0, active: true };
-        }
-
+        if (!isVip || !subExpireDate) return { type: "مجانية", daysLeft: 0, active: true };
         let now = new Date().getTime();
         let expire = parseInt(subExpireDate);
         let diffDays = Math.ceil((expire - now) / (1000 * 60 * 60 * 24));
-
-        if (diffDays <= 0) {
-            return { type: "مجانية (انتهت المدفوعة)", daysLeft: 0, active: true };
-        }
+        if (diffDays <= 0) return { type: "مجانية (انتهت المدفوعة)", daysLeft: 0, active: true };
         return { type: "مدفوعة", daysLeft: diffDays, active: true };
     }
 
@@ -179,6 +176,7 @@
             document.getElementById("login-screen").classList.add("hidden");
             document.getElementById("main-app").classList.remove("hidden");
             updateBanner();
+            checkLowStockAlerts();
             goToPage("home");
         }
     };
@@ -195,13 +193,26 @@
         }
     }
 
+    function checkLowStockAlerts() {
+        const lowItems = productsList.filter(p => p.quantity <= 3);
+        const alertBox = document.getElementById("stock-alerts-box");
+        if (lowItems.length > 0) {
+            alertBox.innerHTML = `
+                <div class="card" style="background:#fff5f5; border:1px solid #c53030; padding:10px; margin-bottom:12px;">
+                    <h4 style="color:#c53030; margin:0 0 5px 0; font-size:13px;">🚨 تنبيه نفاذ المخزن الذكي:</h4>
+                    <p style="font-size:11px; margin:0;">هناك ${lowItems.length} مواد وشك على النفاد أو نفدت فعلاً: <b>${lowItems.map(i => i.product_name).join(', ')}</b>. بادر بطلبها فوراً!</p>
+                </div>
+            `;
+        } else {
+            alertBox.innerHTML = "";
+        }
+    }
+
     function handleLogin() {
         const usernameInput = document.getElementById("login-username").value.trim() || "ياسر";
         const roleInput = document.getElementById("login-role").value;
-        
         currentUser = usernameInput;
         userRole = roleInput;
-        
         localStorage.setItem("yasser_user", currentUser);
         localStorage.setItem("yasser_role", userRole);
 
@@ -209,6 +220,7 @@
         document.getElementById("login-screen").classList.add("hidden");
         document.getElementById("main-app").classList.remove("hidden");
         updateBanner();
+        checkLowStockAlerts();
         goToPage("home");
     }
 
@@ -229,9 +241,10 @@
             
             const iRes = await supabaseClient.from("invoices").select("*");
             if (!iRes.error) invoicesList = iRes.data || [];
-        } catch (e) { 
-            console.log(e); 
-        }
+
+            const eRes = await supabaseClient.from("expenses").select("*");
+            if (!eRes.error) expensesList = eRes.data || [];
+        } catch (e) { console.log(e); }
     }
 
     function updateCartBadge() {
@@ -243,6 +256,7 @@
     async function goToPage(page) {
         await loadAppData();
         updateBanner();
+        checkLowStockAlerts();
         updateCartBadge();
         const content = document.getElementById("view-content");
         const backBtn = document.getElementById("back-btn");
@@ -259,8 +273,7 @@
             else if (page === "add_stock") { renderAddStock(content); }
             else if (page === "inventory") { renderInventory(content); }
             else if (page === "customers") { renderCustomers(content); }
-            else if (page === "suppliers") { content.innerHTML = `<p style="text-align:center;">إدارة الموردين قيد التشغيل.</p>`; }
-            else if (page === "expenses") { content.innerHTML = `<p style="text-align:center;">الصندوق قيد التشغيل.</p>`; }
+            else if (page === "expenses") { renderExpenses(content); }
             else if (page === "invoices") { renderInvoices(content); }
             else if (page === "reports") { renderReports(content); }
             else if (page === "guide") { renderGuide(content); }
@@ -292,47 +305,43 @@
                 ${adminCardHTML}
                 <div class="card" onclick="goToPage('grid')" style="cursor:pointer; text-align:center;">
                     <h4>🏠 الرئيسية والشبكة</h4>
-                    <p style="font-size:11px;">الضغطة السريعة للبيع</p>
+                    <p style="font-size:11px;">البيع السريع</p>
                 </div>
                 <div class="card" onclick="goToPage('add_product')" style="cursor:pointer; text-align:center;">
                     <h4>➕ إضافة مادة جديدة</h4>
-                    <p style="font-size:11px;">مادة لأول مرة للمخزن</p>
+                    <p style="font-size:11px;">صنف جديد للمخزن</p>
                 </div>
                 <div class="card" onclick="goToPage('add_stock')" style="cursor:pointer; text-align:center; background:#e6fffa;">
                     <h4>📦 إضافة كمية لمادة</h4>
-                    <p style="font-size:11px;">زيادة رصيد مادة قديمة</p>
+                    <p style="font-size:11px;">زيادة رصيد مخزني</p>
                 </div>
                 <div class="card" onclick="goToPage('inventory')" style="cursor:pointer; text-align:center;">
                     <h4>📦 جرد المخزن</h4>
-                    <p style="font-size:11px;">رصيد المواد الحالي</p>
+                    <p style="font-size:11px;">الرصيد والتنبيهات</p>
                 </div>
                 <div class="card" onclick="goToPage('customers')" style="cursor:pointer; text-align:center;">
                     <h4>👥 العملاء والديون</h4>
-                    <p style="font-size:11px;">إدارة الزبائن والذمم</p>
+                    <p style="font-size:11px;">متابعة والواتساب</p>
                 </div>
-                <div class="card" onclick="goToPage('suppliers')" style="cursor:pointer; text-align:center;">
-                    <h4>🏭 إدارة الموردين</h4>
-                    <p style="font-size:11px;">موردين البضاعة</p>
-                </div>
-                <div class="card" onclick="goToPage('expenses')" style="cursor:pointer; text-align:center;">
+                <div class="card" onclick="goToPage('expenses')" style="cursor:pointer; text-align:center; background:#fffaf0;">
                     <h4>💰 الصندوق والمصاريف</h4>
-                    <p style="font-size:11px;">سندات الصرف</p>
+                    <p style="font-size:11px;">سندات الصرف اليومية</p>
                 </div>
                 <div class="card" onclick="goToPage('invoices')" style="cursor:pointer; text-align:center;">
                     <h4>📄 سجل الفواتير</h4>
-                    <p style="font-size:11px;">قائمة الفواتير والواتساب</p>
+                    <p style="font-size:11px;">PDF والواتساب</p>
                 </div>
                 <div class="card" onclick="goToPage('reports')" style="cursor:pointer; text-align:center;">
                     <h4>📊 التقارير والأرباح</h4>
-                    <p style="font-size:11px;">الحسابات المالية</p>
+                    <p style="font-size:11px;">حسابات الصافي</p>
                 </div>
                 <div class="card" onclick="goToPage('activation_page')" style="cursor:pointer; text-align:center; background:#e6fffa;">
                     <h4>🔑 تفعيل النسخة المدفوعة</h4>
-                    <p style="font-size:11px;">حقل إدخال كود الاشتراك الشهري</p>
+                    <p style="font-size:11px;">إدخال كود الشهر</p>
                 </div>
                 <div class="card" onclick="goToPage('guide')" style="cursor:pointer; text-align:center; background:#fffaf0; grid-column: span 2;">
-                    <h4>📖 دليل المستخدم والفرق بين النسخ</h4>
-                    <p style="font-size:11px;">شرح تفصيلي لكافة الخانات والنسخ المجانية والمدفوعة</p>
+                    <h4>📖 دليل المستخدم الشامل والمميزات الجديدة</h4>
+                    <p style="font-size:11px;">جدول توضيحي لكل تبويب والفوائد</p>
                 </div>
             </div>
         `;
@@ -341,15 +350,12 @@
     function renderAdminPanel(container) {
         document.getElementById("app-title").innerText = "لوحة تحكم الأدمن";
         let generatedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
-        
         container.innerHTML = `
             <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
                 <h3 style="color:#c53030; margin-top:0; text-align:center;">👑 لوحة الأدمن لتوليد الأكواد</h3>
-                <p>من هنا يمكنك توليد أكواد اشتراك شهرية جديدة وإعطائها للزبائن المشتركين:</p>
-                
+                <p>توليد أكواد اشتراك شهرية جديدة وإعطائها للزبائن المشتركين:</p>
                 <button onclick="generateNewVipCode()" style="background:#c53030; font-size:15px; padding:12px; margin-bottom:15px;">⚡ توليد كود اشتراك جديد</button>
-                
-                <h4 style="color:#2d1a4e;">📋 قائمة الأكواد الفعالة في نظامك:</h4>
+                <h4 style="color:#2d1a4e;">📋 قائمة الأكواد الفعالة:</h4>
                 <div style="background:#f8f6fc; padding:10px; border-radius:12px; max-height:200px; overflow-y:auto;">
                     ${generatedCodes.map(code => `<div style="background:#fff; padding:8px; margin-bottom:5px; border-radius:8px; border:1px solid #dcd6f7; display:flex; justify-content:space-between; align-items:center;">
                         <span>🔑 <b>${code}</b></span>
@@ -363,12 +369,10 @@
     function generateNewVipCode() {
         let randomNum = Math.floor(1000 + Math.random() * 9000);
         let newCode = `YASSER-VIP-${randomNum}`;
-        
         let codes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
         codes.push(newCode);
         localStorage.setItem("yasser_admin_codes", JSON.stringify(codes));
-        
-        alert(`✅ تم توليد كود جديد بنجاح:\n${newCode}\n\nيمكنك نسخه وإرساله للزبون المشترك!`);
+        alert(`✅ تم توليد كود جديد:\n${newCode}`);
         renderAdminPanel(document.getElementById("view-content"));
     }
 
@@ -376,15 +380,12 @@
         document.getElementById("app-title").innerText = "تفعيل النسخة المدفوعة";
         container.innerHTML = `
             <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
-                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🔑 بوابة التفعيل والاشتراك الشهري</h3>
-                <p>أدخل هنا كود الاشتراك الخاص بك لتفعيل النسخة المدفوعة لمدة 30 يوماً كاملة والاستمتاع بكافة مميزات النظام:</p>
-                
-                <label>كود التفعيل الشهري:</label>
+                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🔑 بوابة التفعيل والاشتراك</h3>
+                <p>أدخل كود الاشتراك لتفعيل النسخة المدفوعة لمدة 30 يوماً:</p>
+                <label>كود التفعيل:</label>
                 <input type="text" id="main-activation-input" placeholder="أدخل الكود هنا...">
-                <button onclick="applyActivationCode()" style="background:#2f855a; font-size:15px; padding:12px;">✅ تفعيل الاشتراك الآن</button>
-                
+                <button onclick="applyActivationCode()" style="background:#2f855a; font-size:15px; padding:12px;">✅ تفعيل الاشتراك</button>
                 <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
-                
                 <div style="text-align:center; background:#f8f6fc; padding:10px; border-radius:12px;">
                     <p style="margin:0; font-weight:bold;">للحصول على كود اشتراك جديد:</p>
                     <a href="https://instagram.com/yaser120120120120" target="_blank" style="display:inline-block; margin-top:5px; color:#fff; background:#6b46c1; padding:8px 15px; border-radius:8px; text-decoration:none; font-weight:bold;">📸 انستغرام: @yaser120120120120</a>
@@ -396,21 +397,19 @@
     function applyActivationCode() {
         const codeInput = document.getElementById("main-activation-input").value.trim();
         if (!codeInput) return;
-
         let usedCodes = JSON.parse(localStorage.getItem("yasser_used_codes")) || [];
         let validCodes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
 
         if (validCodes.includes(codeInput)) {
             if (usedCodes.includes(codeInput)) {
-                alert("⚠️ عذراً، هذا الكود تم استخدامه مسبقاً وانتهت صلاحيته! يرجى التواصل عبر انستغرام للحصول على كود جديد لشهر جديد.");
+                alert("⚠️ الكود مستخدم مسبقاً! تواصل معنا عبر انستغرام للحصول على كود جديد.");
             } else {
                 usedCodes.push(codeInput);
                 localStorage.setItem("yasser_used_codes", JSON.stringify(usedCodes));
-                
                 let expireTime = new Date().getTime() + (30 * 24 * 60 * 60 * 1000);
                 localStorage.setItem("yasser_is_vip", "true");
                 localStorage.setItem("yasser_sub_expire", expireTime.toString());
-                alert("✅ تم تفعيل النسخة المدفوعة بنجاح لمدة 30 يوماً!");
+                alert("✅ تم تفعيل النسخة المدفوعة لمدة 30 يوماً بنجاح!");
                 goToPage("home");
             }
         } else {
@@ -419,34 +418,58 @@
     }
 
     function renderGuide(container) {
-        document.getElementById("app-title").innerText = "دليل المستخدم والفرق بين النسخ";
+        document.getElementById("app-title").innerText = "دليل المستخدم الشامل والمميزات الجديدة";
         container.innerHTML = `
-            <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
-                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🌟 دليل استخدام نظام ياسر ويب</h3>
+            <div class="card" style="background:#fff; line-height:1.6; font-size:12px;">
+                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">📖 الدليل الشامل لنظام ياسر ويب</h3>
+                <p>يتضمن جدولاً تفصيلياً يشرح كافة تبويبات النظام والفوائد المكتسبة من الإضافات الحديثة:</p>
                 
-                <div style="background:#f3e8ff; padding:12px; border-radius:12px; margin-bottom:15px;">
-                    <h4 style="color:#2d1a4e; margin-top:0;">💎 الفرق بين النسخة المجانية والنسخة المدفوعة</h4>
-                    <p><b>1️⃣ النسخة المجانية:</b> تتيح لك فتح النظام وتجربته بشكل مباشر ومبسط، مع حدود أساسية في إدارة المتجر ومعرفة كفاءة التطبيق.</p>
-                    <p><b>2️⃣ النسخة المدفوعة (الاشتراك الشهري):</b> تمنحك الصلاحيات الكاملة والمفتوحة بدون أي قيود، مع عداد تنازلي ومميزات متقدمة ودعم فني مستمر.</p>
-                    <p style="color:#2f855a; font-weight:bold; margin-bottom:0;">📌 أمان تام لبياناتك: عند انتهاء اشتراك الشهر وحاولت إدخال نفس الكود القديم سيرفضه النظام، لكن بضاعتك وزبائنك وفواتيرك تظل محفوظة في السحابة ولن تنحذف أبداً، وكل ما عليك هو مراسلتي للحصول على كود جديد لشهر جديد!</p>
+                <table border="1" style="width:100%; border-collapse:collapse; font-size:11px; text-align:right; background:#fff; margin-bottom:15px;">
+                    <tr style="background:#f3e8ff; text-align:center;">
+                        <th style="padding:6px;">التبويب أو القسم</th>
+                        <th style="padding:6px;">الوظيفة الأساسية</th>
+                        <th style="padding:6px;">الفوائد والمميزات الجديدة</th>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px;"><b>الرئيسية والشبكة</b></td>
+                        <td style="padding:6px;">عرض المواد والأسعار والكميات.</td>
+                        <td style="padding:6px;">بيع سريع ومنظم بنقرة زر بدون أخطاء.</td>
+                    </tr>
+                    <tr style="background:#f8f6fc;">
+                        <td style="padding:6px;"><b>تنبيهات النفاذ الذكية</b></td>
+                        <td style="padding:6px;">مراقبة المخزن تلقائياً.</td>
+                        <td style="padding:6px;">⚠️ تنبيه فوري بالمواد التي قاربت على النفاد لطلبها مبكراً.</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px;"><b>الصندوق والمصاريف</b></td>
+                        <td style="padding:6px;">إدارة النثريات وسندات الصرف.</td>
+                        <td style="padding:6px;">💰 خصم أجور التوصيل والإعلانات لمعرفة الصافي الحقيقي.</td>
+                    </tr>
+                    <tr style="background:#f8f6fc;">
+                        <td style="padding:6px;"><b>العملاء والديون</b></td>
+                        <td style="padding:6px;">حفظ بيانات الزبائن والذمم.</td>
+                        <td style="padding:6px;">💬 إرسال رسائل تذكير بالديون مباشرة عبر الواتساب.</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px;"><b>سجل الفواتير</b></td>
+                        <td style="padding:6px;">عرض الفواتير السابقة وطباعتها.</td>
+                        <td style="padding:6px;">📥 تصدير PDF وإرسالها للزبون فورا عبر واتساب.</td>
+                    </tr>
+                    <tr style="background:#f8f6fc;">
+                        <td style="padding:6px;"><b>التقارير والأرباح</b></td>
+                        <td style="padding:6px;">حساب إجمالي المبيعات.</td>
+                        <td style="padding:6px;">📊 رؤية الأرباح الصافية للمتجر أو الصفحة بدقة.</td>
+                    </tr>
+                </table>
+
+                <div style="background:#f3e8ff; padding:10px; border-radius:12px; margin-bottom:10px;">
+                    <h4 style="color:#2d1a4e; margin:0 0 5px 0;">💎 الفرق بين النسختين:</h4>
+                    <p style="margin:0;"><b>النسخة المجانية:</b> تتيح لك تجربة النظام بشكل مبسط ومحدود.<br><b>النسخة المدفوعة:</b> تمنحك صلاحيات مطلقة، دعم فني مستمر، وكل بياناتك محفوظة بالسحابة بأمان تام.</p>
                 </div>
 
-                <h4 style="color:#2d1a4e;">🛠️ شرح تفصيلي لخانات وأقسام النظام:</h4>
-                <p><b>• الرئيسية والشبكة:</b> تظهر فيها المواد المعروضة مع أسعارها والكميات، وتستطيع إضافة أي مادة للسلة بنقرة واحدة.</p>
-                <p><b>• إضافة مادة جديدة:</b> مخصصة لإدخال أي صنف جديد كلياً للمخزن (اسم المادة، سعر الشراء، سعر البيع، الكمية).</p>
-                <p><b>• إضافة كمية لمادة:</b> خاصة بالمخزن القديم؛ تختار المادة المخزنة وتزود كميتها ورصيدها مباشرة بدون إعادة كتابة اسمها.</p>
-                <p><b>• جرد المخزن:</b> جدول تفصيلي يوضح كل المواد المتوفرة في المخزن وأسعارها بدقة.</p>
-                <p><b>• العملاء والديون:</b> لتسجيل بيانات الزبائن (الاسم، الهاتف، المحافظة، العنوان) ومتابعة ديونهم.</p>
-                <p><b>• سجل الفواتير:</b> تعرض كل الفواتير الصادرة، مع خيار تحميل الفاتورة بصيغة PDF أو إرسالها للزبون عبر الواتساب.</p>
-                <p><b>• التقارير والأرباح:</b> لعرض إجمالي المبيعات والأرباح العامة للمتجر.</p>
-                <p><b>• تفعيل النسخة المدفوعة:</b> الحقل المخصص لإدخال كود الاشتراك الشهري الخاص بك.</p>
-                <p><b>• لوحة تحكم الأدمن:</b> خاصة بك لتوليد وإدارة أكواد الاشتراكات الشهرية للزبائن.</p>
-
-                <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
-                
-                <div style="text-align:center; background:#f8f6fc; padding:10px; border-radius:12px;">
-                    <p style="margin:0; font-weight:bold;">لطلب أو تجديد كود النسخة المدفوعة:</p>
-                    <a href="https://instagram.com/yaser120120120120" target="_blank" style="display:inline-block; margin-top:5px; color:#fff; background:#6b46c1; padding:8px 15px; border-radius:8px; text-decoration:none; font-weight:bold;">📸 انستغرام: @yaser120120120120</a>
+                <div style="text-align:center; background:#f8f6fc; padding:8px; border-radius:12px;">
+                    <p style="margin:0; font-weight:bold;">لطلب كود النسخة المدفوعة:</p>
+                    <a href="https://instagram.com/yaser120120120120" target="_blank" style="color:#6b46c1; text-decoration:none;">📸 @yaser120120120120</a>
                 </div>
             </div>
         `;
@@ -528,7 +551,7 @@
         html += `
             <hr>
             <p>المجموع الفرعي: <b id="subtotal-val">${subtotal.toLocaleString()}</b> د.ع</p>
-            <label>مربع الخصم (قيمة الخصم د.ع):</label>
+            <label>مربع الخصم (د.ع):</label>
             <input type="number" id="discount-val" value="0" oninput="calculateGrandTotal(${subtotal})">
             
             <h3 style="margin:5px 0;">المجموع الكلي النهائي: <span id="grand-total-val">${subtotal.toLocaleString()}</span> د.ع</h3>
@@ -538,11 +561,11 @@
                 ${customersList.map(c => `<option value="${c.customer_name}">${c.customer_name} - ${c.phone} (${c.governorate})</option>`).join('')}
             </select>
             
-            <label>المبلغ الواصل (نقد أو 0 للأقساط):</label>
+            <label>المبلغ الواصل (نقد أو 0 للآجل):</label>
             <input type="number" id="paid-amount" value="${subtotal}" oninput="calcRemaining()">
             <p id="calc-result" style="font-size:13px; font-weight:bold; color:#2b6cb0;"></p>
             
-            <button onclick="checkout(${subtotal})" style="background:#2f855a; font-size:16px; padding:12px;">💾 إتمام وحفظ البيع وطباعة الفاتورة</button>
+            <button onclick="checkout(${subtotal})" style="background:#2f855a; font-size:16px; padding:12px;">💾 إتمام الحفظ وطباعة الفاتورة</button>
         `;
         container.innerHTML = html;
         calcRemaining();
@@ -571,16 +594,13 @@
         const paid = parseFloat(document.getElementById("paid-amount").value) || 0;
         const rem = Math.max(0, finalTotal - paid);
         let resText = `المتبقي (الدين): ${rem.toLocaleString()} د.ع`;
-        if (paid > finalTotal) {
-            resText += ` | الباقي المستحق للزبون: ${(paid - finalTotal).toLocaleString()} د.ع`;
-        }
+        if (paid > finalTotal) resText += ` | الباقي للزبون: ${(paid - finalTotal).toLocaleString()} د.ع`;
         document.getElementById("calc-result").innerText = resText;
     }
 
     async function checkout(subtotal) {
         const custName = document.getElementById("selected-customer").value;
         if (!custName) return;
-        
         const discountVal = parseFloat(document.getElementById("discount-val").value) || 0;
         const finalTotal = Math.max(0, subtotal - discountVal);
         const paidVal = parseFloat(document.getElementById("paid-amount").value) || 0;
@@ -641,13 +661,10 @@
         const buy = parseFloat(document.getElementById("p-buy").value) || 0;
         const sell = parseFloat(document.getElementById("p-sell").value) || 0;
         const qty = parseInt(document.getElementById("p-qty").value) || 1;
-
         if (!name) return;
         const newP = { username: currentUser, product_name: name, buy_price: buy, sell_price: sell, quantity: qty, barcode: "بدون" };
-        
-        const { error } = await supabaseClient.from("products").insert([newP]).select();
+        const { error } = await supabaseClient.from("products").insert([newP]);
         if (error) return;
-
         await loadAppData();
         goToPage('inventory');
     }
@@ -659,11 +676,11 @@
             <select id="stock-product-id">
                 ${productsList.map(p => `<option value="${p.id}">📦 ${p.product_name} (المتوفر حالياً: ${p.quantity})</option>`).join('')}
             </select>
-            <label>الكمية الإضافية المراد إضافتها:</label>
+            <label>الكمية الإضافية:</label>
             <input type="number" id="stock-added-qty" value="1" min="1">
             <label>تحديث سعر البيع (اختياري):</label>
-            <input type="number" id="stock-new-sell" placeholder="اتركه فارغاً أو ادرج السعر الجديد">
-            <button onclick="saveAddedStock()" style="background:#2b6cb0;">➕ إضافة الكمية إلى رصيد المادة</button>
+            <input type="number" id="stock-new-sell" placeholder="اتركه فارغاً أو اكتب السعر الجديد">
+            <button onclick="saveAddedStock()" style="background:#2b6cb0;">➕ إضافة الكمية</button>
         `;
     }
 
@@ -671,20 +688,13 @@
         const prodId = document.getElementById("stock-product-id").value;
         const addedQty = parseInt(document.getElementById("stock-added-qty").value) || 0;
         const newSellInput = document.getElementById("stock-new-sell").value;
-
         if (!prodId || addedQty <= 0) return;
-
         const currentProd = productsList.find(p => p.id == prodId);
         if (!currentProd) return;
-
         let updateData = { quantity: currentProd.quantity + addedQty };
-        if (newSellInput !== "") {
-            updateData.sell_price = parseFloat(newSellInput) || currentProd.sell_price;
-        }
-
+        if (newSellInput !== "") updateData.sell_price = parseFloat(newSellInput) || currentProd.sell_price;
         const { error } = await supabaseClient.from("products").update(updateData).eq("id", prodId);
         if (error) return;
-
         await loadAppData();
         goToPage('inventory');
     }
@@ -694,29 +704,36 @@
         let html = `<table border="1" style="width:100%; border-collapse:collapse; font-size:12px; background:#fff; text-align:center;">
             <tr style="background:#f3e8ff;"><th>المادة</th><th>الشراء</th><th>البيع</th><th>الكمية</th></tr>`;
         productsList.forEach(p => {
-            html += `<tr><td>${p.product_name}</td><td>${p.buy_price}</td><td>${p.sell_price}</td><td><b>${p.quantity}</b></td></tr>`;
+            let rowBg = p.quantity <= 3 ? "background:#fff5f5;" : "";
+            html += `<tr style="${rowBg}"><td>${p.product_name}</td><td>${p.buy_price}</td><td>${p.sell_price}</td><td><b>${p.quantity}</b></td></tr>`;
         });
         html += `</table>`;
         container.innerHTML = html;
     }
 
     function renderCustomers(container) {
-        document.getElementById("app-title").innerText = "إدارة العملاء والديون";
+        document.getElementById("app-title").innerText = "إدارة العملاء والديون والواتساب";
         container.innerHTML = `
             <label>اسم العميل:</label>
             <input type="text" id="c-name" placeholder="الاسم الكامل...">
             <label>رقم الهاتف:</label>
             <input type="text" id="c-phone" placeholder="رقم الهاتف...">
-            <label>المحافظة:</label>
-            <input type="text" id="c-gov" placeholder="المحافظة (مثال: البصرة)...">
-            <label>الشارع:</label>
-            <input type="text" id="c-street" placeholder="اسم الشارع...">
-            <label>العنوان التفصيلي:</label>
-            <input type="text" id="c-address" placeholder="رقم الدار / القريبة...">
-            <button onclick="saveCustomer()">حفظ العميل الجديد</button>
+            <label>المحافظة والعنوان:</label>
+            <input type="text" id="c-gov" placeholder="المحافظة والعنوان...">
+            <button onclick="saveCustomer()">حفظ العميل</button>
             <hr>
-            <h4>العملاء المسجلون:</h4>
-            ${customersList.map(c => `<div class="card"><b>${c.customer_name}</b><br>📞 ${c.phone} | 📍 ${c.governorate} - ${c.street || ''} - ${c.address}</div>`).join('')}
+            <h4>العملاء وقائمة إشعارات الديون:</h4>
+            ${customersList.map(c => {
+                let wMsg = encodeURIComponent(`مرحباً بك ${c.customer_name}، نود تذكيركم بوجود مبلغ متبقي بذمتكم لصالح متجرنا. نتشرف بخدمتكم دائماً.`);
+                return `
+                    <div class="card">
+                        <b>${c.customer_name}</b><br>📞 ${c.phone} | 📍 ${c.governorate}
+                        <div style="margin-top:8px;">
+                            <a href="https://wa.me/${c.phone}?text=${wMsg}" target="_blank"><button style="background:#25D366; margin:0; padding:6px; font-size:12px;">💬 تذكير بالدين عبر الواتساب</button></a>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
         `;
     }
 
@@ -724,24 +741,42 @@
         const name = document.getElementById("c-name").value.trim();
         const phone = document.getElementById("c-phone").value.trim();
         const gov = document.getElementById("c-gov").value.trim();
-        const street = document.getElementById("c-street").value.trim();
-        const address = document.getElementById("c-address").value.trim();
-
         if (!name || !phone) return;
-        const newC = { 
-            username: currentUser, 
-            customer_name: name, 
-            phone: phone, 
-            governorate: gov || "غير محدد", 
-            street: street || "غير محدد", 
-            address: address || "غير محدد" 
-        };
-        
+        const newC = { username: currentUser, customer_name: name, phone: phone, governorate: gov || "البصرة", street: "غير محدد", address: "غير محدد" };
         const { error } = await supabaseClient.from("customers").insert([newC]);
         if (error) return;
-
         await loadAppData();
         goToPage('customers');
+    }
+
+    function renderExpenses(container) {
+        document.getElementById("app-title").innerText = "الصندوق والمصاريف اليومية";
+        let totalExp = expensesList.reduce((sum, e) => sum + (e.amount || 0), 0);
+        container.innerHTML = `
+            <div class="card" style="background:#fffaf0; text-align:center;">
+                <h4 style="margin:0 0 5px 0;">إجمالي المصاريف والنثريات</h4>
+                <h3 style="color:#c53030; margin:0;">${totalExp.toLocaleString()} د.ع</h3>
+            </div>
+            <label>اسم المصروف (مثال: أجور إعلان، توصيل، كهرباء):</label>
+            <input type="text" id="exp-title" placeholder="أدخل اسم المصروف...">
+            <label>المبلغ (د.ع):</label>
+            <input type="number" id="exp-amount" value="0">
+            <button onclick="saveExpense()" style="background:#c53030;">➕ تسجيل مصروف جديد</button>
+            <hr>
+            <h4>سجل المصاريف:</h4>
+            ${expensesList.slice().reverse().map(e => `<div class="card"><b>${e.title}</b>: <span style="color:#c53030; font-weight:bold;">${e.amount.toLocaleString()} د.ع</span></div>`).join('')}
+        `;
+    }
+
+    async function saveExpense() {
+        const title = document.getElementById("exp-title").value.trim();
+        const amount = parseFloat(document.getElementById("exp-amount").value) || 0;
+        if (!title || amount <= 0) return;
+        const newExp = { username: currentUser, title: title, amount: amount, created_date: new Date().toISOString() };
+        const { error } = await supabaseClient.from("expenses").insert([newExp]);
+        if (error) return;
+        await loadAppData();
+        goToPage('expenses');
     }
 
     function renderInvoices(container) {
@@ -754,10 +789,9 @@
                 <div class="card" id="${invId}">
                     <b>فاتورة: ${inv.invoice_code}</b> | الزبون: ${inv.customer_name}
                     <p>التفاصيل: ${inv.products_text}</p>
-                    <p>المجموع الكلي: <b>${inv.total_price.toLocaleString()}</b> د.ع | المتبقي: ${inv.remaining_amount.toLocaleString()} د.ع</p>
-                    <p style="font-size:11px; color:#666;">الحالة: ${inv.payment_type} | التاريخ: ${inv.created_date}</p>
-                    <button onclick="downloadPDF('${invId}', '${inv.invoice_code}')" style="background:#2b6cb0; margin-bottom:5px;">📥 تحميل الفاتورة PDF</button>
-                    <a href="https://wa.me/?text=${wText}" target="_blank"><button style="background:#25D366; margin:0;">💬 إرسال عبر الواتساب</button></a>
+                    <p>المجموع: <b>${inv.total_price.toLocaleString()}</b> د.ع | المتبقي: ${inv.remaining_amount.toLocaleString()} د.ع</p>
+                    <button onclick="downloadPDF('${invId}', '${inv.invoice_code}')" style="background:#2b6cb0; margin-bottom:5px;">📥 تحميل PDF</button>
+                    <a href="https://wa.me/?text=${wText}" target="_blank"><button style="background:#25D366; margin:0;">💬 إرسال واتساب</button></a>
                 </div>
             `;
         });
@@ -766,23 +800,27 @@
 
     function downloadPDF(elementId, invCode) {
         const element = document.getElementById(elementId);
-        const opt = {
-            margin:       10,
-            filename:     `Invoice_${invCode}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
+        const opt = { margin: 10, filename: `Invoice_${invCode}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
         html2pdf().from(element).set(opt).save();
     }
 
     function renderReports(container) {
         document.getElementById("app-title").innerText = "التقارير والأرباح";
         const totalSales = invoicesList.reduce((sum, inv) => sum + inv.total_price, 0);
+        const totalExp = expensesList.reduce((sum, e) => sum + (e.amount || 0), 0);
+        const netProfit = totalSales - totalExp;
         container.innerHTML = `
             <div class="card" style="text-align:center;">
-                <h3>إجمالي المبيعات العامة</h3>
+                <h3>إجمالي المبيعات</h3>
                 <h2>${totalSales.toLocaleString()} د.ع</h2>
+            </div>
+            <div class="card" style="text-align:center; background:#fff5f5;">
+                <h3>إجمالي المصاريف</h3>
+                <h2 style="color:#c53030;">${totalExp.toLocaleString()} د.ع</h2>
+            </div>
+            <div class="card" style="text-align:center; background:#e6fffa;">
+                <h3>صافي الربح الحقيقي</h3>
+                <h2 style="color:#2f855a;">${netProfit.toLocaleString()} د.ع</h2>
             </div>
         `;
     }
