@@ -103,7 +103,7 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web v18.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web v19.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
@@ -163,7 +163,6 @@
     let productsList = [];
     let customersList = [];
     let invoicesList = [];
-    let expensesList = [];
 
     function checkSubscriptionStatus() {
         let subExpireDate = localStorage.getItem("yasser_sub_expire");
@@ -251,9 +250,6 @@
             
             const iRes = await supabaseClient.from("invoices").select("*");
             if (!iRes.error) invoicesList = iRes.data || [];
-
-            const eRes = await supabaseClient.from("expenses").select("*");
-            if (!eRes.error) expensesList = eRes.data || [];
         } catch (e) { console.log(e); }
     }
 
@@ -280,10 +276,8 @@
             if (page === "grid") { renderGrid(content); }
             else if (page === "cart") { renderCart(content); }
             else if (page === "add_product") { renderAddProduct(content); }
-            else if (page === "add_stock") { renderAddStock(content); }
             else if (page === "inventory") { renderInventory(content); }
             else if (page === "customers") { renderCustomers(content); }
-            else if (page === "expenses") { renderExpenses(content); }
             else if (page === "invoices") { renderInvoices(content); }
             else if (page === "reports") { renderReports(content); }
             else if (page === "guide") { renderGuide(content); }
@@ -329,10 +323,6 @@
                     <h4>👥 العملاء والديون</h4>
                     <p style="font-size:11px;">متابعة والواتساب</p>
                 </div>
-                <div class="card" onclick="goToPage('expenses')" style="cursor:pointer; text-align:center; background:#fffaf0;">
-                    <h4>💰 الصندوق والمصاريف</h4>
-                    <p style="font-size:11px;">سندات الصرف اليومية</p>
-                </div>
                 <div class="card" onclick="goToPage('invoices')" style="cursor:pointer; text-align:center;">
                     <h4>📄 سجل الفواتير</h4>
                     <p style="font-size:11px;">PDF والواتساب</p>
@@ -343,7 +333,7 @@
                 </div>
                 <div class="card" onclick="goToPage('activation_page')" style="cursor:pointer; text-align:center; background:#e6fffa;">
                     <h4>🔑 تفعيل النسخة المدفوعة</h4>
-                    <p style="font-size:11px;">إدخال كود الشهر</p>
+                    <p style="font-size:11px;">إدخال كود التفعيل</p>
                 </div>
                 <div class="card" onclick="goToPage('guide')" style="cursor:pointer; text-align:center; background:#fffaf0; grid-column: span 2;">
                     <h4>📖 دليل المستخدم الشامل والمميزات الجديدة</h4>
@@ -353,11 +343,11 @@
         `;
     }
 
-    // لوحة الأدمن لتوليد كود بمدة محددة (شهر أو 10 أيام)
     function renderAdminPanel(container) {
         document.getElementById("app-title").innerText = "لوحة تحكم الأدمن";
         let savedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
-            { code: "YASSER-VIP-30", days: 30 }
+            { code: "YASSER-VIP-30", days: 30 },
+            { code: "YASSER-VIP-10", days: 10 }
         ];
 
         container.innerHTML = `
@@ -368,7 +358,7 @@
                 <label>اختر مدة الكود:</label>
                 <select id="code-duration-select">
                     <option value="30">اشتراك شهر كامل (30 يوم)</option>
-                    <option value="10">اشتراك تجريبي / سريع (10 أيام)</option>
+                    <option value="10">اشتراك مؤقت (10 أيام)</option>
                 </select>
 
                 <button onclick="generateCustomVipCode()" style="background:#c53030; font-size:15px; padding:12px; margin-bottom:15px;">⚡ توليد كود جديد</button>
@@ -392,16 +382,12 @@
         let newCode = `YASSER-${days}D-${randomNum}`;
         
         let savedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
-            { code: "YASSER-VIP-30", days: 30 }
+            { code: "YASSER-VIP-30", days: 30 },
+            { code: "YASSER-VIP-10", days: 10 }
         ];
         
         savedCodes.push({ code: newCode, days: days });
         localStorage.setItem("yasser_admin_codes_detailed", JSON.stringify(savedCodes));
-        
-        // نضيفه همين للقائمة القديمة حتى يتفعل مباشرة لو استخدمه أحدهم
-        let legacyCodes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
-        legacyCodes.push(newCode);
-        localStorage.setItem("yasser_admin_codes", JSON.stringify(legacyCodes));
 
         alert(`✅ تم توليد كود بمدة (${days} يوم) بنجاح:\n${newCode}`);
         renderAdminPanel(document.getElementById("view-content"));
@@ -430,7 +416,8 @@
         if (!codeInput) return;
         let usedCodes = JSON.parse(localStorage.getItem("yasser_used_codes")) || [];
         let detailedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
-            { code: "YASSER-VIP-30", days: 30 }
+            { code: "YASSER-VIP-30", days: 30 },
+            { code: "YASSER-VIP-10", days: 10 }
         ];
 
         let foundCodeObj = detailedCodes.find(item => item.code === codeInput);
@@ -442,7 +429,6 @@
                 usedCodes.push(codeInput);
                 localStorage.setItem("yasser_used_codes", JSON.stringify(usedCodes));
                 
-                // حساب عدد الأيام بناءً على الكود (30 أو 10 أيام)
                 let daysCount = foundCodeObj.days;
                 let expireTime = new Date().getTime() + (daysCount * 24 * 60 * 60 * 1000);
                 
@@ -457,7 +443,7 @@
     }
 
     function renderGuide(container) {
-        document.getElementById("app-title").innerText = "دليل المستخدم الشامل والمميزات الجديدة";
+        document.getElementById("app-title").innerText = "دليل المستخدم الشامل";
         container.innerHTML = `
             <div class="card" style="background:#fff; line-height:1.6; font-size:12px;">
                 <h3 style="color:#6b46c1; margin-top:0; text-align:center;">📖 الدليل الشامل لنظام ياسر ويب</h3>
@@ -480,11 +466,6 @@
                         <td style="padding:6px;">⚠️ تنبيه فوري بالمواد التي قاربت على النفاد لطلبها مبكراً.</td>
                     </tr>
                     <tr>
-                        <td style="padding:6px;"><b>الصندوق والمصاريف</b></td>
-                        <td style="padding:6px;">إدارة النثريات وسندات الصرف.</td>
-                        <td style="padding:6px;">💰 خصم أجور التوصيل والإعلانات لمعرفة الصافي الحقيقي.</td>
-                    </tr>
-                    <tr style="background:#f8f6fc;">
                         <td style="padding:6px;"><b>العملاء والديون</b></td>
                         <td style="padding:6px;">حفظ بيانات الزبائن والذمم.</td>
                         <td style="padding:6px;">💬 إرسال رسائل تذكير بالديون مباشرة عبر الواتساب.</td>
@@ -666,7 +647,6 @@
         goToPage('invoices');
     }
 
-    // شاشة إضافة مادة جديدة (مع خانة رفع الصورة والرابط بشكل مؤكد)
     function renderAddProduct(container) {
         document.getElementById("app-title").innerText = "إضافة مادة جديدة للمخزن";
         container.innerHTML = `
@@ -676,7 +656,11 @@
                 
                 <label>📷 صورة المادة (رفع ملف أو رابط):</label>
                 <input type="file" id="new-prod-file" accept="image/*" onchange="handleImageUpload(event)">
-                <input type="text" id="new-prod-img" placeholder="أو ضع رابط الصورة هنا مباشرة...">
+                <input type="text" id="new-prod-img" placeholder="أو ضع رابط الصورة هنا مباشرة..." oninput="previewImage(this.value)">
+
+                <div id="img-preview-box" style="display:none; text-align:center; margin-bottom:12px;">
+                    <img id="img-preview" src="" style="max-height: 100px; border-radius: 8px;">
+                </div>
 
                 <label>سعر الشراء (د.ع):</label>
                 <input type="number" id="new-prod-buy" placeholder="0">
@@ -692,12 +676,24 @@
         `;
     }
 
+    function previewImage(url) {
+        const previewBox = document.getElementById("img-preview-box");
+        const previewImg = document.getElementById("img-preview");
+        if (url) {
+            previewImg.src = url;
+            previewBox.style.display = "block";
+        } else {
+            previewBox.style.display = "none";
+        }
+    }
+
     function handleImageUpload(event) {
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 document.getElementById("new-prod-img").value = e.target.result;
+                previewImage(e.target.result);
             };
             reader.readAsDataURL(file);
         }
