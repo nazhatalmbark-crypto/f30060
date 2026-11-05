@@ -103,7 +103,7 @@
     <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
         <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web v17.0.0</p>
+        <p style="font-size: 12px; color: #7c6f9f;">Static Web v18.0.0</p>
     </div>
 
     <!-- تسجيل الدخول -->
@@ -302,7 +302,7 @@
             adminCardHTML = `
                 <div class="card" onclick="goToPage('admin_panel')" style="cursor:pointer; text-align:center; background:#fff5f5; border: 2px dashed #c53030; grid-column: span 2;">
                     <h4 style="color:#c53030; margin:5px 0;">👑 لوحة تحكم الأدمن (توليد الأكواد)</h4>
-                    <p style="font-size:11px; margin:0;">إدارة وتوليد أكواد الاشتراكات الشهرية للزبائن</p>
+                    <p style="font-size:11px; margin:0;">إدارة وتوليد أكواد الاشتراكات (شهر أو 10 أيام)</p>
                 </div>
             `;
         }
@@ -320,10 +320,6 @@
                 <div class="card" onclick="goToPage('add_product')" style="cursor:pointer; text-align:center;">
                     <h4>➕ إضافة مادة جديدة</h4>
                     <p style="font-size:11px;">صنف جديد للمخزن</p>
-                </div>
-                <div class="card" onclick="goToPage('add_stock')" style="cursor:pointer; text-align:center; background:#e6fffa;">
-                    <h4>📦 إضافة كمية لمادة</h4>
-                    <p style="font-size:11px;">زيادة رصيد مخزني</p>
                 </div>
                 <div class="card" onclick="goToPage('inventory')" style="cursor:pointer; text-align:center;">
                     <h4>📦 جرد المخزن</h4>
@@ -357,32 +353,57 @@
         `;
     }
 
+    // لوحة الأدمن لتوليد كود بمدة محددة (شهر أو 10 أيام)
     function renderAdminPanel(container) {
         document.getElementById("app-title").innerText = "لوحة تحكم الأدمن";
-        let generatedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
+        let savedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
+            { code: "YASSER-VIP-30", days: 30 }
+        ];
+
         container.innerHTML = `
             <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
-                <h3 style="color:#c53030; margin-top:0; text-align:center;">👑 لوحة الأدمن لتوليد الأكواد</h3>
-                <p>توليد أكواد اشتراك شهرية جديدة وإعطائها للزبائن المشتركين:</p>
-                <button onclick="generateNewVipCode()" style="background:#c53030; font-size:15px; padding:12px; margin-bottom:15px;">⚡ توليد كود اشتراك جديد</button>
-                <h4 style="color:#2d1a4e;">📋 قائمة الأكواد الفعالة:</h4>
-                <div style="background:#f8f6fc; padding:10px; border-radius:12px; max-height:200px; overflow-y:auto;">
-                    ${generatedCodes.map(code => `<div style="background:#fff; padding:8px; margin-bottom:5px; border-radius:8px; border:1px solid #dcd6f7; display:flex; justify-content:space-between; align-items:center;">
-                        <span>🔑 <b>${code}</b></span>
-                        <span style="font-size:10px; color:#2f855a; font-weight:bold;">نشط لمدة 30 يوم</span>
-                    </div>`).join('')}
+                <h3 style="color:#c53030; margin-top:0; text-align:center;">👑 توليد أكواد الاشتراكات الذكية</h3>
+                <p>اختر مدة الاشتراك لتوليد كود تفعيل مخصص:</p>
+                
+                <label>اختر مدة الكود:</label>
+                <select id="code-duration-select">
+                    <option value="30">اشتراك شهر كامل (30 يوم)</option>
+                    <option value="10">اشتراك تجريبي / سريع (10 أيام)</option>
+                </select>
+
+                <button onclick="generateCustomVipCode()" style="background:#c53030; font-size:15px; padding:12px; margin-bottom:15px;">⚡ توليد كود جديد</button>
+                
+                <h4 style="color:#2d1a4e;">📋 قائمة الأكواد الفعالة ومدة كل واحد:</h4>
+                <div style="background:#f8f6fc; padding:10px; border-radius:12px; max-height:220px; overflow-y:auto;">
+                    ${savedCodes.map(item => `
+                        <div style="background:#fff; padding:8px; margin-bottom:5px; border-radius:8px; border:1px solid #dcd6f7; display:flex; justify-content:space-between; align-items:center;">
+                            <span>🔑 <b>${item.code}</b></span>
+                            <span style="font-size:10px; color:#2f855a; font-weight:bold;">صالح لمدة: ${item.days} يوم</span>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
     }
 
-    function generateNewVipCode() {
+    function generateCustomVipCode() {
+        const days = parseInt(document.getElementById("code-duration-select").value);
         let randomNum = Math.floor(1000 + Math.random() * 9000);
-        let newCode = `YASSER-VIP-${randomNum}`;
-        let codes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
-        codes.push(newCode);
-        localStorage.setItem("yasser_admin_codes", JSON.stringify(codes));
-        alert(`✅ تم توليد كود جديد:\n${newCode}`);
+        let newCode = `YASSER-${days}D-${randomNum}`;
+        
+        let savedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
+            { code: "YASSER-VIP-30", days: 30 }
+        ];
+        
+        savedCodes.push({ code: newCode, days: days });
+        localStorage.setItem("yasser_admin_codes_detailed", JSON.stringify(savedCodes));
+        
+        // نضيفه همين للقائمة القديمة حتى يتفعل مباشرة لو استخدمه أحدهم
+        let legacyCodes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
+        legacyCodes.push(newCode);
+        localStorage.setItem("yasser_admin_codes", JSON.stringify(legacyCodes));
+
+        alert(`✅ تم توليد كود بمدة (${days} يوم) بنجاح:\n${newCode}`);
         renderAdminPanel(document.getElementById("view-content"));
     }
 
@@ -391,7 +412,7 @@
         container.innerHTML = `
             <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
                 <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🔑 بوابة التفعيل والاشتراك</h3>
-                <p>أدخل كود الاشتراك لتفعيل النسخة المدفوعة لمدة 30 يوماً:</p>
+                <p>أدخل كود الاشتراك لتفعيل النظام:</p>
                 <label>كود التفعيل:</label>
                 <input type="text" id="main-activation-input" placeholder="أدخل الكود هنا...">
                 <button onclick="applyActivationCode()" style="background:#2f855a; font-size:15px; padding:12px;">✅ تفعيل الاشتراك</button>
@@ -408,18 +429,26 @@
         const codeInput = document.getElementById("main-activation-input").value.trim();
         if (!codeInput) return;
         let usedCodes = JSON.parse(localStorage.getItem("yasser_used_codes")) || [];
-        let validCodes = JSON.parse(localStorage.getItem("yasser_admin_codes")) || ["YASSER-VIP-2026"];
+        let detailedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
+            { code: "YASSER-VIP-30", days: 30 }
+        ];
 
-        if (validCodes.includes(codeInput)) {
+        let foundCodeObj = detailedCodes.find(item => item.code === codeInput);
+
+        if (foundCodeObj) {
             if (usedCodes.includes(codeInput)) {
                 alert("⚠️ الكود مستخدم مسبقاً! تواصل معنا عبر انستغرام للحصول على كود جديد.");
             } else {
                 usedCodes.push(codeInput);
                 localStorage.setItem("yasser_used_codes", JSON.stringify(usedCodes));
-                let expireTime = new Date().getTime() + (30 * 24 * 60 * 60 * 1000);
+                
+                // حساب عدد الأيام بناءً على الكود (30 أو 10 أيام)
+                let daysCount = foundCodeObj.days;
+                let expireTime = new Date().getTime() + (daysCount * 24 * 60 * 60 * 1000);
+                
                 localStorage.setItem("yasser_is_vip", "true");
                 localStorage.setItem("yasser_sub_expire", expireTime.toString());
-                alert("✅ تم تفعيل النسخة المدفوعة لمدة 30 يوماً بنجاح!");
+                alert(`✅ تم تفعيل النسخة المدفوعة لمدة (${daysCount} يوم) بنجاح!`);
                 goToPage("home");
             }
         } else {
@@ -443,7 +472,7 @@
                     <tr>
                         <td style="padding:6px;"><b>الرئيسية والشبكة</b></td>
                         <td style="padding:6px;">عرض المواد والأسعار والكميات.</td>
-                        <td style="padding:6px;">بيع سريع ومنظم بنقرة زر بدون أخطاء.</td>
+                        <td style="padding:6px;">عرض صور المنتجات مباشرة والبيع السريع.</td>
                     </tr>
                     <tr style="background:#f8f6fc;">
                         <td style="padding:6px;"><b>تنبيهات النفاذ الذكية</b></td>
@@ -460,27 +489,7 @@
                         <td style="padding:6px;">حفظ بيانات الزبائن والذمم.</td>
                         <td style="padding:6px;">💬 إرسال رسائل تذكير بالديون مباشرة عبر الواتساب.</td>
                     </tr>
-                    <tr>
-                        <td style="padding:6px;"><b>سجل الفواتير</b></td>
-                        <td style="padding:6px;">عرض الفواتير السابقة وطباعتها.</td>
-                        <td style="padding:6px;">📥 تصدير PDF وإرسالها للزبون فورا عبر واتساب.</td>
-                    </tr>
-                    <tr style="background:#f8f6fc;">
-                        <td style="padding:6px;"><b>التقارير والأرباح</b></td>
-                        <td style="padding:6px;">حساب إجمالي المبيعات.</td>
-                        <td style="padding:6px;">📊 رؤية الأرباح الصافية للمتجر أو الصفحة بدقة.</td>
-                    </tr>
                 </table>
-
-                <div style="background:#f3e8ff; padding:10px; border-radius:12px; margin-bottom:10px;">
-                    <h4 style="color:#2d1a4e; margin:0 0 5px 0;">💎 الفرق بين النسختين:</h4>
-                    <p style="margin:0;"><b>النسخة المجانية:</b> تتيح لك تجربة النظام بشكل مبسط ومحدود.<br><b>النسخة المدفوعة:</b> تمنحك صلاحيات مطلقة، دعم فني مستمر، وكل بياناتك محفوظة بالسحابة بأمان تام.</p>
-                </div>
-
-                <div style="text-align:center; background:#f8f6fc; padding:8px; border-radius:12px;">
-                    <p style="margin:0; font-weight:bold;">لطلب كود النسخة المدفوعة:</p>
-                    <a href="https://instagram.com/yaser120120120120" target="_blank" style="color:#6b46c1; text-decoration:none;">📸 @yaser120120120120</a>
-                </div>
             </div>
         `;
     }
@@ -657,6 +666,7 @@
         goToPage('invoices');
     }
 
+    // شاشة إضافة مادة جديدة (مع خانة رفع الصورة والرابط بشكل مؤكد)
     function renderAddProduct(container) {
         document.getElementById("app-title").innerText = "إضافة مادة جديدة للمخزن";
         container.innerHTML = `
@@ -664,7 +674,7 @@
                 <label>اسم المادة:</label>
                 <input type="text" id="new-prod-name" placeholder="أدخل اسم المادة...">
                 
-                <label>صورة المادة (رفع أو رابط):</label>
+                <label>📷 صورة المادة (رفع ملف أو رابط):</label>
                 <input type="file" id="new-prod-file" accept="image/*" onchange="handleImageUpload(event)">
                 <input type="text" id="new-prod-img" placeholder="أو ضع رابط الصورة هنا مباشرة...">
 
