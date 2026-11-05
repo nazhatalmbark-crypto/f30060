@@ -84,7 +84,6 @@
             border-bottom: 2px solid #e2d9f3;
             padding-bottom: 10px;
         }
-        .alert-warning { background: #fff3cd; color: #856404; padding: 8px; border-radius: 8px; font-size: 12px; margin-bottom: 8px; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -233,22 +232,32 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     ${adminCard}
                     <div class="card" onclick="goToPage('grid')" style="cursor:pointer; text-align:center;">
-                        <h4>🏠 شبكة المواد</h4>
+                        <h4>🏠 الرئيسية والشبكة</h4>
+                        <p style="font-size:11px; margin:0;">الضغطة السريعة للبيع</p>
                     </div>
                     <div class="card" onclick="goToPage('add_product')" style="cursor:pointer; text-align:center;">
-                        <h4>➕ إضافة مادة</h4>
+                        <h4>➕ إضافة مادة جديدة</h4>
+                        <p style="font-size:11px; margin:0;">مع دعم الصور</p>
                     </div>
                     <div class="card" onclick="goToPage('inventory')" style="cursor:pointer; text-align:center;">
                         <h4>📦 جرد المخزن</h4>
+                        <p style="font-size:11px; margin:0;">رصيد المواد الحالي</p>
+                    </div>
+                    <div class="card" onclick="goToPage('add_quantity')" style="cursor:pointer; text-align:center;">
+                        <h4>➕ إضافة كمية لمادة</h4>
+                        <p style="font-size:11px; margin:0;">زيادة رصيد مادة قديمة</p>
                     </div>
                     <div class="card" onclick="goToPage('customers')" style="cursor:pointer; text-align:center;">
-                        <h4>👥 العملاء</h4>
+                        <h4>👥 العملاء والديون</h4>
+                        <p style="font-size:11px; margin:0;">إدارة الزبائن والذمم</p>
                     </div>
                     <div class="card" onclick="goToPage('invoices')" style="cursor:pointer; text-align:center;">
                         <h4>📄 سجل الفواتير</h4>
+                        <p style="font-size:11px; margin:0;">قائمة الفواتير</p>
                     </div>
-                    <div class="card" onclick="goToPage('activation_page')" style="cursor:pointer; text-align:center; background:#e6fffa;">
-                        <h4>🔑 تفعيل كود</h4>
+                    <div class="card" onclick="goToPage('cashbox')" style="cursor:pointer; text-align:center;">
+                        <h4>💰 الصندوق</h4>
+                        <p style="font-size:11px; margin:0;">الحسابات النقدية</p>
                     </div>
                 </div>
             `;
@@ -258,14 +267,15 @@
             else if (page === "cart") { renderCart(content); }
             else if (page === "add_product") { renderAddProduct(content); }
             else if (page === "inventory") { renderInventory(content); }
+            else if (page === "add_quantity") { renderAddQuantity(content); }
             else if (page === "customers") { renderCustomers(content); }
             else if (page === "invoices") { renderInvoices(content); }
+            else if (page === "cashbox") { renderCashbox(content); }
             else if (page === "activation_page") { renderActivationPage(content); }
             else if (page === "admin_panel") { renderAdminPanel(content); }
         }
     }
 
-    // لوحة الأدمن لتوليد أكواد (30 أو 10 أيام)
     function renderAdminPanel(container) {
         document.getElementById("app-title").innerText = "لوحة تحكم الأدمن";
         let savedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
@@ -338,7 +348,6 @@
         }
     }
 
-    // شبكة المواد مع الصور فوق الاسم
     function renderGrid(container) {
         document.getElementById("app-title").innerText = "شبكة المواد";
         let html = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
@@ -378,7 +387,6 @@
         container.innerHTML = html;
     }
 
-    // شاشة إضافة مادة مع رفع الصورة
     function renderAddProduct(container) {
         document.getElementById("app-title").innerText = "إضافة مادة جديدة";
         container.innerHTML = `
@@ -437,9 +445,56 @@
         if (error) { alert("حدث خطأ أثناء الحفظ!"); } else { alert("✅ تمت الإضافة بنجاح!"); goToPage("grid"); }
     }
 
-    function renderInventory(container) { container.innerHTML = `<h3>جرد المخزن</h3>`; }
-    function renderCustomers(container) { container.innerHTML = `<h3>العملاء والديون</h3>`; }
-    function renderInvoices(container) { container.innerHTML = `<h3>سجل الفواتير</h3>`; }
+    function renderInventory(container) {
+        document.getElementById("app-title").innerText = "جرد المخزن";
+        let html = `<div class="card"><h3>قائمة المخزن الحالي</h3>`;
+        productsList.forEach(item => {
+            html += `<div style="border-bottom:1px solid #eee; padding:6px 0;"><b>${item.product_name}</b> - الكمية: ${item.quantity} - السعر: ${item.sell_price} د.ع</div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+    function renderAddQuantity(container) {
+        document.getElementById("app-title").innerText = "إضافة كمية لمادة";
+        container.innerHTML = `
+            <div class="card">
+                <label>اختر المادة:</label>
+                <select id="q-prod-name">
+                    ${productsList.map(i => `<option value="${i.product_name}">${i.product_name} (المتوفر: ${i.quantity})</option>`).join('')}
+                </select>
+                <label>الكمية المراد إضافتها:</label>
+                <input type="number" id="q-add-val" value="1">
+                <button onclick="submitAddQty()" style="background:#2f855a;">تحديث الكمية</button>
+            </div>
+        `;
+    }
+
+    async function submitAddQty() {
+        let name = document.getElementById("q-prod-name").value;
+        let addVal = parseInt(document.getElementById("q-add-val").value) || 0;
+        let prod = productsList.find(i => i.product_name === name);
+        if (!prod) return;
+        let newQty = prod.quantity + addVal;
+
+        let { error } = await supabaseClient.from("products").update({ quantity: newQty }).eq("product_name", name);
+        if (error) { alert("خطأ بالتحديث"); } else { alert("✅ تم زيادة الكمية بنجاح!"); goToPage("inventory"); }
+    }
+
+    function renderCustomers(container) {
+        document.getElementById("app-title").innerText = "العملاء والديون";
+        container.innerHTML = `<div class="card"><h3>إدارة الزبائن والذمم</h3><p>لا توجد ديون مسجلة حالياً.</p></div>`;
+    }
+
+    function renderInvoices(container) {
+        document.getElementById("app-title").innerText = "سجل الفواتير";
+        container.innerHTML = `<div class="card"><h3>قائمة الفواتير السابقة</h3><p>لا توجد فواتير مسجلة.</p></div>`;
+    }
+
+    function renderCashbox(container) {
+        document.getElementById("app-title").innerText = "الصندوق";
+        container.innerHTML = `<div class="card"><h3>حركة الصندوق النقدي</h3><p>إجمالي الواردات والصندوق الحالي.</p></div>`;
+    }
 </script>
 </body>
 </html>
