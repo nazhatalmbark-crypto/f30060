@@ -74,6 +74,16 @@
             padding: 15px;
             margin-bottom: 12px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .product-img {
+            width: 100%;
+            height: 110px;
+            object-fit: contain;
+            background-color: #f8f6fc;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            display: block;
         }
         .top-bar {
             display: flex;
@@ -482,8 +492,11 @@
             <div id="products-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         `;
         productsList.forEach((item) => {
+            const defaultImg = "https://via.placeholder.com/150?text=لا+توجد+صورة";
+            const imgSrc = item.image_url ? item.image_url : defaultImg;
             html += `
                 <div class="card" style="margin-bottom:0; text-align:center;">
+                    <img src="${imgSrc}" class="product-img" alt="${item.product_name}" onerror="this.src='${defaultImg}'">
                     <h4 style="margin:5px 0;">📦 ${item.product_name}</h4>
                     <p style="margin:2px 0; font-size:12px;">السعر: <b>${Number(item.sell_price).toLocaleString()}</b> د.ع</p>
                     <p style="margin:2px 0; font-size:12px;">المتوفر: <b>${item.quantity}</b></p>
@@ -501,8 +514,11 @@
         const grid = document.getElementById("products-grid");
         let html = "";
         filtered.forEach(item => {
+            const defaultImg = "https://via.placeholder.com/150?text=لا+توجد+صورة";
+            const imgSrc = item.image_url ? item.image_url : defaultImg;
             html += `
                 <div class="card" style="margin-bottom:0; text-align:center;">
+                    <img src="${imgSrc}" class="product-img" alt="${item.product_name}" onerror="this.src='${defaultImg}'">
                     <h4 style="margin:5px 0;">📦 ${item.product_name}</h4>
                     <p style="margin:2px 0; font-size:12px;">السعر: <b>${Number(item.sell_price).toLocaleString()}</b> د.ع</p>
                     <p style="margin:2px 0; font-size:12px;">المتوفر: <b>${item.quantity}</b></p>
@@ -644,187 +660,67 @@
     function renderAddProduct(container) {
         document.getElementById("app-title").innerText = "إضافة مادة جديدة للمخزن";
         container.innerHTML = `
-            <label>اسم المادة:</label>
-            <input type="text" id="p-name" placeholder="أدخل اسم المادة...">
-            <label>سعر الشراء:</label>
-            <input type="number" id="p-buy" value="0">
-            <label>سعر البيع:</label>
-            <input type="number" id="p-sell" value="0">
-            <label>الكمية المتوفرة:</label>
-            <input type="number" id="p-qty" value="1">
-            <button onclick="saveNewProduct()">حفظ المادة الجديدة</button>
+            <div class="card">
+                <label>اسم المادة:</label>
+                <input type="text" id="new-prod-name" placeholder="أدخل اسم المادة...">
+                
+                <label>صورة المادة (رفع أو رابط):</label>
+                <input type="file" id="new-prod-file" accept="image/*" onchange="handleImageUpload(event)">
+                <input type="text" id="new-prod-img" placeholder="أو ضع رابط الصورة هنا مباشرة...">
+
+                <label>سعر الشراء (د.ع):</label>
+                <input type="number" id="new-prod-buy" placeholder="0">
+
+                <label>سعر البيع (د.ع):</label>
+                <input type="number" id="new-prod-sell" placeholder="0">
+
+                <label>الكمية الأولية:</label>
+                <input type="number" id="new-prod-qty" placeholder="0">
+
+                <button onclick="saveNewProduct()" style="background:#2f855a;">💾 حفظ المادة بالمخزن</button>
+            </div>
         `;
+    }
+
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById("new-prod-img").value = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
     }
 
     async function saveNewProduct() {
-        const name = document.getElementById("p-name").value.trim();
-        const buy = parseFloat(document.getElementById("p-buy").value) || 0;
-        const sell = parseFloat(document.getElementById("p-sell").value) || 0;
-        const qty = parseInt(document.getElementById("p-qty").value) || 1;
-        if (!name) return;
-        const newP = { username: currentUser, product_name: name, buy_price: buy, sell_price: sell, quantity: qty, barcode: "بدون" };
-        const { error } = await supabaseClient.from("products").insert([newP]);
-        if (error) return;
-        await loadAppData();
-        goToPage('inventory');
-    }
+        const pName = document.getElementById("new-prod-name").value.trim();
+        const pImg = document.getElementById("new-prod-img").value.trim();
+        const pBuy = parseFloat(document.getElementById("new-prod-buy").value) || 0;
+        const pSell = parseFloat(document.getElementById("new-prod-sell").value) || 0;
+        const pQty = parseInt(document.getElementById("new-prod-qty").value) || 0;
 
-    function renderAddStock(container) {
-        document.getElementById("app-title").innerText = "إضافة كمية لمادة مخزنة";
-        container.innerHTML = `
-            <label>اختر المادة:</label>
-            <select id="stock-product-id">
-                ${productsList.map(p => `<option value="${p.id}">📦 ${p.product_name} (المتوفر حالياً: ${p.quantity})</option>`).join('')}
-            </select>
-            <label>الكمية الإضافية:</label>
-            <input type="number" id="stock-added-qty" value="1" min="1">
-            <label>تحديث سعر البيع (اختياري):</label>
-            <input type="number" id="stock-new-sell" placeholder="اتركه فارغاً أو اكتب السعر الجديد">
-            <button onclick="saveAddedStock()" style="background:#2b6cb0;">➕ إضافة الكمية</button>
-        `;
-    }
+        if (!pName) {
+            alert("يرجى كتابة اسم المادة!");
+            return;
+        }
 
-    async function saveAddedStock() {
-        const prodId = document.getElementById("stock-product-id").value;
-        const addedQty = parseInt(document.getElementById("stock-added-qty").value) || 0;
-        const newSellInput = document.getElementById("stock-new-sell").value;
-        if (!prodId || addedQty <= 0) return;
-        const currentProd = productsList.find(p => p.id == prodId);
-        if (!currentProd) return;
-        let updateData = { quantity: currentProd.quantity + addedQty };
-        if (newSellInput !== "") updateData.sell_price = parseFloat(newSellInput) || currentProd.sell_price;
-        const { error } = await supabaseClient.from("products").update(updateData).eq("id", prodId);
-        if (error) return;
-        await loadAppData();
-        goToPage('inventory');
-    }
+        const newProd = {
+            product_name: pName,
+            image_url: pImg,
+            buy_price: pBuy,
+            sell_price: pSell,
+            quantity: pQty
+        };
 
-    function renderInventory(container) {
-        document.getElementById("app-title").innerText = "جرد المخزن الشامل";
-        let html = `<table border="1" style="width:100%; border-collapse:collapse; font-size:12px; background:#fff; text-align:center;">
-            <tr style="background:#f3e8ff;"><th>المادة</th><th>الشراء</th><th>البيع</th><th>الكمية</th></tr>`;
-        productsList.forEach(p => {
-            let rowBg = p.quantity <= 3 ? "background:#fff5f5;" : "";
-            html += `<tr style="${rowBg}"><td>${p.product_name}</td><td>${p.buy_price}</td><td>${p.sell_price}</td><td><b>${p.quantity}</b></td></tr>`;
-        });
-        html += `</table>`;
-        container.innerHTML = html;
-    }
-
-    function renderCustomers(container) {
-        document.getElementById("app-title").innerText = "إدارة العملاء والديون والواتساب";
-        container.innerHTML = `
-            <label>اسم العميل:</label>
-            <input type="text" id="c-name" placeholder="الاسم الكامل...">
-            <label>رقم الهاتف:</label>
-            <input type="text" id="c-phone" placeholder="رقم الهاتف...">
-            <label>المحافظة والعنوان:</label>
-            <input type="text" id="c-gov" placeholder="المحافظة والعنوان...">
-            <button onclick="saveCustomer()">حفظ العميل</button>
-            <hr>
-            <h4>العملاء وقائمة إشعارات الديون:</h4>
-            ${customersList.map(c => {
-                let wMsg = encodeURIComponent(`مرحباً بك ${c.customer_name}، نود تذكيركم بوجود مبلغ متبقي بذمتكم لصالح متجرنا. نتشرف بخدمتكم دائماً.`);
-                return `
-                    <div class="card">
-                        <b>${c.customer_name}</b><br>📞 ${c.phone} | 📍 ${c.governorate}
-                        <div style="margin-top:8px;">
-                            <a href="https://wa.me/${c.phone}?text=${wMsg}" target="_blank"><button style="background:#25D366; margin:0; padding:6px; font-size:12px;">💬 تذكير بالدين عبر الواتساب</button></a>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        `;
-    }
-
-    async function saveCustomer() {
-        const name = document.getElementById("c-name").value.trim();
-        const phone = document.getElementById("c-phone").value.trim();
-        const gov = document.getElementById("c-gov").value.trim();
-        if (!name || !phone) return;
-        const newC = { username: currentUser, customer_name: name, phone: phone, governorate: gov || "البصرة", street: "غير محدد", address: "غير محدد" };
-        const { error } = await supabaseClient.from("customers").insert([newC]);
-        if (error) return;
-        await loadAppData();
-        goToPage('customers');
-    }
-
-    function renderExpenses(container) {
-        document.getElementById("app-title").innerText = "الصندوق والمصاريف اليومية";
-        let totalExp = expensesList.reduce((sum, e) => sum + (e.amount || 0), 0);
-        container.innerHTML = `
-            <div class="card" style="background:#fffaf0; text-align:center;">
-                <h4 style="margin:0 0 5px 0;">إجمالي المصاريف والنثريات</h4>
-                <h3 style="color:#c53030; margin:0;">${totalExp.toLocaleString()} د.ع</h3>
-            </div>
-            <label>اسم المصروف (مثال: أجور إعلان، توصيل، كهرباء):</label>
-            <input type="text" id="exp-title" placeholder="أدخل اسم المصروف...">
-            <label>المبلغ (د.ع):</label>
-            <input type="number" id="exp-amount" value="0">
-            <button onclick="saveExpense()" style="background:#c53030;">➕ تسجيل مصروف جديد</button>
-            <hr>
-            <h4>سجل المصاريف:</h4>
-            ${expensesList.slice().reverse().map(e => `<div class="card"><b>${e.title}</b>: <span style="color:#c53030; font-weight:bold;">${e.amount.toLocaleString()} د.ع</span></div>`).join('')}
-        `;
-    }
-
-    async function saveExpense() {
-        const title = document.getElementById("exp-title").value.trim();
-        const amount = parseFloat(document.getElementById("exp-amount").value) || 0;
-        if (!title || amount <= 0) return;
-        const newExp = { username: currentUser, title: title, amount: amount, created_date: new Date().toISOString() };
-        const { error } = await supabaseClient.from("expenses").insert([newExp]);
-        if (error) return;
-        await loadAppData();
-        goToPage('expenses');
-    }
-
-    function renderInvoices(container) {
-        document.getElementById("app-title").innerText = "سجل الفواتير";
-        let html = ``;
-        invoicesList.slice().reverse().forEach((inv, idx) => {
-            const invId = `invoice-card-${idx}`;
-            const wText = encodeURIComponent(`فاتورة رقم ${inv.invoice_code} للزبون ${inv.customer_name}%0Aالمبلغ: ${inv.total_price.toLocaleString()} د.ع%0Aالمتبقي: ${inv.remaining_amount.toLocaleString()} د.ع`);
-            html += `
-                <div class="card" id="${invId}">
-                    <b>فاتورة: ${inv.invoice_code}</b> | الزبون: ${inv.customer_name}
-                    <p>التفاصيل: ${inv.products_text}</p>
-                    <p>المجموع: <b>${inv.total_price.toLocaleString()}</b> د.ع | المتبقي: ${inv.remaining_amount.toLocaleString()} د.ع</p>
-                    <button onclick="downloadPDF('${invId}', '${inv.invoice_code}')" style="background:#2b6cb0; margin-bottom:5px;">📥 تحميل PDF</button>
-                    <a href="https://wa.me/?text=${wText}" target="_blank"><button style="background:#25D366; margin:0;">💬 إرسال واتساب</button></a>
-                </div>
-            `;
-        });
-        container.innerHTML = html || "<p style='text-align:center;'>لا توجد فواتير مسجلة.</p>";
-    }
-
-    function downloadPDF(elementId, invCode) {
-        const element = document.getElementById(elementId);
-        const opt = { margin: 10, filename: `Invoice_${invCode}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-        html2pdf().from(element).set(opt).save();
-    }
-
-    function renderReports(container) {
-        document.getElementById("app-title").innerText = "التقارير والأرباح";
-        const totalSales = invoicesList.reduce((sum, inv) => sum + inv.total_price, 0);
-        const totalExp = expensesList.reduce((sum, e) => sum + (e.amount || 0), 0);
-        const netProfit = totalSales - totalExp;
-        container.innerHTML = `
-            <div class="card" style="text-align:center;">
-                <h3>إجمالي المبيعات</h3>
-                <h2>${totalSales.toLocaleString()} د.ع</h2>
-            </div>
-            <div class="card" style="text-align:center; background:#fff5f5;">
-                <h3>إجمالي المصاريف</h3>
-                <h2 style="color:#c53030;">${totalExp.toLocaleString()} د.ع</h2>
-            </div>
-            <div class="card" style="text-align:center; background:#e6fffa;">
-                <h3>صافي الربح الحقيقي</h3>
-                <h2 style="color:#2f855a;">${netProfit.toLocaleString()} د.ع</h2>
-            </div>
-        `;
+        const { error } = await supabaseClient.from("products").insert([newProd]);
+        if (error) {
+            alert("حدث خطأ أثناء حفظ المادة، يرجى المحاولة لاحقاً!");
+        } else {
+            alert("✅ تم إضافة المادة بنجاح!");
+            goToPage('grid');
+        }
     }
 </script>
-
 </body>
 </html>
