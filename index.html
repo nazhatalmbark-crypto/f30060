@@ -6,8 +6,6 @@
     <title>ياسر ويب - YASSER WEB</title>
     <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- مكتبة لطباعة وتصدير PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             background: linear-gradient(135deg, #553c9a 0%, #3b2375 100%);
@@ -33,10 +31,7 @@
             box-sizing: border-box;
             color: #2d1a4e;
         }
-        h1, h2, h3, h4, p, label {
-            color: #2d1a4e;
-            font-weight: 600;
-        }
+        h1, h2, h3, h4, p, label { color: #2d1a4e; font-weight: 600; }
         input, select, textarea {
             color: #000000 !important;
             background: #ffffff !important;
@@ -59,14 +54,10 @@
             font-weight: bold;
             width: 100%;
             font-size: 14px;
-            box-shadow: 0 4px 10px rgba(107, 70, 193, 0.2);
             cursor: pointer;
             margin-bottom: 8px;
-            transition: background 0.2s;
         }
-        button:hover, .btn:hover {
-            background-color: #483185;
-        }
+        button:hover { background-color: #483185; }
         .card {
             background: #ffffff;
             border: 1px solid #e2d9f3;
@@ -93,639 +84,134 @@
             border-bottom: 2px solid #e2d9f3;
             padding-bottom: 10px;
         }
-        .alert-warning { background: #fff3cd; color: #856404; padding: 8px; border-radius: 8px; font-size: 12px; margin-bottom: 8px; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
 <div class="mobile-container" id="app">
-    <!-- شاشة التحميل -->
     <div id="loading-screen" style="text-align: center; padding: 50px 0;">
-        <h3>جاري تحميل نظام ياسر ويب...</h3>
-        <p style="font-size: 12px; color: #7c6f9f;">Static Web v19.0.0</p>
+        <h3>جاري تحميل نظام ياسر ويب النسخة الجديدة...</h3>
     </div>
 
-    <!-- تسجيل الدخول -->
-    <div id="login-screen" class="hidden">
-        <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
-        
-        <label>اسم المستخدم أو المحل:</label>
-        <input type="text" id="login-username" value="ياسر" placeholder="أدخل اسم المستخدم...">
-        
-        <label>الصلاحية:</label>
-        <select id="login-role">
-            <option value="مشرف النظام">مشرف النظام (الأدمن)</option>
-            <option value="كاشير">كاشير</option>
-            <option value="مسؤول مبيعات">مسؤول مبيعات</option>
-        </select>
-        
-        <button onclick="handleLogin()">دخول للنظام</button>
-        <div style="text-align: center; margin-top: 15px; font-size: 12px;">
-            لطلب أو تجديد كود النسخة المدفوعة: <br>
-            <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #6b46c1; font-weight: bold; text-decoration: none;">📸 انستغرام: @yaser120120120120</a>
-        </div>
-    </div>
-
-    <!-- التطبيق الرئيسي -->
     <div id="main-app" class="hidden">
-        <div id="subscription-banner" style="background: #2f855a; color: white; padding: 6px; border-radius: 8px; text-align: center; font-size: 11px; margin-bottom: 10px; font-weight: bold;"></div>
-        
-        <!-- تنبيهات النفاذ الذكية -->
-        <div id="stock-alerts-box"></div>
-
         <div class="top-bar">
             <button id="back-btn" class="hidden" onclick="goToPage('home')" style="width: auto; padding: 6px 12px;">⬅️ رجوع</button>
             <span id="app-title" style="font-weight: bold; font-size: 15px;">ياسر ويب</span>
-            <div>
-                <button onclick="goToPage('cart')" style="width: auto; padding: 6px 12px; background: #2b6cb0;">🛒 <span id="cart-badge">0</span></button>
-                <button onclick="handleLogout()" style="width: auto; padding: 6px 12px; background: #c53030;">خروج</button>
-            </div>
+            <button onclick="goToPage('home')" style="width: auto; padding: 6px 12px; background: #c53030;">الرئيسية</button>
         </div>
-
         <div id="view-content"></div>
-        
-        <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7c6f9f;">
-            ياسر ويب - تطوير ودعم: <a href="https://instagram.com/yaser120120120120" target="_blank" style="color: #6b46c1; text-decoration: none;">@yaser120120120120</a>
-        </div>
     </div>
 </div>
 
 <script>
-    const SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let productsList = [
+        { product_name: "تجربة مادة", sell_price: 5000, quantity: 10, image_url: "" }
+    ];
 
-    let currentUser = localStorage.getItem("yasser_user") || "ياسر";
-    let userRole = localStorage.getItem("yasser_role") || "مشرف النظام";
-    let cart = JSON.parse(localStorage.getItem("yasser_cart")) || [];
-    
-    let productsList = [];
-    let customersList = [];
-    let invoicesList = [];
-
-    function checkSubscriptionStatus() {
-        let subExpireDate = localStorage.getItem("yasser_sub_expire");
-        let isVip = localStorage.getItem("yasser_is_vip") === "true";
-        if (!isVip || !subExpireDate) return { type: "مجانية", daysLeft: 0, active: true };
-        let now = new Date().getTime();
-        let expire = parseInt(subExpireDate);
-        let diffDays = Math.ceil((expire - now) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 0) return { type: "مجانية (انتهت المدفوعة)", daysLeft: 0, active: true };
-        return { type: "مدفوعة", daysLeft: diffDays, active: true };
-    }
-
-    window.onload = async () => {
+    window.onload = () => {
         document.getElementById("loading-screen").classList.add("hidden");
-        await loadAppData();
-        
-        if (!currentUser) {
-            document.getElementById("login-screen").classList.remove("hidden");
-        } else {
-            document.getElementById("login-screen").classList.add("hidden");
-            document.getElementById("main-app").classList.remove("hidden");
-            updateBanner();
-            checkLowStockAlerts();
-            goToPage("home");
-        }
+        document.getElementById("main-app").classList.remove("hidden");
+        goToPage("home");
     };
 
-    function updateBanner() {
-        const sub = checkSubscriptionStatus();
-        const banner = document.getElementById("subscription-banner");
-        if (sub.type === "مدفوعة") {
-            banner.style.background = "#2f855a";
-            banner.innerHTML = `🌟 النسخة المدفوعة مفعلة (${userRole}) | متبقي: <b>${sub.daysLeft} يوم</b>`;
-        } else {
-            banner.style.background = "#b7791f";
-            banner.innerHTML = `⚠️ النسخة المجانية (${userRole}). <a href="#" onclick="goToPage('activation_page')" style="color:#fff; text-decoration:underline;">تفعيل الكود</a>`;
-        }
-    }
-
-    function checkLowStockAlerts() {
-        const lowItems = productsList.filter(p => p.quantity <= 3);
-        const alertBox = document.getElementById("stock-alerts-box");
-        if (lowItems.length > 0) {
-            alertBox.innerHTML = `
-                <div class="card" style="background:#fff5f5; border:1px solid #c53030; padding:10px; margin-bottom:12px;">
-                    <h4 style="color:#c53030; margin:0 0 5px 0; font-size:13px;">🚨 تنبيه نفاذ المخزن الذكي:</h4>
-                    <p style="font-size:11px; margin:0;">هناك ${lowItems.length} مواد وشك على النفاد أو نفدت فعلاً: <b>${lowItems.map(i => i.product_name).join(', ')}</b>. بادر بطلبها فوراً!</p>
-                </div>
-            `;
-        } else {
-            alertBox.innerHTML = "";
-        }
-    }
-
-    function handleLogin() {
-        const usernameInput = document.getElementById("login-username").value.trim() || "ياسر";
-        const roleInput = document.getElementById("login-role").value;
-        currentUser = usernameInput;
-        userRole = roleInput;
-        localStorage.setItem("yasser_user", currentUser);
-        localStorage.setItem("yasser_role", userRole);
-
-        loadAppData();
-        document.getElementById("login-screen").classList.add("hidden");
-        document.getElementById("main-app").classList.remove("hidden");
-        updateBanner();
-        checkLowStockAlerts();
-        goToPage("home");
-    }
-
-    function handleLogout() {
-        localStorage.removeItem("yasser_cart");
-        document.getElementById("main-app").classList.add("hidden");
-        document.getElementById("login-screen").classList.remove("hidden");
-    }
-
-    async function loadAppData() {
-        if (!currentUser) currentUser = "ياسر";
-        try {
-            const pRes = await supabaseClient.from("products").select("*");
-            if (!pRes.error) productsList = pRes.data || [];
-            
-            const cRes = await supabaseClient.from("customers").select("*");
-            if (!cRes.error) customersList = cRes.data || [];
-            
-            const iRes = await supabaseClient.from("invoices").select("*");
-            if (!iRes.error) invoicesList = iRes.data || [];
-        } catch (e) { console.log(e); }
-    }
-
-    function updateCartBadge() {
-        const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
-        document.getElementById("cart-badge").innerText = totalQty;
-        localStorage.setItem("yasser_cart", JSON.stringify(cart));
-    }
-
-    async function goToPage(page) {
-        await loadAppData();
-        updateBanner();
-        checkLowStockAlerts();
-        updateCartBadge();
+    function goToPage(page) {
         const content = document.getElementById("view-content");
         const backBtn = document.getElementById("back-btn");
         
         if (page === "home") {
             backBtn.classList.add("hidden");
-            document.getElementById("app-title").innerText = `ياسر ويب - ${currentUser} (${userRole})`;
-            renderHome(content);
-        } else {
-            backBtn.classList.remove("hidden");
-            if (page === "grid") { renderGrid(content); }
-            else if (page === "cart") { renderCart(content); }
-            else if (page === "add_product") { renderAddProduct(content); }
-            else if (page === "inventory") { renderInventory(content); }
-            else if (page === "customers") { renderCustomers(content); }
-            else if (page === "invoices") { renderInvoices(content); }
-            else if (page === "reports") { renderReports(content); }
-            else if (page === "guide") { renderGuide(content); }
-            else if (page === "activation_page") { renderActivationPage(content); }
-            else if (page === "admin_panel") { renderAdminPanel(content); }
-        }
-    }
-
-    function renderHome(container) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const todayInvs = invoicesList.filter(inv => inv.created_date && inv.created_date.startsWith(todayStr));
-        const todaySales = todayInvs.reduce((sum, inv) => sum + (inv.total_price || 0), 0);
-
-        let adminCardHTML = "";
-        if (userRole === "مشرف النظام") {
-            adminCardHTML = `
-                <div class="card" onclick="goToPage('admin_panel')" style="cursor:pointer; text-align:center; background:#fff5f5; border: 2px dashed #c53030; grid-column: span 2;">
-                    <h4 style="color:#c53030; margin:5px 0;">👑 لوحة تحكم الأدمن (توليد الأكواد)</h4>
-                    <p style="font-size:11px; margin:0;">إدارة وتوليد أكواد الاشتراكات (شهر أو 10 أيام)</p>
-                </div>
-            `;
-        }
-
-        container.innerHTML = `
-            <div class="card" style="background: #f3e8ff; text-align: center;">
-                <p style="margin: 0; font-size: 13px;">📊 إحصائيات اليوم: مبيعات: <b>${todaySales.toLocaleString()} د.ع</b> | الفواتير: <b>${todayInvs.length}</b></p>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                ${adminCardHTML}
-                <div class="card" onclick="goToPage('grid')" style="cursor:pointer; text-align:center;">
-                    <h4>🏠 الرئيسية والشبكة</h4>
-                    <p style="font-size:11px;">البيع السريع</p>
-                </div>
-                <div class="card" onclick="goToPage('add_product')" style="cursor:pointer; text-align:center;">
-                    <h4>➕ إضافة مادة جديدة</h4>
-                    <p style="font-size:11px;">صنف جديد للمخزن</p>
-                </div>
-                <div class="card" onclick="goToPage('inventory')" style="cursor:pointer; text-align:center;">
-                    <h4>📦 جرد المخزن</h4>
-                    <p style="font-size:11px;">الرصيد والتنبيهات</p>
-                </div>
-                <div class="card" onclick="goToPage('customers')" style="cursor:pointer; text-align:center;">
-                    <h4>👥 العملاء والديون</h4>
-                    <p style="font-size:11px;">متابعة والواتساب</p>
-                </div>
-                <div class="card" onclick="goToPage('invoices')" style="cursor:pointer; text-align:center;">
-                    <h4>📄 سجل الفواتير</h4>
-                    <p style="font-size:11px;">PDF والواتساب</p>
-                </div>
-                <div class="card" onclick="goToPage('reports')" style="cursor:pointer; text-align:center;">
-                    <h4>📊 التقارير والأرباح</h4>
-                    <p style="font-size:11px;">حسابات الصافي</p>
-                </div>
-                <div class="card" onclick="goToPage('activation_page')" style="cursor:pointer; text-align:center; background:#e6fffa;">
-                    <h4>🔑 تفعيل النسخة المدفوعة</h4>
-                    <p style="font-size:11px;">إدخال كود التفعيل</p>
-                </div>
-                <div class="card" onclick="goToPage('guide')" style="cursor:pointer; text-align:center; background:#fffaf0; grid-column: span 2;">
-                    <h4>📖 دليل المستخدم الشامل والمميزات الجديدة</h4>
-                    <p style="font-size:11px;">جدول توضيحي لكل تبويب والفوائد</p>
-                </div>
-            </div>
-        `;
-    }
-
-    function renderAdminPanel(container) {
-        document.getElementById("app-title").innerText = "لوحة تحكم الأدمن";
-        let savedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
-            { code: "YASSER-VIP-30", days: 30 },
-            { code: "YASSER-VIP-10", days: 10 }
-        ];
-
-        container.innerHTML = `
-            <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
-                <h3 style="color:#c53030; margin-top:0; text-align:center;">👑 توليد أكواد الاشتراكات الذكية</h3>
-                <p>اختر مدة الاشتراك لتوليد كود تفعيل مخصص:</p>
-                
-                <label>اختر مدة الكود:</label>
-                <select id="code-duration-select">
-                    <option value="30">اشتراك شهر كامل (30 يوم)</option>
-                    <option value="10">اشتراك مؤقت (10 أيام)</option>
-                </select>
-
-                <button onclick="generateCustomVipCode()" style="background:#c53030; font-size:15px; padding:12px; margin-bottom:15px;">⚡ توليد كود جديد</button>
-                
-                <h4 style="color:#2d1a4e;">📋 قائمة الأكواد الفعالة ومدة كل واحد:</h4>
-                <div style="background:#f8f6fc; padding:10px; border-radius:12px; max-height:220px; overflow-y:auto;">
-                    ${savedCodes.map(item => `
-                        <div style="background:#fff; padding:8px; margin-bottom:5px; border-radius:8px; border:1px solid #dcd6f7; display:flex; justify-content:space-between; align-items:center;">
-                            <span>🔑 <b>${item.code}</b></span>
-                            <span style="font-size:10px; color:#2f855a; font-weight:bold;">صالح لمدة: ${item.days} يوم</span>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    function generateCustomVipCode() {
-        const days = parseInt(document.getElementById("code-duration-select").value);
-        let randomNum = Math.floor(1000 + Math.random() * 9000);
-        let newCode = `YASSER-${days}D-${randomNum}`;
-        
-        let savedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
-            { code: "YASSER-VIP-30", days: 30 },
-            { code: "YASSER-VIP-10", days: 10 }
-        ];
-        
-        savedCodes.push({ code: newCode, days: days });
-        localStorage.setItem("yasser_admin_codes_detailed", JSON.stringify(savedCodes));
-
-        alert(`✅ تم توليد كود بمدة (${days} يوم) بنجاح:\n${newCode}`);
-        renderAdminPanel(document.getElementById("view-content"));
-    }
-
-    function renderActivationPage(container) {
-        document.getElementById("app-title").innerText = "تفعيل النسخة المدفوعة";
-        container.innerHTML = `
-            <div class="card" style="background:#fff; line-height:1.6; font-size:13px;">
-                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🔑 بوابة التفعيل والاشتراك</h3>
-                <p>أدخل كود الاشتراك لتفعيل النظام:</p>
-                <label>كود التفعيل:</label>
-                <input type="text" id="main-activation-input" placeholder="أدخل الكود هنا...">
-                <button onclick="applyActivationCode()" style="background:#2f855a; font-size:15px; padding:12px;">✅ تفعيل الاشتراك</button>
-                <hr style="border:0; border-top:1px solid #e2d9f3; margin:15px 0;">
-                <div style="text-align:center; background:#f8f6fc; padding:10px; border-radius:12px;">
-                    <p style="margin:0; font-weight:bold;">للحصول على كود اشتراك جديد:</p>
-                    <a href="https://instagram.com/yaser120120120120" target="_blank" style="display:inline-block; margin-top:5px; color:#fff; background:#6b46c1; padding:8px 15px; border-radius:8px; text-decoration:none; font-weight:bold;">📸 انستغرام: @yaser120120120120</a>
-                </div>
-            </div>
-        `;
-    }
-
-    function applyActivationCode() {
-        const codeInput = document.getElementById("main-activation-input").value.trim();
-        if (!codeInput) return;
-        let usedCodes = JSON.parse(localStorage.getItem("yasser_used_codes")) || [];
-        let detailedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
-            { code: "YASSER-VIP-30", days: 30 },
-            { code: "YASSER-VIP-10", days: 10 }
-        ];
-
-        let foundCodeObj = detailedCodes.find(item => item.code === codeInput);
-
-        if (foundCodeObj) {
-            if (usedCodes.includes(codeInput)) {
-                alert("⚠️ الكود مستخدم مسبقاً! تواصل معنا عبر انستغرام للحصول على كود جديد.");
-            } else {
-                usedCodes.push(codeInput);
-                localStorage.setItem("yasser_used_codes", JSON.stringify(usedCodes));
-                
-                let daysCount = foundCodeObj.days;
-                let expireTime = new Date().getTime() + (daysCount * 24 * 60 * 60 * 1000);
-                
-                localStorage.setItem("yasser_is_vip", "true");
-                localStorage.setItem("yasser_sub_expire", expireTime.toString());
-                alert(`✅ تم تفعيل النسخة المدفوعة لمدة (${daysCount} يوم) بنجاح!`);
-                goToPage("home");
-            }
-        } else {
-            alert("❌ كود التفعيل غير صحيح!");
-        }
-    }
-
-    function renderGuide(container) {
-        document.getElementById("app-title").innerText = "دليل المستخدم الشامل";
-        container.innerHTML = `
-            <div class="card" style="background:#fff; line-height:1.6; font-size:12px;">
-                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">📖 الدليل الشامل لنظام ياسر ويب</h3>
-                <p>يتضمن جدولاً تفصيلياً يشرح كافة تبويبات النظام والفوائد المكتسبة من الإضافات الحديثة:</p>
-                
-                <table border="1" style="width:100%; border-collapse:collapse; font-size:11px; text-align:right; background:#fff; margin-bottom:15px;">
-                    <tr style="background:#f3e8ff; text-align:center;">
-                        <th style="padding:6px;">التبويب أو القسم</th>
-                        <th style="padding:6px;">الوظيفة الأساسية</th>
-                        <th style="padding:6px;">الفوائد والمميزات الجديدة</th>
-                    </tr>
-                    <tr>
-                        <td style="padding:6px;"><b>الرئيسية والشبكة</b></td>
-                        <td style="padding:6px;">عرض المواد والأسعار والكميات.</td>
-                        <td style="padding:6px;">عرض صور المنتجات مباشرة والبيع السريع.</td>
-                    </tr>
-                    <tr style="background:#f8f6fc;">
-                        <td style="padding:6px;"><b>تنبيهات النفاذ الذكية</b></td>
-                        <td style="padding:6px;">مراقبة المخزن تلقائياً.</td>
-                        <td style="padding:6px;">⚠️ تنبيه فوري بالمواد التي قاربت على النفاد لطلبها مبكراً.</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:6px;"><b>العملاء والديون</b></td>
-                        <td style="padding:6px;">حفظ بيانات الزبائن والذمم.</td>
-                        <td style="padding:6px;">💬 إرسال رسائل تذكير بالديون مباشرة عبر الواتساب.</td>
-                    </tr>
-                </table>
-            </div>
-        `;
-    }
-
-    function renderGrid(container) {
-        document.getElementById("app-title").innerText = "شبكة المواد السريعة";
-        let html = `
-            <input type="text" id="search-box" placeholder="🔍 بحث سريع عن مادة..." oninput="filterProducts(this.value)">
-            <div id="products-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        `;
-        productsList.forEach((item) => {
-            const defaultImg = "https://via.placeholder.com/150?text=لا+توجد+صورة";
-            const imgSrc = item.image_url ? item.image_url : defaultImg;
-            html += `
-                <div class="card" style="margin-bottom:0; text-align:center;">
-                    <img src="${imgSrc}" class="product-img" alt="${item.product_name}" onerror="this.src='${defaultImg}'">
-                    <h4 style="margin:5px 0;">📦 ${item.product_name}</h4>
-                    <p style="margin:2px 0; font-size:12px;">السعر: <b>${Number(item.sell_price).toLocaleString()}</b> د.ع</p>
-                    <p style="margin:2px 0; font-size:12px;">المتوفر: <b>${item.quantity}</b></p>
-                    ${item.quantity <= 3 && item.quantity > 0 ? '<div class="alert-warning">⚠️ وشك النفاد!</div>' : ''}
-                    ${item.quantity > 0 ? `<button onclick='addToCart(${JSON.stringify(item)})'>➕ إضافة</button>` : '<button disabled style="background:#ccc;">نفدت الكمية</button>'}
-                </div>
-            `;
-        });
-        html += `</div>`;
-        container.innerHTML = html;
-    }
-
-    function filterProducts(query) {
-        const filtered = productsList.filter(i => i.product_name.toLowerCase().includes(query.toLowerCase()));
-        const grid = document.getElementById("products-grid");
-        let html = "";
-        filtered.forEach(item => {
-            const defaultImg = "https://via.placeholder.com/150?text=لا+توجد+صورة";
-            const imgSrc = item.image_url ? item.image_url : defaultImg;
-            html += `
-                <div class="card" style="margin-bottom:0; text-align:center;">
-                    <img src="${imgSrc}" class="product-img" alt="${item.product_name}" onerror="this.src='${defaultImg}'">
-                    <h4 style="margin:5px 0;">📦 ${item.product_name}</h4>
-                    <p style="margin:2px 0; font-size:12px;">السعر: <b>${Number(item.sell_price).toLocaleString()}</b> د.ع</p>
-                    <p style="margin:2px 0; font-size:12px;">المتوفر: <b>${item.quantity}</b></p>
-                    <button onclick='addToCart(${JSON.stringify(item)})'>➕ إضافة</button>
-                </div>
-            `;
-        });
-        grid.innerHTML = html;
-    }
-
-    function addToCart(item) {
-        let found = cart.find(c => c.product_name === item.product_name);
-        if (found) {
-            if (found.qty < item.quantity) found.qty++;
-        } else {
-            cart.push({ ...item, qty: 1, max_qty: item.quantity });
-        }
-        updateCartBadge();
-        goToPage('grid');
-    }
-
-    function renderCart(container) {
-        document.getElementById("app-title").innerText = "سلة البيع وإتمام الفاتورة";
-        if (cart.length === 0) {
-            container.innerHTML = `<p style="text-align:center;">🛒 السلة فارغة حالياً. أضف مواد من الرئيسية.</p>`;
-            return;
-        }
-
-        let subtotal = 0;
-        let html = ``;
-        cart.forEach((item, idx) => {
-            let itemSum = item.sell_price * item.qty;
-            subtotal += itemSum;
-            html += `
-                <div class="card">
-                    <b>${item.product_name}</b>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
-                        <span>العدد: <input type="number" min="1" max="${item.max_qty}" value="${item.qty}" onchange="updateQty(${idx}, this.value)" style="width:60px; display:inline-block; margin:0;"></span>
-                        <span>المجموع: <b>${itemSum.toLocaleString()}</b> د.ع</span>
-                        <button onclick="removeFromCart(${idx})" style="width:auto; background:#c53030; padding:5px 10px; margin:0;">❌</button>
+            document.getElementById("app-title").innerText = "ياسر ويب - الرئيسية";
+            content.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="card" onclick="goToPage('grid')" style="cursor:pointer; text-align:center;">
+                        <h4>🏠 شبكة المواد (مع الصور)</h4>
+                    </div>
+                    <div class="card" onclick="goToPage('add_product')" style="cursor:pointer; text-align:center;">
+                        <h4>➕ إضافة مادة جديدة</h4>
+                    </div>
+                    <div class="card" onclick="goToPage('admin_panel')" style="cursor:pointer; text-align:center; background:#fff5f5; grid-column: span 2;">
+                        <h4 style="color:#c53030;">👑 لوحة الأدمن (أكواد 30 و 10 أيام)</h4>
                     </div>
                 </div>
             `;
-        });
+        } else if (page === "grid") {
+            backBtn.classList.remove("hidden");
+            document.getElementById("app-title").innerText = "شبكة المواد السريعة";
+            let html = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
+            productsList.forEach(item => {
+                let img = item.image_url ? item.image_url : "https://via.placeholder.com/150?text=لا+توجد+صورة";
+                html += `
+                    <div class="card" style="text-align:center; margin-bottom:0;">
+                        <img src="${img}" class="product-img">
+                        <h4 style="margin:5px 0;">📦 ${item.product_name}</h4>
+                        <p style="margin:2px 0; font-size:12px;">السعر: <b>${item.sell_price}</b> د.ع</p>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            content.innerHTML = html;
+        } else if (page === "add_product") {
+            backBtn.classList.remove("hidden");
+            document.getElementById("app-title").innerText = "إضافة مادة جديدة";
+            content.innerHTML = `
+                <div class="card">
+                    <label>اسم المادة:</label>
+                    <input type="text" id="p-name" placeholder="أدخل اسم المادة...">
+                    
+                    <label>📷 صورة المادة (اختر ملف أو ضع رابط):</label>
+                    <input type="file" id="p-file" accept="image/*" onchange="handleImg(event)">
+                    <input type="text" id="p-img" placeholder="أو ضع رابط الصورة هنا...">
 
-        html += `
-            <hr>
-            <p>المجموع الفرعي: <b id="subtotal-val">${subtotal.toLocaleString()}</b> د.ع</p>
-            <label>مربع الخصم (د.ع):</label>
-            <input type="number" id="discount-val" value="0" oninput="calculateGrandTotal(${subtotal})">
-            
-            <h3 style="margin:5px 0;">المجموع الكلي النهائي: <span id="grand-total-val">${subtotal.toLocaleString()}</span> د.ع</h3>
-            
-            <label>اختر اسم العميل:</label>
-            <select id="selected-customer">
-                ${customersList.map(c => `<option value="${c.customer_name}">${c.customer_name} - ${c.phone} (${c.governorate})</option>`).join('')}
-            </select>
-            
-            <label>المبلغ الواصل (نقد أو 0 للآجل):</label>
-            <input type="number" id="paid-amount" value="${subtotal}" oninput="calcRemaining()">
-            <p id="calc-result" style="font-size:13px; font-weight:bold; color:#2b6cb0;"></p>
-            
-            <button onclick="checkout(${subtotal})" style="background:#2f855a; font-size:16px; padding:12px;">💾 إتمام الحفظ وطباعة الفاتورة</button>
-        `;
-        container.innerHTML = html;
-        calcRemaining();
-    }
+                    <label>سعر البيع:</label>
+                    <input type="number" id="p-sell" placeholder="0">
 
-    function updateQty(idx, val) {
-        cart[idx].qty = parseInt(val);
-        goToPage('cart');
-    }
-
-    function removeFromCart(idx) {
-        cart.splice(idx, 1);
-        goToPage('cart');
-    }
-
-    function calculateGrandTotal(subtotal) {
-        const discount = parseFloat(document.getElementById("discount-val").value) || 0;
-        let finalTotal = Math.max(0, subtotal - discount);
-        document.getElementById("grand-total-val").innerText = finalTotal.toLocaleString();
-        document.getElementById("paid-amount").value = finalTotal;
-        calcRemaining();
-    }
-
-    function calcRemaining() {
-        const finalTotal = parseFloat(document.getElementById("grand-total-val").innerText.replace(/,/g, '')) || 0;
-        const paid = parseFloat(document.getElementById("paid-amount").value) || 0;
-        const rem = Math.max(0, finalTotal - paid);
-        let resText = `المتبقي (الدين): ${rem.toLocaleString()} د.ع`;
-        if (paid > finalTotal) resText += ` | الباقي للزبون: ${(paid - finalTotal).toLocaleString()} د.ع`;
-        document.getElementById("calc-result").innerText = resText;
-    }
-
-    async function checkout(subtotal) {
-        const custName = document.getElementById("selected-customer").value;
-        if (!custName) return;
-        const discountVal = parseFloat(document.getElementById("discount-val").value) || 0;
-        const finalTotal = Math.max(0, subtotal - discountVal);
-        const paidVal = parseFloat(document.getElementById("paid-amount").value) || 0;
-        const remVal = Math.max(0, finalTotal - paidVal);
-        let payStatus = paidVal >= finalTotal ? "🟢 نقد (كاش)" : (paidVal === 0 ? "🔴 دين كامل (آجل)" : "🔵 دفعة جزئية");
-
-        let prodStrList = [];
-        let totalCostInv = 0;
-        for (let item of cart) {
-            prodStrList.push(`${item.product_name} [العدد: ${item.qty}]`);
-            totalCostInv += (item.buy_price || 0) * item.qty;
-            try {
-                let newQ = Math.max(0, item.max_qty - item.qty);
-                await supabaseClient.from("products").update({ quantity: newQ }).eq("id", item.id);
-            } catch (e) { console.log(e); }
-        }
-
-        const invCode = `INV-${(invoicesList.length + 1).toString().padStart(3, '0')}`;
-        const invData = {
-            username: currentUser,
-            invoice_code: invCode,
-            customer_name: custName,
-            products_text: prodStrList.join(" ، "),
-            total_price: finalTotal,
-            cost_price: totalCostInv,
-            paid_amount: Math.min(paidVal, finalTotal),
-            remaining_amount: remVal,
-            payment_type: payStatus,
-            created_date: new Date().toISOString().replace('T', ' ').substring(0, 16)
-        };
-
-        const { error } = await supabaseClient.from("invoices").insert([invData]);
-        if (error) return;
-
-        invoicesList.push(invData);
-        cart = [];
-        localStorage.removeItem("yasser_cart");
-        goToPage('invoices');
-    }
-
-    function renderAddProduct(container) {
-        document.getElementById("app-title").innerText = "إضافة مادة جديدة للمخزن";
-        container.innerHTML = `
-            <div class="card">
-                <label>اسم المادة:</label>
-                <input type="text" id="new-prod-name" placeholder="أدخل اسم المادة...">
-                
-                <label>📷 صورة المادة (رفع ملف أو رابط):</label>
-                <input type="file" id="new-prod-file" accept="image/*" onchange="handleImageUpload(event)">
-                <input type="text" id="new-prod-img" placeholder="أو ضع رابط الصورة هنا مباشرة..." oninput="previewImage(this.value)">
-
-                <div id="img-preview-box" style="display:none; text-align:center; margin-bottom:12px;">
-                    <img id="img-preview" src="" style="max-height: 100px; border-radius: 8px;">
+                    <button onclick="saveProd()" style="background:#2f855a;">حفظ المادة</button>
                 </div>
-
-                <label>سعر الشراء (د.ع):</label>
-                <input type="number" id="new-prod-buy" placeholder="0">
-
-                <label>سعر البيع (د.ع):</label>
-                <input type="number" id="new-prod-sell" placeholder="0">
-
-                <label>الكمية المتوفرة:</label>
-                <input type="number" id="new-prod-qty" placeholder="1">
-
-                <button onclick="saveNewProduct()" style="background:#6b46c1;">حفظ المادة الجديدة</button>
-            </div>
-        `;
-    }
-
-    function previewImage(url) {
-        const previewBox = document.getElementById("img-preview-box");
-        const previewImg = document.getElementById("img-preview");
-        if (url) {
-            previewImg.src = url;
-            previewBox.style.display = "block";
-        } else {
-            previewBox.style.display = "none";
+            `;
+        } else if (page === "admin_panel") {
+            backBtn.classList.remove("hidden");
+            document.getElementById("app-title").innerText = "لوحة الأدمن للأكواد";
+            content.innerHTML = `
+                <div class="card">
+                    <h3 style="color:#c53030; margin-top:0;">توليد أكواد الاشتراك</h3>
+                    <label>اختر مدة الكود:</label>
+                    <select id="code-days">
+                        <option value="30">اشتراك 30 يوم (شهر)</option>
+                        <option value="10">اشتراك 10 أيام</option>
+                    </select>
+                    <button onclick="genCod()" style="background:#c53030;">توليد الكود</button>
+                    <p id="res-code" style="font-weight:bold; color:#2f855a; text-align:center; margin-top:10px;"></p>
+                </div>
+            `;
         }
     }
 
-    function handleImageUpload(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById("new-prod-img").value = e.target.result;
-                previewImage(e.target.result);
+    function handleImg(e) {
+        const f = e.target.files[0];
+        if (f) {
+            const r = new FileReader();
+            r.onload = function(ev) {
+                document.getElementById("p-img").value = ev.target.result;
             };
-            reader.readAsDataURL(file);
+            r.readAsDataURL(f);
         }
     }
 
-    async function saveNewProduct() {
-        const pName = document.getElementById("new-prod-name").value.trim();
-        const pImg = document.getElementById("new-prod-img").value.trim();
-        const pBuy = parseFloat(document.getElementById("new-prod-buy").value) || 0;
-        const pSell = parseFloat(document.getElementById("new-prod-sell").value) || 0;
-        const pQty = parseInt(document.getElementById("new-prod-qty").value) || 0;
+    function saveProd() {
+        let name = document.getElementById("p-name").value;
+        let img = document.getElementById("p-img").value;
+        let sell = document.getElementById("p-sell").value;
+        if (!name) { alert("أدخل اسم المادة"); return; }
+        productsList.push({ product_name: name, sell_price: Number(sell), quantity: 5, image_url: img });
+        alert("تمت الإضافة بنجاح!");
+        goToPage("grid");
+    }
 
-        if (!pName) {
-            alert("يرجى كتابة اسم المادة!");
-            return;
-        }
-
-        const newProd = {
-            product_name: pName,
-            image_url: pImg,
-            buy_price: pBuy,
-            sell_price: pSell,
-            quantity: pQty
-        };
-
-        const { error } = await supabaseClient.from("products").insert([newProd]);
-        if (error) {
-            alert("حدث خطأ أثناء حفظ المادة، يرجى المحاولة لاحقاً!");
-        } else {
-            alert("✅ تم إضافة المادة بنجاح!");
-            goToPage('grid');
-        }
+    function genCod() {
+        let d = document.getElementById("code-days").value;
+        let code = `YASSER-${d}D-${Math.floor(1000 + Math.random() * 9000)}`;
+        document.getElementById("res-code").innerText = `الكود المولد (${d} يوم): ${code}`;
     }
 </script>
 </body>
