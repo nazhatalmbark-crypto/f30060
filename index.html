@@ -439,7 +439,9 @@
         let sell = parseFloat(document.getElementById("p-sell").value) || 0;
         let qty = parseInt(document.getElementById("p-qty").value) || 1;
 
-        if (!name) { alert("أدخل اسم المادة!"); return; }: buy, sell_price: sell, quantity: qty }]);
+        if (!name) { alert("أدخل اسم المادة!"); return; }
+
+        let { error } = await supabaseClient.from("products").insert([{ product_name: name, image_url: img, buy_price: buy, sell_price: sell, quantity: qty }]);
         if (error) { alert("حدث خطأ أثناء الحفظ!"); } else { alert("✅ تمت الإضافة بنجاح!"); goToPage("grid"); }
     }
 
@@ -479,19 +481,19 @@
         if (error) { alert("خطأ بالتحديث"); } else { alert("✅ تم زيادة الكمية بنجاح!"); goToPage("inventory"); }
     }
 
-    function renderCustomers(container) {
+    function renderCustomers(content) {
         document.getElementById("app-title").innerText = "العملاء والديون";
-        container.innerHTML = `<div class="card"><h3>إدارة الزبائن والذمم</h3><p>لا توجد ديون مسجلة حالياً.</p></div>`;
+        content.innerHTML = `<div class="card"><h3>إدارة الزبائن والذمم</h3><p>لا توجد ديون مسجلة حالياً.</p></div>`;
     }
 
-    function renderInvoices(container) {
+    function renderInvoices(content) {
         document.getElementById("app-title").innerText = "سجل الفواتير";
-        container.innerHTML = `<div class="card"><h3>قائمة الفواتير السابقة</h3><p>لا توجد فواتير مسجلة.</p></div>`;
+        content.innerHTML = `<div class="card"><h3>قائمة الفواتير السابقة</h3><p>لا توجد فواتير مسجلة.</p></div>`;
     }
 
-    function renderCashbox(container) {
+    function renderCashbox(content) {
         document.getElementById("app-title").innerText = "الصندوق";
-        container.innerHTML = `<div class="card"><h3>حركة الصندوق النقدي</h3><p>إجمالي الواردات والصندوق الحالي.</p></div>`;
+        content.innerHTML = `<div class="card"><h3>حركة الصندوق النقدي</h3><p>إجمالي الواردات والصندوق الحالي.</p></div>`;
     }
 </script>
 </body>
