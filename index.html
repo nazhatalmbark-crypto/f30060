@@ -439,9 +439,7 @@
         let sell = parseFloat(document.getElementById("p-sell").value) || 0;
         let qty = parseInt(document.getElementById("p-qty").value) || 1;
 
-        if (!name) { alert("أدخل اسم المادة!"); return; }
-
-        let { error } = await supabaseClient.from("products").insert([{ product_name: name, image_url: img, buy_price: buy, sell_price: sell, quantity: qty }]);
+        if (!name) { alert("أدخل اسم المادة!"); return; }: buy, sell_price: sell, quantity: qty }]);
         if (error) { alert("حدث خطأ أثناء الحفظ!"); } else { alert("✅ تمت الإضافة بنجاح!"); goToPage("grid"); }
     }
 
