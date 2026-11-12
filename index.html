@@ -2,499 +2,184 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ياسر ويب - YASSER WEB</title>
-    <!-- مكتبة Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>نظام إدارة المستخدمين وسجلات الدخول</title>
     <style>
-        body {
-            background: linear-gradient(135deg, #553c9a 0%, #3b2375 100%);
-            direction: rtl;
-            text-align: right;
-            font-family: system-ui, -apple-system, sans-serif;
-            margin: 0;
-            padding: 10px;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-        }
-        .mobile-container {
-            width: 100%;
-            max-width: 420px;
-            background: #f8f6fc;
-            border-radius: 32px;
-            padding: 25px 18px;
-            margin: 15px auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.35);
-            border: 6px solid #2d1a4e;
-            box-sizing: border-box;
-            color: #2d1a4e;
-        }
-        h1, h2, h3, h4, p, label { color: #2d1a4e; font-weight: 600; }
-        input, select, textarea {
-            color: #000000 !important;
-            background: #ffffff !important;
-            border: 1px solid #dcd6f7 !important;
-            border-radius: 12px !important;
-            padding: 10px;
-            width: 100%;
-            box-sizing: border-box;
-            margin-bottom: 12px;
-            text-align: right;
-            direction: rtl;
-            font-size: 14px;
-        }
-        button, .btn {
-            background-color: #6b46c1;
-            color: white;
-            border-radius: 12px;
-            border: none;
-            padding: 10px 14px;
-            font-weight: bold;
-            width: 100%;
-            font-size: 14px;
-            cursor: pointer;
-            margin-bottom: 8px;
-        }
-        button:hover { background-color: #483185; }
-        .card {
-            background: #ffffff;
-            border: 1px solid #e2d9f3;
-            border-radius: 16px;
-            padding: 15px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            overflow: hidden;
-        }
-        .product-img {
-            width: 100%;
-            height: 110px;
-            object-fit: contain;
-            background-color: #f8f6fc;
-            border-radius: 10px;
-            margin-bottom: 8px;
-            display: block;
-        }
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #e2d9f3;
-            padding-bottom: 10px;
-        }
-        .hidden { display: none !important; }
+        body { font-family: Tahoma, sans-serif; background: #121212; color: #fff; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button.ban { background: #dc3545; }
+        button.unban { background: #28a745; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: center; }
+        .section-divider { border: 0; height: 2px; background: #ff9800; margin: 30px 0; }
     </style>
 </head>
 <body>
 
-<div class="mobile-container" id="app">
-    <div id="loading-screen" style="text-align: center; padding: 50px 0;">
-        <h3>جاري تحميل نظام ياسر ويب...</h3>
+<div class="container">
+
+    <!-- ================================================================= -->
+    <!-- [الخانة الأولى]: واجهة ونموذج تسجيل الدخول (Login View & Logic) -->
+    <!-- ================================================================= -->
+    <h2>تسجيل الدخول للنظام</h2>
+    <div id="login-section">
+        <input type="text" id="username" placeholder="اسم المستخدم (مثال: ياسر أو أي اسم)">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <button onclick="handleLogin()">دخول</button>
     </div>
 
-    <!-- تسجيل الدخول -->
-    <div id="login-screen" class="hidden">
-        <h3 style="text-align: center; margin-bottom: 20px;">🔐 تسجيل الدخول لنظام (ياسر ويب)</h3>
-        <label>اسم المستخدم:</label>
-        <input type="text" id="login-username" value="ياسر">
-        <label>الصلاحية:</label>
-        <select id="login-role">
-            <option value="مشرف النظام">مشرف النظام (الأدمن)</option>
-            <option value="كاشير">كاشير</option>
-        </select>
-        <button onclick="handleLogin()">دخول للنظام</button>
+    <hr class="section-divider">
+
+    <!-- ================================================================= -->
+    <!-- [الخانة الثانية]: منطق التحقق من الحساب والحظر (Authentication Check) -->
+    <!-- ================================================================= -->
+    <!-- (هنا يتم التحقق برمجياً من حالة الحظر قبل السماح بالدخول) -->
+
+
+    <!-- ================================================================= -->
+    <!-- [الخانة الثالثة]: إدارة وتخزين الجلسات وسجلات الدخول (Session Logs) -->
+    <!-- ================================================================= -->
+    <div id="admin-dashboard" style="display:none;">
+        <h2>لوحة التحكم - سجلات العملاء والدخول</h2>
+        <p>مرحباً بك يا أدمن (<span id="admin-name"></span>)</p>
+        <button onclick="logout()" style="background:#6c757d;">تسجيل خروج</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>اسم المستخدم</th>
+                    <th>وقت وتاريخ آخر دخول</th>
+                    <th>عدد مرات الدخول</th>
+                    <th>حالة الحساب</th>
+                    <th>الإجراء (حظر / تفعيل)</th>
+                </tr>
+            </thead>
+            <tbody id="logs-table-body">
+                <!-- يتم تعبئة السجلات هنا تلقائياً -->
+            </tbody>
+        </table>
     </div>
 
-    <!-- التطبيق الرئيسي -->
-    <div id="main-app" class="hidden">
-        <div id="subscription-banner" style="background: #2f855a; color: white; padding: 6px; border-radius: 8px; text-align: center; font-size: 11px; margin-bottom: 10px; font-weight: bold;"></div>
-        
-        <div class="top-bar">
-            <button id="back-btn" class="hidden" onclick="goToPage('home')" style="width: auto; padding: 6px 12px;">⬅️ رجوع</button>
-            <span id="app-title" style="font-weight: bold; font-size: 15px;">ياسر ويب</span>
-            <div>
-                <button onclick="goToPage('cart')" style="width: auto; padding: 6px 12px; background: #2b6cb0;">🛒 <span id="cart-badge">0</span></button>
-                <button onclick="handleLogout()" style="width: auto; padding: 6px 12px; background: #c53030;">خروج</button>
-            </div>
-        </div>
+    <!-- هنا تبقي بقية الـ 11 خانة الخاصة بمشروعك مقسمة بنفس الطريقة بين الخطوط الفاصلة -->
 
-        <div id="view-content"></div>
-    </div>
 </div>
 
 <script>
-    const SUPABASE_URL = "https://mdffzniutjcjnytuoakb.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_PjzQyJU_n-4pFdLZV7os6w_gLt78fLp";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    /* ================================================================= */
+    /* [الخانة الرابعة]: جافاسكريبت - معالجة البيانات والتخزين المحلي      */
+    /* ================================================================= */
 
-    let currentUser = localStorage.getItem("yasser_user") || "ياسر";
-    let userRole = localStorage.getItem("yasser_role") || "مشرف النظام";
-    let cart = JSON.parse(localStorage.getItem("yasser_cart")) || [];
-    
-    let productsList = [];
-    let customersList = [];
-    let invoicesList = [];
-
-    function checkSubscriptionStatus() {
-        let subExpireDate = localStorage.getItem("yasser_sub_expire");
-        let isVip = localStorage.getItem("yasser_is_vip") === "true";
-        if (!isVip || !subExpireDate) return { type: "مجانية", daysLeft: 0 };
-        let now = new Date().getTime();
-        let expire = parseInt(subExpireDate);
-        let diffDays = Math.ceil((expire - now) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 0) return { type: "منتهية", daysLeft: 0 };
-        return { type: "مدفوعة", daysLeft: diffDays };
-    }
-
-    window.onload = async () => {
-        document.getElementById("loading-screen").classList.add("hidden");
-        await loadAppData();
-        if (!currentUser) {
-            document.getElementById("login-screen").classList.remove("hidden");
-        } else {
-            document.getElementById("login-screen").classList.add("hidden");
-            document.getElementById("main-app").classList.remove("hidden");
-            updateBanner();
-            goToPage("home");
-        }
-    };
-
-    function updateBanner() {
-        const sub = checkSubscriptionStatus();
-        const banner = document.getElementById("subscription-banner");
-        if (sub.type === "مدفوعة") {
-            banner.style.background = "#2f855a";
-            banner.innerHTML = `🌟 النسخة المدفوعة مفعلة | متبقي: <b>${sub.daysLeft} يوم</b>`;
-        } else {
-            banner.style.background = "#b7791f";
-            banner.innerHTML = `⚠️ النسخة المجانية. <a href="#" onclick="goToPage('activation_page')" style="color:#fff;">تفعيل الكود</a>`;
-        }
-    }
-
+    // دالة تسجيل الدخول وفحص الحظر وحفظ السجلات والوقت والمرات
     function handleLogin() {
-        currentUser = document.getElementById("login-username").value.trim() || "ياسر";
-        userRole = document.getElementById("login-role").value;
-        localStorage.setItem("yasser_user", currentUser);
-        localStorage.setItem("yasser_role", userRole);
-        document.getElementById("login-screen").classList.add("hidden");
-        document.getElementById("main-app").classList.remove("hidden");
-        updateBanner();
-        goToPage("home");
-    }
+        const uInput = document.getElementById('username').value.trim();
+        const pInput = document.getElementById('password').value.trim();
 
-    function handleLogout() {
-        localStorage.removeItem("yasser_cart");
-        document.getElementById("main-app").classList.add("hidden");
-        document.getElementById("login-screen").classList.remove("hidden");
-    }
-
-    async function loadAppData() {
-        try {
-            const pRes = await supabaseClient.from("products").select("*");
-            if (!pRes.error) productsList = pRes.data || [];
-            const cRes = await supabaseClient.from("customers").select("*");
-            if (!cRes.error) customersList = cRes.data || [];
-            const iRes = await supabaseClient.from("invoices").select("*");
-            if (!iRes.error) invoicesList = iRes.data || [];
-        } catch (e) { console.log(e); }
-    }
-
-    function updateCartBadge() {
-        const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
-        document.getElementById("cart-badge").innerText = totalQty;
-        localStorage.setItem("yasser_cart", JSON.stringify(cart));
-    }
-
-    async function goToPage(page) {
-        await loadAppData();
-        updateBanner();
-        updateCartBadge();
-        const content = document.getElementById("view-content");
-        const backBtn = document.getElementById("back-btn");
-        
-        if (page === "home") {
-            backBtn.classList.add("hidden");
-            document.getElementById("app-title").innerText = `ياسر ويب - ${currentUser}`;
-            
-            let adminCard = "";
-            if (userRole === "مشرف النظام") {
-                adminCard = `
-                    <div class="card" onclick="goToPage('admin_panel')" style="cursor:pointer; text-align:center; background:#fff5f5; border:2px dashed #c53030; grid-column: span 2;">
-                        <h4 style="color:#c53030; margin:5px 0;">👑 لوحة تحكم الأدمن (توليد الأكواد)</h4>
-                        <p style="font-size:11px; margin:0;">توليد أكواد 30 يوم أو 10 أيام</p>
-                    </div>
-                `;
-            }
-
-            content.innerHTML = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    ${adminCard}
-                    <div class="card" onclick="goToPage('grid')" style="cursor:pointer; text-align:center;">
-                        <h4>🏠 الرئيسية والشبكة</h4>
-                        <p style="font-size:11px; margin:0;">الضغطة السريعة للبيع</p>
-                    </div>
-                    <div class="card" onclick="goToPage('add_product')" style="cursor:pointer; text-align:center;">
-                        <h4>➕ إضافة مادة جديدة</h4>
-                        <p style="font-size:11px; margin:0;">مع دعم الصور</p>
-                    </div>
-                    <div class="card" onclick="goToPage('inventory')" style="cursor:pointer; text-align:center;">
-                        <h4>📦 جرد المخزن</h4>
-                        <p style="font-size:11px; margin:0;">رصيد المواد الحالي</p>
-                    </div>
-                    <div class="card" onclick="goToPage('add_quantity')" style="cursor:pointer; text-align:center;">
-                        <h4>➕ إضافة كمية لمادة</h4>
-                        <p style="font-size:11px; margin:0;">زيادة رصيد مادة قديمة</p>
-                    </div>
-                    <div class="card" onclick="goToPage('customers')" style="cursor:pointer; text-align:center;">
-                        <h4>👥 العملاء والديون</h4>
-                        <p style="font-size:11px; margin:0;">إدارة الزبائن والذمم</p>
-                    </div>
-                    <div class="card" onclick="goToPage('invoices')" style="cursor:pointer; text-align:center;">
-                        <h4>📄 سجل الفواتير</h4>
-                        <p style="font-size:11px; margin:0;">قائمة الفواتير</p>
-                    </div>
-                    <div class="card" onclick="goToPage('cashbox')" style="cursor:pointer; text-align:center;">
-                        <h4>💰 الصندوق</h4>
-                        <p style="font-size:11px; margin:0;">الحسابات النقدية</p>
-                    </div>
-                </div>
-            `;
-        } else {
-            backBtn.classList.remove("hidden");
-            if (page === "grid") { renderGrid(content); }
-            else if (page === "cart") { renderCart(content); }
-            else if (page === "add_product") { renderAddProduct(content); }
-            else if (page === "inventory") { renderInventory(content); }
-            else if (page === "add_quantity") { renderAddQuantity(content); }
-            else if (page === "customers") { renderCustomers(content); }
-            else if (page === "invoices") { renderInvoices(content); }
-            else if (page === "cashbox") { renderCashbox(content); }
-            else if (page === "activation_page") { renderActivationPage(content); }
-            else if (page === "admin_panel") { renderAdminPanel(content); }
+        if(!uInput) {
+            alert('الرجاء كتابة اسم المستخدم');
+            return;
         }
-    }
 
-    function renderAdminPanel(container) {
-        document.getElementById("app-title").innerText = "لوحة تحكم الأدمن";
-        let savedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
-            { code: "YASSER-VIP-30", days: 30 },
-            { code: "YASSER-VIP-10", days: 10 }
-        ];
+        let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
 
-        container.innerHTML = `
-            <div class="card">
-                <h3 style="color:#c53030; margin-top:0; text-align:center;">👑 توليد أكواد الاشتراكات</h3>
-                <label>اختر مدة الكود:</label>
-                <select id="code-duration-select">
-                    <option value="30">اشتراك شهر كامل (30 يوم)</option>
-                    <option value="10">اشتراك سريع (10 أيام)</option>
-                </select>
-                <button onclick="generateCustomVipCode()" style="background:#c53030; padding:12px;">⚡ توليد الكود</button>
-                
-                <h4 style="margin-top:15px;">📋 الأكواد الحالية:</h4>
-                <div style="max-height:180px; overflow-y:auto;">
-                    ${savedCodes.map(i => `<div style="background:#f8f6fc; padding:6px; margin-bottom:4px; border-radius:6px; display:flex; justify-content:space-between;"><span><b>${i.code}</b></span><span style="color:#2f855a;">${i.days} يوم</span></div>`).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    function generateCustomVipCode() {
-        const days = parseInt(document.getElementById("code-duration-select").value);
-        let rand = Math.floor(1000 + Math.random() * 9000);
-        let newCode = `YASSER-${days}D-${rand}`;
-        
-        let savedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
-            { code: "YASSER-VIP-30", days: 30 },
-            { code: "YASSER-VIP-10", days: 10 }
-        ];
-        savedCodes.push({ code: newCode, days: days });
-        localStorage.setItem("yasser_admin_codes_detailed", JSON.stringify(savedCodes));
-
-        alert(`✅ تم توليد الكود بنجاح:\n${newCode}`);
-        renderAdminPanel(document.getElementById("view-content"));
-    }
-
-    function renderActivationPage(container) {
-        document.getElementById("app-title").innerText = "تفعيل النسخة المدفوعة";
-        container.innerHTML = `
-            <div class="card">
-                <h3 style="color:#6b46c1; margin-top:0; text-align:center;">🔑 تفعيل الكود</h3>
-                <label>أدخل الكود:</label>
-                <input type="text" id="activation-code-input" placeholder="أدخل الكود هنا...">
-                <button onclick="applyActivationCode()" style="background:#2f855a; padding:12px;">✅ تفعيل</button>
-            </div>
-        `;
-    }
-
-    function applyActivationCode() {
-        let code = document.getElementById("activation-code-input").value.trim();
-        if (!code) return;
-        let detailedCodes = JSON.parse(localStorage.getItem("yasser_admin_codes_detailed")) || [
-            { code: "YASSER-VIP-30", days: 30 },
-            { code: "YASSER-VIP-10", days: 10 }
-        ];
-        let found = detailedCodes.find(i => i.code === code);
-        if (found) {
-            let expireTime = new Date().getTime() + (found.days * 24 * 60 * 60 * 1000);
-            localStorage.setItem("yasser_is_vip", "true");
-            localStorage.setItem("yasser_sub_expire", expireTime.toString());
-            alert(`✅ تم التفعيل بنجاح لمدة ${found.days} يوم!`);
-            goToPage("home");
-        } else {
-            alert("❌ الكود غير صحيح!");
+        // فحص إذا كان المستخدم محظوراً
+        if(usersDB[uInput] && usersDB[uInput].status === 'banned') {
+            alert('عذراً، هذا الحساب محظور من قبل الإدارة!');
+            return;
         }
-    }
 
-    function renderGrid(container) {
-        document.getElementById("app-title").innerText = "شبكة المواد";
-        let html = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
-        productsList.forEach(item => {
-            let img = item.image_url ? item.image_url : "https://via.placeholder.com/150?text=لا+توجد+صورة";
-            html += `
-                <div class="card" style="text-align:center; margin-bottom:0;">
-                    <img src="${img}" class="product-img">
-                    <h4 style="margin:5px 0;">📦 ${item.product_name}</h4>
-                    <p style="margin:2px 0; font-size:12px;">السعر: <b>${Number(item.sell_price).toLocaleString()}</b> د.ع</p>
-                    <p style="margin:2px 0; font-size:12px;">المتوفر: <b>${item.quantity}</b></p>
-                    <button onclick='addToCart(${JSON.stringify(item)})'>➕ إضافة</button>
-                </div>
-            `;
-        });
-        html += `</div>`;
-        container.innerHTML = html;
-    }
-
-    function addToCart(item) {
-        let found = cart.find(c => c.product_name === item.product_name);
-        if (found) { found.qty++; } else { cart.push({ ...item, qty: 1, max_qty: item.quantity }); }
-        updateCartBadge();
-        goToPage('grid');
-    }
-
-    function renderCart(container) {
-        document.getElementById("app-title").innerText = "سلة المبيعات";
-        if (cart.length === 0) { container.innerHTML = `<p style="text-align:center;">🛒 السلة فارغة.</p>`; return; }
-        let subtotal = 0;
-        let html = ``;
-        cart.forEach((item, idx) => {
-            subtotal += item.sell_price * item.qty;
-            html += `<div class="card"><b>${item.product_name}</b> (العدد: ${item.qty}) - <b>${(item.sell_price * item.qty).toLocaleString()} د.ع</b></div>`;
-        });
-        html += `<h3 style="margin-top:10px;">المجموع: ${subtotal.toLocaleString()} د.ع</h3>`;
-        container.innerHTML = html;
-    }
-
-    function renderAddProduct(container) {
-        document.getElementById("app-title").innerText = "إضافة مادة جديدة";
-        container.innerHTML = `
-            <div class="card">
-                <label>اسم المادة:</label>
-                <input type="text" id="p-name" placeholder="اسم المادة...">
-                
-                <label>📷 صورة المادة (اختر ملف أو ضع رابط):</label>
-                <input type="file" id="p-file" accept="image/*" onchange="handleImg(event)">
-                <input type="text" id="p-img" placeholder="أو رابط الصورة مباشرة..." oninput="previewImg(this.value)">
-
-                <div id="img-preview-box" style="display:none; text-align:center; margin-bottom:10px;">
-                    <img id="img-preview" src="" style="max-height:90px; border-radius:6px;">
-                </div>
-
-                <label>سعر الشراء:</label>
-                <input type="number" id="p-buy" value="0">
-                <label>سعر البيع:</label>
-                <input type="number" id="p-sell" value="0">
-                <label>الكمية:</label>
-                <input type="number" id="p-qty" value="1">
-
-                <button onclick="saveProd()" style="background:#6b46c1;">حفظ المادة</button>
-            </div>
-        `;
-    }
-
-    function previewImg(url) {
-        let box = document.getElementById("img-preview-box");
-        let img = document.getElementById("img-preview");
-        if (url) { img.src = url; box.style.display = "block"; } else { box.style.display = "none"; }
-    }
-
-    function handleImg(e) {
-        let f = e.target.files[0];
-        if (f) {
-            let r = new FileReader();
-            r.onload = function(ev) {
-                document.getElementById("p-img").value = ev.target.result;
-                previewImg(ev.target.result);
+        // تسجيل أو تحديث بيانات الدخول (الوقت والمرات)
+        const now = new Date().toLocaleString('ar-IQ');
+        
+        if(!usersDB[uInput]) {
+            usersDB[uInput] = {
+                count: 1,
+                lastLogin: now,
+                status: 'active',
+                role: (uInput === 'ياسر' ? 'admin' : 'user')
             };
-            r.readAsDataURL(f);
+        } else {
+            usersDB[uInput].count += 1;
+            usersDB[uInput].lastLogin = now;
+        }
+
+        localStorage.setItem('system_users_db', JSON.stringify(usersDB));
+        localStorage.setItem('current_user', uInput);
+
+        checkSession();
+    }
+
+    /* ================================================================= */
+    /* [الخانة الخامسة]: جافاسكريبت - إدارة لوحة التحكم وعرض السجلات     */
+    /* ================================================================= */
+
+    function checkSession() {
+        const currentUser = localStorage.getItem('current_user');
+        if(!currentUser) return;
+
+        let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
+        const userData = usersDB[currentUser];
+
+        if(userData && userData.role === 'admin') {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('admin-dashboard').style.display = 'block';
+            document.getElementById('admin-name').innerText = currentUser;
+            renderLogsTable();
+        } else {
+            alert('تم تسجيل الدخول بنجاح للمستخدم العادي!');
         }
     }
 
-    async function saveProd() {
-        let name = document.getElementById("p-name").value.trim();
-        let img = document.getElementById("p-img").value.trim();
-        let buy = parseFloat(document.getElementById("p-buy").value) || 0;
-        let sell = parseFloat(document.getElementById("p-sell").value) || 0;
-        let qty = parseInt(document.getElementById("p-qty").value) || 1;
+    /* ================================================================= */
+    /* [الخانة السادسة]: جافاسكريبت - جدول مراقبة الحضور وحظر المستخدمين    */
+    /* ================================================================= */
 
-        if (!name) { alert("أدخل اسم المادة!"); return; }
+    function renderLogsTable() {
+        let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
+        const tbody = document.getElementById('logs-table-body');
+        tbody.innerHTML = '';
 
-        let { error } = await supabaseClient.from("products").insert([{ product_name: name, image_url: img, buy_price: buy, sell_price: sell, quantity: qty }]);
-        if (error) { alert("حدث خطأ أثناء الحفظ!"); } else { alert("✅ تمت الإضافة بنجاح!"); goToPage("grid"); }
+        for(let username in usersDB) {
+            let data = usersDB[username];
+            let tr = document.createElement('tr');
+            
+            tr.innerHTML = `
+                <td>${username}</td>
+                <td>${data.lastLogin}</td>
+                <td>${data.count} مرات</td>
+                <td>${data.status === 'active' ? 'نشط' : 'محظور'}</td>
+                <td>
+                    ${data.status === 'active' ? 
+                        `<button class="ban" onclick="toggleBan('${username}', 'banned')">حظر</button>` : 
+                        `<button class="unban" onclick="toggleBan('${username}', 'active')">رفع الحظر</button>`
+                    }
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
     }
 
-    function renderInventory(container) {
-        document.getElementById("app-title").innerText = "جرد المخزن";
-        let html = `<div class="card"><h3>قائمة المخزن الحالي</h3>`;
-        productsList.forEach(item => {
-            html += `<div style="border-bottom:1px solid #eee; padding:6px 0;"><b>${item.product_name}</b> - الكمية: ${item.quantity} - السعر: ${item.sell_price} د.ع</div>`;
-        });
-        html += `</div>`;
-        container.innerHTML = html;
+    function toggleBan(username, newStatus) {
+        let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
+        if(usersDB[username]) {
+            usersDB[username].status = newStatus;
+            localStorage.setItem('system_users_db', JSON.stringify(usersDB));
+            renderLogsTable();
+        }
     }
 
-    function renderAddQuantity(container) {
-        document.getElementById("app-title").innerText = "إضافة كمية لمادة";
-        container.innerHTML = `
-            <div class="card">
-                <label>اختر المادة:</label>
-                <select id="q-prod-name">
-                    ${productsList.map(i => `<option value="${i.product_name}">${i.product_name} (المتوفر: ${i.quantity})</option>`).join('')}
-                </select>
-                <label>الكمية المراد إضافتها:</label>
-                <input type="number" id="q-add-val" value="1">
-                <button onclick="submitAddQty()" style="background:#2f855a;">تحديث الكمية</button>
-            </div>
-        `;
+    function logout() {
+        localStorage.removeItem('current_user');
+        location.reload();
     }
 
-    async function submitAddQty() {
-        let name = document.getElementById("q-prod-name").value;
-        let addVal = parseInt(document.getElementById("q-add-val").value) || 0;
-        let prod = productsList.find(i => i.product_name === name);
-        if (!prod) return;
-        let newQty = prod.quantity + addVal;
-
-        let { error } = await supabaseClient.from("products").update({ quantity: newQty }).eq("product_name", name);
-        if (error) { alert("خطأ بالتحديث"); } else { alert("✅ تم زيادة الكمية بنجاح!"); goToPage("inventory"); }
-    }
-
-    function renderCustomers(content) {
-        document.getElementById("app-title").innerText = "العملاء والديون";
-        content.innerHTML = `<div class="card"><h3>إدارة الزبائن والذمم</h3><p>لا توجد ديون مسجلة حالياً.</p></div>`;
-    }
-
-    function renderInvoices(content) {
-        document.getElementById("app-title").innerText = "سجل الفواتير";
-        content.innerHTML = `<div class="card"><h3>قائمة الفواتير السابقة</h3><p>لا توجد فواتير مسجلة.</p></div>`;
-    }
-
-    function renderCashbox(content) {
-        document.getElementById("app-title").innerText = "الصندوق";
-        content.innerHTML = `<div class="card"><h3>حركة الصندوق النقدي</h3><p>إجمالي الواردات والصندوق الحالي.</p></div>`;
+    // التحقق المباشر عند فتح الصفحة
+    window.onload = function() {
+        if(localStorage.getItem('current_user')) {
+            checkSession();
+        }
     }
 </script>
+
 </body>
 </html>
