@@ -49,7 +49,7 @@
     <div id="admin-dashboard" style="display:none;">
         <span class="admin-badge">لوحة تحكم المشرف الرئيسي (أدمن)</span>
         <h2>سجلات دخول العملاء والمستخدمين</h2>
-        <p>مرحباً بك يا أستاذ ياسر، هذه قائمة بجميع من سجلوا دخول، أوقاتهم، وعدد مرات دخولهم:</p>
+        <p>مرحباً بك يا أستاذ ياسر، هذه قائمة بجميع من سجلوا دخول، أوقاتهم، وعدد مرات دخولهم (التحكم بالحظر يدوي بالكامل حسب رغبتك):</p>
         <button onclick="logout()" style="background:#6c757d; width: auto; padding: 10px 25px; margin-bottom: 20px;">تسجيل خروج</button>
 
         <table>
@@ -59,7 +59,7 @@
                     <th>وقت وتاريخ آخر دخول</th>
                     <th>عدد مرات الدخول</th>
                     <th>حالة الحساب</th>
-                    <th>الإجراء (حظر / رفع الحظر)</th>
+                    <th>الإجراء (حظر يدوي / رفع الحظر)</th>
                 </tr>
             </thead>
             <tbody id="logs-table-body">
@@ -98,7 +98,7 @@
 
         let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
 
-        // فحص ما إذا كان المستخدم محظوراً مسبقاً
+        // فحص ما إذا كان المستخدم محظوراً مسبقاً (بقرار يدوي سابق)
         if(usersDB[uInput] && usersDB[uInput].status === 'banned') {
             alert('عذراً، هذا الحساب محظور من قبل الإدارة ولا يمكنه الدخول!');
             return;
@@ -170,7 +170,7 @@
                 <td>
                     ${username.toLowerCase() !== 'ياسر' ? (
                         data.status === 'active' ? 
-                            `<button class="ban" onclick="toggleBan('${username}', 'banned')">حظر</button>` : 
+                            `<button class="ban" onclick="toggleBan('${username}', 'banned')">حظر يدوي</button>` : 
                             `<button class="unban" onclick="toggleBan('${username}', 'active')">رفع الحظر</button>`
                     ) : '<span style="color:#aaa; font-style:italic;">حساب المشرف الرئيسي</span>'}
                 </td>
@@ -180,7 +180,7 @@
     }
 
     /* ================================================================= */
-    /* [الخانة الثامنة]: دالة تنفيذ الحظر أو رفع الحظر للمستخدمين            */
+    /* [الخانة الثامنة]: دالة تنفيذ الحظر أو رفع الحظر يدوياً حسب رغبتك     */
     /* ================================================================= */
     function toggleBan(username, newStatus) {
         let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
