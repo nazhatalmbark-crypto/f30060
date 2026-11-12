@@ -2,22 +2,26 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>النظام الشامل - إدارة المستخدمين وسجلات الدخول</title>
+    <title>ياسر ويب - النظام الشامل</title>
     <style>
-        body { font-family: Tahoma, sans-serif; background: #121212; color: #fff; padding: 20px; margin: 0; }
-        .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
-        input, button { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; font-size: 16px; border-radius: 5px; border: 1px solid #444; background: #2a2a2a; color: #fff; }
-        button { background: #007bff; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { background: #0056b3; }
-        button.ban { background: #dc3545; }
-        button.ban:hover { background: #a71d2a; }
-        button.unban { background: #28a745; }
-        button.unban:hover { background: #1e7e34; }
-        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-        th, td { border: 1px solid #444; padding: 12px; text-align: center; }
-        th { background: #333; }
-        .section-divider { border: 0; height: 2px; background: #ff9800; margin: 35px 0; }
-        .admin-badge { background: #ff9800; color: #000; padding: 6px 12px; border-radius: 4px; font-weight: bold; display: inline-block; margin-bottom: 15px; }
+        body { font-family: Tahoma, sans-serif; background: #2c1654; color: #fff; padding: 10px; margin: 0; }
+        .container { max-width: 900px; margin: auto; background: #381d6a; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #4a2882; padding-bottom: 10px; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .card { background: #4a2882; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; border: 1px solid #5c33a3; }
+        .card:hover { background: #5c33a3; }
+        input, button { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; font-size: 16px; border-radius: 8px; border: none; }
+        input { background: #2c1654; color: #fff; border: 1px solid #5c33a3; }
+        button { background: #ff9800; color: #000; font-weight: bold; cursor: pointer; }
+        button:hover { background: #e68900; }
+        button.logout { background: #dc3545; color: white; width: auto; padding: 8px 20px; }
+        button.ban { background: #dc3545; color: white; padding: 6px 12px; }
+        button.unban { background: #28a745; color: white; padding: 6px 12px; }
+        button.view-logs { background: #007bff; color: white; margin-bottom: 15px; font-size: 15px; }
+        table { width: 100%; margin-top: 15px; border-collapse: collapse; background: #2c1654; }
+        th, td { border: 1px solid #5c33a3; padding: 12px; text-align: center; }
+        th { background: #4a2882; }
+        .section-divider { border: 0; height: 2px; background: #ff9800; margin: 25px 0; }
     </style>
 </head>
 <body>
@@ -25,72 +29,80 @@
 <div class="container">
 
     <!-- ================================================================= -->
-    <!-- [الخانة الأولى]: واجهة ونموذج تسجيل الدخول للنظام                     -->
+    <!-- [الخانة الأولى]: واجهة تسجيل الدخول للنظام                         -->
     <!-- ================================================================= -->
-    <div id="login-section">
-        <h2>تسجيل الدخول إلى النظام</h2>
-        <p style="color: #aaa; font-size: 14px;">(ملاحظة: لتسجيل دخول الأدمن وفتح لوحة السجلات، استخدم اسم المستخدم: <b>ياسر</b>)</p>
-        <input type="text" id="username" placeholder="اسم المستخدم (مثلاً: ياسر للأدمن، أو أي اسم آخر)">
+    <div id="login-section" style="text-align: center; padding: 40px 20px;">
+        <h2>تسجيل الدخول - ياسر ويب</h2>
+        <p style="color: #d1c4e9; font-size: 14px; margin-bottom: 20px;">(ملاحظة: أدخل اسم المستخدم <b>ياسر</b> لفتح لوحة الأدمن والسجلات الكاملة)</p>
+        <input type="text" id="username" placeholder="اسم المستخدم">
         <input type="password" id="password" placeholder="كلمة المرور">
-        <button onclick="handleLogin()">تسجيل الدخول</button>
+        <button onclick="handleLogin()">دخول للنظام</button>
     </div>
 
-    <hr class="section-divider">
-
     <!-- ================================================================= -->
-    <!-- [الخانة الثانية]: منطق التحقق وفحص صلاحيات المستخدمين (Authentication) -->
-    <!-- ================================================================= -->
-    <!-- (يتم هنا برمجياً مطابقة البيانات وفحص حالة الحظر والصلاحية تلقائياً) -->
-
-
-    <!-- ================================================================= -->
-    <!-- [الخانة الثالثة]: لوحة التحكم الخاصة بالأدمن وسجلات الدخول والمراقبة -->
+    <!-- [الخانة الثانية]: لوحة التحكم والواجهة الرئيسية (تظهر للأدمن)       -->
     <!-- ================================================================= -->
     <div id="admin-dashboard" style="display:none;">
-        <span class="admin-badge">لوحة تحكم المشرف الرئيسي (أدمن)</span>
-        <h2>سجلات دخول العملاء والمستخدمين</h2>
-        <p>مرحباً بك يا أستاذ ياسر، هذه قائمة بجميع من سجلوا دخول، أوقاتهم، وعدد مرات دخولهم (التحكم بالحظر يدوي بالكامل حسب رغبتك):</p>
-        <button onclick="logout()" style="background:#6c757d; width: auto; padding: 10px 25px; margin-bottom: 20px;">تسجيل خروج</button>
+        <div class="header">
+            <h3>ياسر ويب - الرئيسية (أدمن)</h3>
+            <button class="logout" onclick="logout()">خروج</button>
+        </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>اسم المستخدم</th>
-                    <th>وقت وتاريخ آخر دخول</th>
-                    <th>عدد مرات الدخول</th>
-                    <th>حالة الحساب</th>
-                    <th>الإجراء (حظر يدوي / رفع الحظر)</th>
-                </tr>
-            </thead>
-            <tbody id="logs-table-body">
-                <!-- يتم تعبئة السجلات هنا ديناميكياً -->
-            </tbody>
-        </table>
+        <!-- زر فتح جدول السجلات والتحكم اليدوي بالحظر -->
+        <button class="view-logs" onclick="toggleLogsView()">📋 سجلات دخول المستخدمين والتحكم بالحظر اليدوي</button>
+
+        <!-- شبكة أقسام مشروعك الـ 11 الأصلية -->
+        <div id="main-app-grid">
+            <div class="grid">
+                <div class="card">➕ إضافة مادة جديدة</div>
+                <div class="card">📦 جرد المخزن</div>
+                <div class="card">💰 إضافة كمية لمادة</div>
+                <div class="card">👥 العملاء والديون</div>
+                <div class="card">🏢 إدارة الموردين</div>
+                <div class="card">📄 سجل الفواتير</div>
+                <div class="card">🪙 الصندوق والمصاريف</div>
+                <div class="card">📊 الرئيسية والشبكة</div>
+            </div>
+        </div>
+
+        <!-- قسم جدول السجلات والحظر (يفتح عند الضغط على الزر أعلاه) -->
+        <div id="logs-section" style="display:none;">
+            <h3>سجلات حضور ودخول المستخدمين</h3>
+            <p style="font-size: 13px; color: #d1c4e9;">الحظر يدوي بالكامل وبيدك وحدك، لا يتم حظر أي شخص تلقائياً أبداً إلا إذا ضغطت على زر "حظر يدوي".</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>اسم المستخدم</th>
+                        <th>وقت وتاريخ آخر دخول</th>
+                        <th>عدد مرات الدخول</th>
+                        <th>حالة الحساب</th>
+                        <th>الإجراء اليدوي (حظر / رفع الحظر)</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-table-body">
+                    <!-- تعبئة السجلات ديناميكياً -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- ================================================================= -->
-    <!-- [الخانة الرابعة]: واجهة المستخدم العادي (عند الدخول بحساب غير الأدمن) -->
+    <!-- [الخانة الثالثة]: واجهة المستخدم العادي                            -->
     <!-- ================================================================= -->
     <div id="user-dashboard" style="display:none;">
         <h2>مرحباً بك في النظام!</h2>
         <p>تم تسجيل دخولك بنجاح كمستخدم عادي.</p>
-        <button onclick="logout()" style="background:#6c757d; width: auto; padding: 10px 25px;">تسجيل خروج</button>
+        <button class="logout" onclick="logout()">تسجيل خروج</button>
     </div>
-
-    <!-- ================================================================= -->
-    <!-- [الخانات البقية]: مخصصة لبقية أقسام مشروعك الـ 11 لتضاف هنا بانتظام -->
-    <!-- ================================================================= -->
 
 </div>
 
 <script>
     /* ================================================================= */
-    /* [الخانة الخامسة]: معالجة البيانات، فحص الحظر، والتخزين المحلي         */
+    /* [الخانة الرابعة]: معالجة البيانات، الفحص، والتخزين المحلي         */
     /* ================================================================= */
     function handleLogin() {
         const uInput = document.getElementById('username').value.trim();
-        const pInput = document.getElementById('password').value.trim();
-
         if(!uInput) {
             alert('الرجاء كتابة اسم المستخدم أولاً!');
             return;
@@ -98,38 +110,30 @@
 
         let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
 
-        // فحص ما إذا كان المستخدم محظوراً مسبقاً (بقرار يدوي سابق)
+        // فحص ما إذا كان الحساب محظوراً بقرارك اليدوي السابق
         if(usersDB[uInput] && usersDB[uInput].status === 'banned') {
-            alert('عذراً، هذا الحساب محظور من قبل الإدارة ولا يمكنه الدخول!');
+            alert('عذراً، هذا الحساب محظور من قبل الإدارة!');
             return;
         }
 
         const now = new Date().toLocaleString('ar-IQ');
-        
-        // تحديد الصلاحية: إذا كان الاسم "ياسر" يصبح أدمن، وإلا مستخدم عادي
         const role = (uInput.toLowerCase() === 'ياسر') ? 'admin' : 'user';
 
         if(!usersDB[uInput]) {
-            usersDB[uInput] = {
-                count: 1,
-                lastLogin: now,
-                status: 'active',
-                role: role
-            };
+            usersDB[uInput] = { count: 1, lastLogin: now, status: 'active', role: role };
         } else {
             usersDB[uInput].count += 1;
             usersDB[uInput].lastLogin = now;
-            usersDB[uInput].role = role; // تحديث الصلاحية لضمان التطابق الدائم
+            usersDB[uInput].role = role;
         }
 
         localStorage.setItem('system_users_db', JSON.stringify(usersDB));
         localStorage.setItem('current_user', uInput);
-
         checkSession();
     }
 
     /* ================================================================= */
-    /* [الخانة السادسة]: توزيع وتوجيه الواجهات بناءً على صلاحية المستخدم    */
+    /* [الخانة الخامسة]: توزيع الواجهات حسب الصلاحية                      */
     /* ================================================================= */
     function checkSession() {
         const currentUser = localStorage.getItem('current_user');
@@ -151,8 +155,21 @@
     }
 
     /* ================================================================= */
-    /* [الخانة السابعة]: جدول عرض السجلات، الأوقات، مرات الدخول ونظام الحظر */
+    /* [الخانة السادسة]: التحكم بعرض جدول السجلات وربط أزرار الحظر اليدوي  */
     /* ================================================================= */
+    function toggleLogsView() {
+        const logsSec = document.getElementById('logs-section');
+        const mainGrid = document.getElementById('main-app-grid');
+        if(logsSec.style.display === 'none') {
+            logsSec.style.display = 'block';
+            mainGrid.style.display = 'none';
+            renderLogsTable();
+        } else {
+            logsSec.style.display = 'none';
+            mainGrid.style.display = 'block';
+        }
+    }
+
     function renderLogsTable() {
         let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
         const tbody = document.getElementById('logs-table-body');
@@ -172,7 +189,7 @@
                         data.status === 'active' ? 
                             `<button class="ban" onclick="toggleBan('${username}', 'banned')">حظر يدوي</button>` : 
                             `<button class="unban" onclick="toggleBan('${username}', 'active')">رفع الحظر</button>`
-                    ) : '<span style="color:#aaa; font-style:italic;">حساب المشرف الرئيسي</span>'}
+                    ) : '<span style="color:#aaa; font-style:italic;">المشرف الرئيسي</span>'}
                 </td>
             `;
             tbody.appendChild(tr);
@@ -180,7 +197,7 @@
     }
 
     /* ================================================================= */
-    /* [الخانة الثامنة]: دالة تنفيذ الحظر أو رفع الحظر يدوياً حسب رغبتك     */
+    /* [الخانة السابعة]: تنفيذ الحظر أو رفع الحظر يدوياً حسب رغبتك        */
     /* ================================================================= */
     function toggleBan(username, newStatus) {
         let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
@@ -191,17 +208,11 @@
         }
     }
 
-    /* ================================================================= */
-    /* [الخانة التاسعة]: دالة تسجيل الخروج وإنهاء الجلسة                  */
-    /* ================================================================= */
     function logout() {
         localStorage.removeItem('current_user');
         location.reload();
     }
 
-    /* ================================================================= */
-    /* [الخانة العاشرة]: الفحص التلقائي للجلسة عند فتح وتحميل الصفحة         */
-    /* ================================================================= */
     window.onload = function() {
         if(localStorage.getItem('current_user')) {
             checkSession();
