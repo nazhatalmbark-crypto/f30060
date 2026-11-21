@@ -3,566 +3,706 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>مصمم الفواتير وإدارة الصفحات</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <title>شبكة المواد السريعة - ياسر ويب</title>
   <style>
+    * { box-sizing: border-box; font-family: Tahoma, Arial, sans-serif; }
     body {
-      font-family: 'Cairo', sans-serif;
-      background-color: #f3f4f6;
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #2e1065 0%, #4c1d95 55%, #5b21b6 100%);
+      color: #1f2937;
+      padding: 16px;
+    }
+    .app-shell {
+      max-width: 1050px;
+      margin: 0 auto;
+      background: #f8fafc;
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
     }
 
-    .font-cairo { font-family: 'Cairo', sans-serif; }
-    .font-tajawal { font-family: 'Tajawal', sans-serif; }
-    .font-amiri { font-family: 'Amiri', serif; }
+    /* شريط التنبيه والحسابات */
+    .top-banner {
+      background: #b45309;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: bold;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .top-banner button {
+      background: #fffbeb;
+      color: #92400e;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-    .border-style-none {
-      border: 1px solid #d1d5db;
+    /* رأس الصفحة */
+    .header-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 14px;
     }
-    .border-style-classic {
-      border: 6px double var(--theme-color, #1e3a8a);
-      box-shadow: inset 0 0 0 4px #ffffff, inset 0 0 0 6px var(--theme-color, #1e3a8a);
+    .brand-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      color: #1e1b4b;
     }
-    .border-style-modern {
-      border-top: 12px solid var(--theme-color, #0f766e);
-      border-bottom: 12px solid var(--theme-color, #0f766e);
-      border-left: 1px solid #d1d5db;
-      border-right: 1px solid #d1d5db;
+    .user-pill {
+      background: #ede9fe;
+      color: #4c1d95;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
     }
-    .border-style-ornate {
-      border: 3px solid var(--theme-color, #92400e);
-      background-image: radial-gradient(circle at 12px 12px, var(--theme-color, #92400e) 2px, transparent 2.5px),
-                        radial-gradient(circle at calc(100% - 12px) 12px, var(--theme-color, #92400e) 2px, transparent 2.5px),
-                        radial-gradient(circle at 12px calc(100% - 12px), var(--theme-color, #92400e) 2px, transparent 2.5px),
-                        radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), var(--theme-color, #92400e) 2px, transparent 2.5px);
+    .btn-back {
+      background: #7c3aed;
+      color: #fff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-cart {
+      background: #1d4ed8;
+      color: #fff;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-logout {
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* التبويبات */
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .tab-btn {
+      background: #e2e8f0;
+      color: #334155;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: #5b21b6;
+      color: #fff;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* البحث وبطاقات المواد */
+    .search-box {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 14px;
+      border: 1px solid #cbd5e1;
+      font-size: 14px;
+      margin-bottom: 18px;
+      background: #fff;
+    }
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 16px;
+    }
+    .product-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+      border: 1px solid #f1f5f9;
+    }
+    .product-title { font-size: 18px; font-weight: 800; margin: 0 0 10px; color: #0f172a; }
+    .product-meta { font-size: 14px; color: #334155; margin: 6px 0; font-weight: bold; }
+    .btn-add {
+      margin-top: 12px;
+      width: 100%;
+      background: #6d28d9;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* مصمم الفاتورة */
+    .designer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 18px;
+    }
+    .card-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    .field-group { margin-bottom: 12px; }
+    .field-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #334155; }
+    .field-group input, .field-group select {
+      width: 100%;
+      padding: 9px 11px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font-size: 13px;
+    }
+    .preset-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .preset-btn {
+      padding: 7px 12px;
+      border-radius: 9px;
+      border: 1px solid #7c3aed;
+      background: #f5f3ff;
+      color: #4c1d95;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 7px 10px;
+      border-radius: 9px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .btn-save {
+      width: 100%;
+      background: #059669;
+      color: #fff;
+      border: none;
+      padding: 11px;
+      border-radius: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .invoice-sheet {
+      background: #fff;
+      padding: 20px;
+      border-radius: 14px;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .invoice-sheet table { width: 100%; border-collapse: collapse; }
+    .invoice-sheet th, .invoice-sheet td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; }
+    .invoice-sheet th { background: #f1f5f9; }
+
+    /* جداول الإدارة وإضافة المواد */
+    table.admin-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; }
+    table.admin-table th, table.admin-table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-size: 13px; }
+    table.admin-table th { background: #312e81; color: #fff; }
+
+    /* شاشة تسجيل الدخول */
+    .login-box {
+      max-width: 440px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+    }
+
+    .footer-credit {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: #64748b;
+      font-weight: bold;
     }
 
     @media print {
-      body * {
-        visibility: hidden;
-      }
-      #invoice-preview-area, #invoice-preview-area * {
-        visibility: visible;
-      }
-      #invoice-preview-area {
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 100%;
-        margin: 0;
-        padding: 20px;
-        box-shadow: none !important;
-      }
+      body { background: #fff; padding: 0; }
+      .app-shell { box-shadow: none; padding: 0; border-radius: 0; }
+      .top-banner, .header-bar, .tabs, .designer-controls-col, .footer-credit { display: none !important; }
+      .designer-grid { display: block; }
     }
   </style>
 </head>
-<body class="text-gray-800">
+<body>
 
-  <!-- الشريط العلوي -->
-  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <span class="bg-amber-500 text-slate-900 font-extrabold px-3 py-1 rounded-lg text-base">إنشاء فاتورة</span>
-        <span class="text-xs text-slate-300">تصميم الفواتير وعزل بيانات كل صفحة</span>
-      </div>
+  <!-- شاشة تسجيل الدخول / تبديل الحساب -->
+  <div id="login-screen" class="login-box" style="display:none;">
+    <h2 style="margin:0 0 8px; color:#312e81;">تسجيل الدخول إلى الصفحة</h2>
+    <p style="margin:0 0 16px; font-size:13px; color:#64748b;">
+      أي مستخدم جديد يدخل يبدأ بصفحة ومواد وفواتير وتصميم <strong>صفر (فارغ)</strong> تماماً بدون أي تداخل.
+    </p>
+    <div class="field-group">
+      <label>اسم المستخدم أو الحساب</label>
+      <input type="text" id="login-username" placeholder="مثال: ali_page أو admin" />
+    </div>
+    <div class="field-group">
+      <label>اسم الصفحة / المحل (اختياري)</label>
+      <input type="text" id="login-pagename" placeholder="مثال: صفحة الأناقة" />
+    </div>
+    <button type="button" class="btn-add" onclick="handleLoginSubmit()">دخول إلى حسابي</button>
+    <div style="margin-top:12px; font-size:12px; color:#64748b;">
+      دخول سريع للتجربة:
+      <button type="button" onclick="quickLogin('admin', 'إدارة النظام')" style="border:none; background:#ede9fe; color:#4c1d95; padding:4px 8px; border-radius:6px; cursor:pointer; font-weight:bold;">حساب الأدمن</button>
+      <button type="button" onclick="quickLogin('user_new_1', 'صفحة جديدة 1')" style="border:none; background:#dcfce7; color:#166534; padding:4px 8px; border-radius:6px; cursor:pointer; font-weight:bold;">مستخدم جديد 1</button>
+    </div>
+  </div>
 
-      <div class="flex flex-wrap items-center gap-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
-        <span class="text-xs text-slate-300 px-1">الحساب:</span>
-        <select id="account-switcher" onchange="switchAccount(this.value)" class="bg-slate-700 text-white text-xs rounded-lg px-3 py-1.5 outline-none"></select>
-        <button type="button" onclick="openNewAccountModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
-          + حساب جديد
-        </button>
+  <!-- التطبيق الرئيسي -->
+  <div id="main-app" class="app-shell">
+    <div class="top-banner">
+      <span id="banner-status">الحساب النشط: يتم التحميل...</span>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" onclick="openAccountSwitch()">تبديل / مستخدم جديد</button>
+        <button type="button" onclick="resetCurrentUserWorkspace()" style="background:#fee2e2; color:#991b1b;">تصفير صفحتي الحالية</button>
       </div>
     </div>
 
-    <!-- التبويبات -->
-    <nav class="bg-slate-800 border-t border-slate-700">
-      <div class="max-w-7xl mx-auto px-4 flex gap-2 overflow-x-auto">
-        <button type="button" onclick="switchTab('invoice-builder')" id="tab-btn-invoice-builder" class="px-5 py-3 text-xs sm:text-sm font-bold border-b-4 border-amber-400 text-amber-400 whitespace-nowrap">
-          إنشاء وتعديل الفاتورة
-        </button>
-        <button type="button" onclick="switchTab('products')" id="tab-btn-products" class="px-5 py-3 text-xs sm:text-sm font-bold border-b-4 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
-          بضاعة الصفحة
-        </button>
-        <button type="button" onclick="switchTab('admin-logs')" id="tab-btn-admin-logs" class="px-5 py-3 text-xs sm:text-sm font-bold border-b-4 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
-          لوحة الإدارة (سجل الدخول اليومي)
-        </button>
-      </div>
-    </nav>
-  </header>
-
-  <main class="max-w-7xl mx-auto px-4 py-6">
-
-    <!-- تبويب إنشاء وتعديل الفاتورة -->
-    <section id="tab-invoice-builder" class="tab-content space-y-6">
-
-      <!-- القوالب الجاهزة وإنشاء تصميم جديد -->
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <h2 class="text-base sm:text-lg font-extrabold text-gray-900">القوالب الجاهزة وتصاميم صفحتك</h2>
-            <p class="text-xs text-gray-500">اختر قالباً جاهزاً أو اضغط "إنشاء تصميم جديد" ثم عدّل التفاصيل من صندوق التعديل بالأسفل.</p>
-          </div>
-          <button type="button" onclick="createBlankDesign()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow">
-            + إنشاء تصميم جديد
-          </button>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" id="templates-grid"></div>
+    <div class="header-bar">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="btn-back" onclick="switchTab('store')">⬅️ رجوع</button>
+        <button type="button" class="btn-cart" onclick="alert('عدد المواد في السلة: ' + getCart().length)">🛒 <span id="cart-count">0</span></button>
+        <button type="button" class="btn-logout" onclick="logoutUser()">خروج</button>
       </div>
 
-      <!-- قسم التعديل والمعاينة -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <h1 id="main-header-title" class="brand-title">شبكة المواد السريعة</h1>
 
-        <!-- صندوق التعديل -->
-        <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border-2 border-indigo-100 space-y-4">
-          <div class="flex items-center justify-between border-b pb-3">
-            <h3 class="font-extrabold text-base text-indigo-950">منطقة تعديل الفاتورة</h3>
-            <button type="button" onclick="saveCurrentDesignForUser()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg">
-              حفظ التصميم
-            </button>
+      <span id="active-user-badge" class="user-pill">المستخدم: ---</span>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="tab-btn active" id="tab-btn-store" onclick="switchTab('store')">المواد والسلة</button>
+      <button type="button" class="tab-btn" id="tab-btn-designer" onclick="switchTab('designer')">تصميم وترتيب الفاتورة</button>
+      <button type="button" class="tab-btn" id="tab-btn-manage-products" onclick="switchTab('manage-products')">إدارة موادي (معزولة)</button>
+      <button type="button" class="tab-btn" id="tab-btn-admin" onclick="switchTab('admin')">سجل الدخول اليومي (الأدمن)</button>
+    </div>
+
+    <!-- 1. تبويب المواد -->
+    <section id="tab-store" class="tab-panel active">
+      <input type="text" id="search-input" class="search-box" placeholder="🔍 بحث سريع عن مادة..." oninput="renderStoreProducts()" />
+      <div id="store-products-grid" class="products-grid"></div>
+    </section>
+
+    <!-- 2. تبويب تصميم وترتيب الفاتورة -->
+    <section id="tab-designer" class="tab-panel">
+      <div class="designer-grid">
+        <div class="card-box designer-controls-col">
+          <h3 style="margin:0 0 10px; color:#4c1d95;">تخصيص وترتيب الفاتورة الخاصة بك</h3>
+
+          <div class="preset-row">
+            <button type="button" class="preset-btn" onclick="applyPreset('classic')">قالب كلاسيكي</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('ornate')">قالب مزخرف</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('modern')">قالب عصري</button>
+            <button type="button" class="preset-btn" style="border-color:#dc2626; background:#fef2f2; color:#b91c1c;" onclick="resetDesignOnly()">تصميم جديد فارغ</button>
           </div>
 
-          <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">اسم الصفحة / المحل</label>
-            <input type="text" id="inp-store-name" oninput="updatePreview()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+          <div class="field-group">
+            <label>اسم الصفحة / المحل في الفاتورة</label>
+            <input type="text" id="des-page-name" oninput="renderLiveInvoice()" placeholder="اكتب اسم صفحتك..." />
           </div>
 
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">رقم الهاتف</label>
-              <input type="text" id="inp-store-phone" oninput="updatePreview()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">العنوان / الصفحة</label>
-              <input type="text" id="inp-store-address" oninput="updatePreview()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none" />
-            </div>
+          <div class="field-group">
+            <label>إضافة لوغو أو صورة</label>
+            <input type="file" accept="image/*" onchange="handleLogoUpload(event)" />
           </div>
 
-          <!-- اللوجو -->
-          <div class="border-t pt-3 space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="text-xs font-bold text-gray-700">إضافة صورة / لوغو</label>
-              <button type="button" onclick="removeLogo()" class="text-xs text-red-600 hover:underline">إزالة</button>
-            </div>
-            <input type="file" id="inp-logo" accept="image/*" onchange="handleLogoUpload(event)" class="block w-full text-xs text-gray-600" />
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-gray-600 whitespace-nowrap">حجم اللوغو:</span>
-              <input type="range" id="inp-logo-size" min="40" max="130" value="75" oninput="updatePreview()" class="w-full" />
-            </div>
-          </div>
-
-          <!-- الحواف واللون -->
-          <div class="border-t pt-3 space-y-2">
-            <label class="block text-xs font-bold text-gray-700">تغيير الحواف والزخرفة</label>
-            <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="setBorderStyle('border-style-none')" class="border rounded-lg py-2 px-2 text-xs font-bold hover:bg-gray-50">بدون إطار</button>
-              <button type="button" onclick="setBorderStyle('border-style-classic')" class="border-2 border-double border-blue-800 rounded-lg py-2 px-2 text-xs font-bold hover:bg-blue-50">إطار كلاسيكي</button>
-              <button type="button" onclick="setBorderStyle('border-style-modern')" class="border-t-4 border-b-4 border-teal-700 rounded-lg py-2 px-2 text-xs font-bold hover:bg-teal-50">إطار عصري</button>
-              <button type="button" onclick="setBorderStyle('border-style-ornate')" class="border-2 border-amber-700 rounded-lg py-2 px-2 text-xs font-bold hover:bg-amber-50">زخرفة زوايا</button>
-            </div>
-
-            <div class="flex items-center justify-between pt-2">
-              <span class="text-xs font-bold text-gray-700">لون الفاتورة:</span>
-              <div class="flex items-center gap-1.5">
-                <input type="color" id="inp-theme-color" value="#1e3a8a" oninput="updatePreview()" class="w-7 h-7 cursor-pointer border-0" />
-                <button type="button" onclick="setThemeColor('#1e3a8a')" class="w-5 h-5 rounded-full bg-blue-900"></button>
-                <button type="button" onclick="setThemeColor('#0f766e')" class="w-5 h-5 rounded-full bg-teal-700"></button>
-                <button type="button" onclick="setThemeColor('#92400e')" class="w-5 h-5 rounded-full bg-amber-800"></button>
-                <button type="button" onclick="setThemeColor('#881337')" class="w-5 h-5 rounded-full bg-rose-900"></button>
-              </div>
-            </div>
-          </div>
-
-          <!-- الخط والحجم -->
-          <div class="border-t pt-3 grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">نوع الخط</label>
-              <select id="inp-font-family" onchange="updatePreview()" class="w-full border rounded-lg px-2 py-2 text-xs">
-                <option value="font-cairo">كايرو (Cairo)</option>
-                <option value="font-tajawal">تجوال (Tajawal)</option>
-                <option value="font-amiri">أميري (Amiri)</option>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="field-group">
+              <label>الحواف والزخرفة</label>
+              <select id="des-border" onchange="renderLiveInvoice()">
+                <option value="2px solid #cbd5e1">إطار بسيط</option>
+                <option value="6px double #4c1d95">إطار كلاسيكي مزدوج</option>
+                <option value="5px dashed #b45309">زخرفة متقطعة</option>
+                <option value="8px ridge #0f766e">إطار بارز فاخر</option>
               </select>
             </div>
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">حجم الخط</label>
-              <select id="inp-font-size" onchange="updatePreview()" class="w-full border rounded-lg px-2 py-2 text-xs">
-                <option value="text-xs">صغير</option>
-                <option value="text-sm" selected>متوسط</option>
-                <option value="text-base">كبير</option>
+            <div class="field-group">
+              <label>حجم الخط</label>
+              <select id="des-font-size" onchange="renderLiveInvoice()">
+                <option value="13px">صغير</option>
+                <option value="15px" selected>متوسط</option>
+                <option value="18px">كبير</option>
               </select>
             </div>
           </div>
 
-          <!-- التوقيع -->
-          <div class="border-t pt-3 space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="text-xs font-bold text-gray-700">التوقيع</label>
-              <button type="button" onclick="clearSignature()" class="text-xs text-red-600 hover:underline">مسح التوقيع</button>
-            </div>
-            <canvas id="signature-pad" width="340" height="90" class="w-full border border-dashed border-gray-400 rounded-lg bg-gray-50 cursor-crosshair"></canvas>
-            <label class="flex items-center gap-1.5 text-xs font-semibold">
-              <input type="checkbox" id="inp-show-sig" checked onchange="updatePreview()" />
-              إظهار التوقيع في الفاتورة
-            </label>
+          <div class="field-group">
+            <label>ترتيب أقسام الفاتورة (حرّك للأعلى أو الأسفل)</label>
+            <div id="layout-order-list"></div>
           </div>
 
-          <!-- ملاحظة -->
-          <div class="border-t pt-3">
-            <label class="block text-xs font-bold text-gray-700 mb-1">ملاحظة أسفل الفاتورة</label>
-            <input type="text" id="inp-footer-note" oninput="updatePreview()" value="شكراً لتعاملكم معنا! الاستبدال خلال 3 أيام." class="w-full border rounded-lg px-3 py-2 text-xs" />
+          <div class="field-group">
+            <label>التوقيع (ارسم بالماوس أو الإصبع)</label>
+            <canvas id="sig-canvas" width="280" height="80" style="width:100%; background:#f8fafc; border:1px dashed #94a3b8; border-radius:10px; cursor:crosshair;"></canvas>
+            <button type="button" onclick="clearSignature()" style="margin-top:4px; background:none; border:none; color:#dc2626; font-size:12px; font-weight:bold; cursor:pointer;">مسح التوقيع</button>
+          </div>
+
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-save" onclick="saveCurrentDesign()">💾 حفظ التصميم لحسابي</button>
+            <button type="button" class="btn-save" style="background:#1e293b;" onclick="window.print()">🖨️ طباعة</button>
           </div>
         </div>
 
-        <!-- معاينة الفاتورة -->
-        <div class="lg:col-span-7 space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-2 bg-white px-4 py-3 rounded-xl border border-gray-200">
-            <span class="text-xs sm:text-sm font-bold text-gray-700">معاينة الفاتورة المباشرة</span>
-            <div class="flex gap-2">
-              <button type="button" onclick="addSampleRowToInvoice()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-3 py-2 rounded-lg">
-                + إضافة مادة
-              </button>
-              <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg">
-                طباعة الفاتورة
-              </button>
-            </div>
-          </div>
-
-          <div id="invoice-preview-area" class="bg-white p-7 rounded-lg shadow-md border-style-classic font-cairo text-sm" style="--theme-color: #1e3a8a;">
-            <div class="flex items-start justify-between border-b-2 pb-4 mb-5" style="border-color: var(--theme-color);">
-              <div class="flex items-center gap-3">
-                <img id="prev-logo" src="" alt="لوغو" class="hidden object-contain rounded" style="width: 75px; height: 75px;" />
-                <div>
-                  <h1 id="prev-store-name" class="text-xl sm:text-2xl font-extrabold" style="color: var(--theme-color);">اسم الصفحة</h1>
-                  <p id="prev-store-address" class="text-gray-600 text-xs mt-1"></p>
-                  <p id="prev-store-phone" class="text-gray-600 text-xs"></p>
-                </div>
-              </div>
-              <div class="text-left">
-                <span class="inline-block px-3 py-1 rounded text-white font-bold text-xs mb-1" style="background-color: var(--theme-color);">فاتورة</span>
-                <p class="text-gray-600 text-xs">التاريخ: <strong id="prev-date"></strong></p>
-              </div>
-            </div>
-
-            <table class="w-full text-right border-collapse mb-5">
-              <thead>
-                <tr class="text-white" style="background-color: var(--theme-color);">
-                  <th class="p-2">#</th>
-                  <th class="p-2">المادة</th>
-                  <th class="p-2 text-center">الكمية</th>
-                  <th class="p-2 text-left">السعر</th>
-                </tr>
-              </thead>
-              <tbody id="prev-items-body" class="divide-y divide-gray-200"></tbody>
-            </table>
-
-            <div class="flex justify-end mb-6">
-              <div class="w-56 bg-gray-50 p-3 rounded border space-y-1">
-                <div class="flex justify-between font-extrabold text-sm" style="color: var(--theme-color);">
-                  <span>الإجمالي:</span>
-                  <span id="prev-total">0 د.ع</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex items-end justify-between border-t pt-4">
-              <p id="prev-footer-note" class="text-xs text-gray-500 max-w-xs"></p>
-              <div id="prev-sig-box" class="text-center">
-                <img id="prev-sig-img" src="" alt="التوقيع" class="h-12 mx-auto object-contain hidden" />
-                <div class="w-32 border-t border-gray-400 mt-1 pt-1 text-xs font-bold text-gray-700">التوقيع</div>
-              </div>
-            </div>
-          </div>
+        <div class="card-box">
+          <div id="live-invoice-sheet" class="invoice-sheet" style="border:2px solid #cbd5e1; font-size:15px;"></div>
         </div>
-
       </div>
     </section>
 
-    <!-- تبويب البضاعة -->
-    <section id="tab-products" class="tab-content hidden">
-      <div class="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-base font-extrabold">بضاعة الصفحة النشطة: <span id="products-owner-label" class="text-indigo-600"></span></h2>
-          <div class="flex gap-2">
-            <input type="text" id="new-prod-name" placeholder="اسم المادة" class="border rounded-lg px-3 py-2 text-sm" />
-            <input type="number" id="new-prod-price" placeholder="السعر" class="border rounded-lg px-3 py-2 text-sm w-28" />
-            <button type="button" onclick="addUserProduct()" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg">+ إضافة</button>
-          </div>
+    <!-- 3. تبويب إدارة مواد المستخدم المعزولة -->
+    <section id="tab-manage-products" class="tab-panel">
+      <div class="card-box">
+        <h3 style="margin:0 0 12px; color:#312e81;">إضافة وحذف مواد هذا الحساب فقط</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+          <input type="text" id="prod-name-input" placeholder="اسم المادة" style="padding:9px; border-radius:9px; border:1px solid #cbd5e1; flex:1; min-width:150px;" />
+          <input type="number" id="prod-price-input" placeholder="السعر (د.ع)" style="padding:9px; border-radius:9px; border:1px solid #cbd5e1; width:130px;" />
+          <input type="number" id="prod-qty-input" placeholder="المتوفر" value="10" style="padding:9px; border-radius:9px; border:1px solid #cbd5e1; width:110px;" />
+          <button type="button" class="btn-back" onclick="addProductForCurrentUser()">+ إضافة مادة</button>
         </div>
-        <table class="w-full text-right border-collapse">
+        <table class="admin-table">
           <thead>
-            <tr class="bg-gray-100 text-xs">
-              <th class="p-3">المادة</th>
-              <th class="p-3">السعر</th>
-              <th class="p-3">المالك</th>
-              <th class="p-3 text-left">حذف</th>
+            <tr>
+              <th>المادة</th>
+              <th>السعر</th>
+              <th>المتوفر</th>
+              <th>حذف</th>
             </tr>
           </thead>
-          <tbody id="user-products-table" class="divide-y text-sm"></tbody>
+          <tbody id="manage-products-tbody"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- تبويب لوحة الإدارة -->
-    <section id="tab-admin-logs" class="tab-content hidden">
-      <div class="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
-        <h2 class="text-base font-extrabold">سجل الحسابات ومرات الدخول اليومي</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-right border-collapse">
-            <thead>
-              <tr class="bg-slate-900 text-white text-xs">
-                <th class="p-3">اسم الشخص</th>
-                <th class="p-3">الحساب المسجل</th>
-                <th class="p-3">اسم الصفحة</th>
-                <th class="p-3 text-center">مرات الدخول اليوم</th>
-                <th class="p-3 text-center">التصاميم المحفوظة</th>
-                <th class="p-3">آخر دخول</th>
-              </tr>
-            </thead>
-            <tbody id="admin-logs-table" class="divide-y text-sm"></tbody>
-          </table>
-        </div>
+    <!-- 4. تبويب سجل الدخول اليومي للأدمن -->
+    <section id="tab-admin" class="tab-panel">
+      <div class="card-box">
+        <h3 style="margin:0 0 12px; color:#312e81;">سجل المستخدمين وعدد مرات الدخول اليوم</h3>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>اسم المستخدم</th>
+              <th>اسم الصفحة</th>
+              <th>مرات الدخول اليوم</th>
+              <th>عدد المواد</th>
+              <th>آخر دخول</th>
+            </tr>
+          </thead>
+          <tbody id="admin-logs-tbody"></tbody>
+        </table>
       </div>
     </section>
 
-  </main>
-
-  <!-- نافذة حساب جديد -->
-  <div id="new-account-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-3 shadow-xl">
-      <h3 class="text-base font-extrabold">تسجيل حساب صفحة جديد</h3>
-      <input type="text" id="reg-fullname" placeholder="اسم الشخص" class="w-full border rounded-lg px-3 py-2 text-sm" />
-      <input type="text" id="reg-username" placeholder="اسم المستخدم / الإيميل" class="w-full border rounded-lg px-3 py-2 text-sm" />
-      <input type="text" id="reg-pagename" placeholder="اسم الصفحة أو المحل" class="w-full border rounded-lg px-3 py-2 text-sm" />
-      <div class="flex justify-end gap-2 pt-2">
-        <button type="button" onclick="closeNewAccountModal()" class="px-4 py-2 text-xs text-gray-600">إلغاء</button>
-        <button type="button" onclick="registerNewAccount()" class="px-4 py-2 text-xs bg-emerald-600 text-white font-bold rounded-lg">حفظ ودخول</button>
-      </div>
-    </div>
+    <div class="footer-credit">ياسر ويب - تطوير ودعم: @yaser120120120120</div>
   </div>
 
   <script>
-    const SYSTEM_TEMPLATES = [
-      { id: 't1', name: 'القالب الكلاسيكي', desc: 'إطار مزدوج وخط أميري', borderStyle: 'border-style-classic', themeColor: '#1e3a8a', fontFamily: 'font-amiri', fontSize: 'text-sm' },
-      { id: 't2', name: 'القالب العصري', desc: 'إطار علوي/سفلي وخط كايرو', borderStyle: 'border-style-modern', themeColor: '#0f766e', fontFamily: 'font-cairo', fontSize: 'text-sm' },
-      { id: 't3', name: 'القالب المزخرف', desc: 'زوايا مزخرفة وخط تجوال', borderStyle: 'border-style-ornate', themeColor: '#92400e', fontFamily: 'font-tajawal', fontSize: 'text-sm' }
-    ];
+    // =========================================================================
+    // 1. نظام العزل التام لكل مستخدم (أي مستخدم جديد يبدأ فارغاً 100%)
+    // =========================================================================
+    const TODAY_KEY = new Date().toISOString().split('T')[0];
 
-    const memoryFallback = {};
-    function safeGetStorage(key) {
-      try { return localStorage.getItem(key); } catch (e) { return memoryFallback[key] || null; }
-    }
-    function safeSetStorage(key, val) {
-      try { localStorage.setItem(key, val); } catch (e) { memoryFallback[key] = val; }
+    function getActiveUsername() {
+      return localStorage.getItem('ys_active_user') || '';
     }
 
-    const todayISO = new Date().toISOString().split('T')[0];
-
-    const INITIAL_DB = {
-      currentUserId: 'u1',
-      users: [
-        { id: 'u1', fullName: 'علي محمد', username: 'ali.store', pageName: 'متجر النور' },
-        { id: 'u2', fullName: 'نور الهدى', username: 'noor.page', pageName: 'صفحة لمسات' }
-      ],
-      loginLogs: [
-        { userId: 'u1', date: todayISO, time: '10:00 ص' },
-        { userId: 'u2', date: todayISO, time: '01:20 م' }
-      ],
-      userDesigns: [],
-      products: [
-        { id: 'pr1', userId: 'u1', name: 'ساعة ذكية', price: 35000 },
-        { id: 'pr2', userId: 'u2', name: 'عطر شرقي', price: 25000 }
-      ]
-    };
-
-    let db;
-    try {
-      db = JSON.parse(safeGetStorage('inv_system_v2')) || INITIAL_DB;
-    } catch (e) {
-      db = INITIAL_DB;
+    function userStorageKey(suffix) {
+      const u = getActiveUsername() || 'guest';
+      return `ys_u_${encodeURIComponent(u)}_${suffix}`;
     }
 
-    let currentBorderStyle = 'border-style-classic';
-    let currentLogoDataUrl = '';
-    let currentSignatureDataUrl = '';
-
-    function saveDB() {
-      safeSetStorage('inv_system_v2', JSON.stringify(db));
+    function getUsersRegistry() {
+      return JSON.parse(localStorage.getItem('ys_users_registry') || '{}');
     }
 
-    function getCurrentUser() {
-      return db.users.find(u => u.id === db.currentUserId) || db.users[0];
+    function saveUsersRegistry(reg) {
+      localStorage.setItem('ys_users_registry', JSON.stringify(reg));
     }
 
-    function recordLogin(userId) {
-      const timeStr = new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
-      db.loginLogs.push({ userId, date: todayISO, time: timeStr });
-      saveDB();
+    function getLoginLogs() {
+      return JSON.parse(localStorage.getItem('ys_login_logs') || '[]');
     }
 
-    function renderAccountSwitcher() {
-      const sel = document.getElementById('account-switcher');
-      sel.innerHTML = db.users.map(u => `<option value="${u.id}" ${u.id === db.currentUserId ? 'selected' : ''}>${u.pageName} (${u.fullName})</option>`).join('');
+    function saveLoginLogs(logs) {
+      localStorage.setItem('ys_login_logs', JSON.stringify(logs));
     }
 
-    function switchAccount(userId) {
-      db.currentUserId = userId;
-      recordLogin(userId);
-      saveDB();
-      loadWorkspace();
+    function recordUserLogin(username, pageName) {
+      const reg = getUsersRegistry();
+      if (!reg[username]) {
+        reg[username] = { username, pageName: pageName || username, createdAt: TODAY_KEY };
+      } else if (pageName) {
+        reg[username].pageName = pageName;
+      }
+      saveUsersRegistry(reg);
+
+      const logs = getLoginLogs();
+      logs.push({
+        username,
+        date: TODAY_KEY,
+        time: new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })
+      });
+      saveLoginLogs(logs);
     }
 
-    function openNewAccountModal() {
-      const m = document.getElementById('new-account-modal');
-      m.classList.remove('hidden');
-      m.classList.add('flex');
+    // قراءة وتخزين مواد المستخدم الحالي فقط (فارغة [] لأي مستخدم جديد)
+    function getUserProducts() {
+      return JSON.parse(localStorage.getItem(userStorageKey('products')) || '[]');
     }
 
-    function closeNewAccountModal() {
-      const m = document.getElementById('new-account-modal');
-      m.classList.add('hidden');
-      m.classList.remove('flex');
+    function setUserProducts(list) {
+      localStorage.setItem(userStorageKey('products'), JSON.stringify(list));
     }
 
-    function registerNewAccount() {
-      const fullName = document.getElementById('reg-fullname').value.trim();
-      const username = document.getElementById('reg-username').value.trim();
-      const pageName = document.getElementById('reg-pagename').value.trim();
-      if (!fullName || !username || !pageName) return;
-
-      const newU = { id: 'u_' + Date.now(), fullName, username, pageName };
-      db.users.push(newU);
-      db.currentUserId = newU.id;
-      recordLogin(newU.id);
-      saveDB();
-
-      document.getElementById('reg-fullname').value = '';
-      document.getElementById('reg-username').value = '';
-      document.getElementById('reg-pagename').value = '';
-      closeNewAccountModal();
-      renderAccountSwitcher();
-      loadWorkspace();
+    function getCart() {
+      return JSON.parse(localStorage.getItem(userStorageKey('cart')) || '[]');
     }
 
-    function loadWorkspace() {
-      const user = getCurrentUser();
-      document.getElementById('inp-store-name').value = user.pageName;
-      document.getElementById('products-owner-label').textContent = user.pageName;
+    function setCart(list) {
+      localStorage.setItem(userStorageKey('cart'), JSON.stringify(list));
+      document.getElementById('cart-count').textContent = list.length;
+    }
 
-      const myDesigns = db.userDesigns.filter(d => d.userId === user.id);
-      if (myDesigns.length > 0) {
-        applyDesign(myDesigns[myDesigns.length - 1]);
-      } else {
-        createBlankDesign();
+    // =========================================================================
+    // 2. تسجيل الدخول والخروج وتصفير الصفحة للمستخدم الجديد
+    // =========================================================================
+    function handleLoginSubmit() {
+      const u = document.getElementById('login-username').value.trim();
+      const p = document.getElementById('login-pagename').value.trim();
+      if (!u) return alert('اكتب اسم المستخدم أولاً');
+      loginAsUser(u, p || u);
+    }
+
+    function quickLogin(u, p) {
+      loginAsUser(u, p);
+    }
+
+    function loginAsUser(username, pageName) {
+      localStorage.setItem('ys_active_user', username);
+      recordUserLogin(username, pageName);
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      refreshAllViews();
+    }
+
+    function openAccountSwitch() {
+      document.getElementById('login-username').value = '';
+      document.getElementById('login-pagename').value = '';
+      document.getElementById('main-app').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'block';
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('ys_active_user');
+      openAccountSwitch();
+    }
+
+    function resetCurrentUserWorkspace() {
+      const u = getActiveUsername();
+      if (!confirm(`هل تريد تصفير جميع المواد والسلة وتصميم الفاتورة لحساب (${u}) فقط؟`)) return;
+      localStorage.removeItem(userStorageKey('products'));
+      localStorage.removeItem(userStorageKey('cart'));
+      localStorage.removeItem(userStorageKey('invoice_design'));
+      refreshAllViews();
+    }
+
+    // =========================================================================
+    // 3. عرض المواد والبحث والإضافة للسلة
+    // =========================================================================
+    function renderStoreProducts() {
+      const q = (document.getElementById('search-input').value || '').trim().toLowerCase();
+      const products = getUserProducts().filter(p => !q || p.name.toLowerCase().includes(q));
+      const grid = document.getElementById('store-products-grid');
+
+      if (!products.length) {
+        grid.innerHTML = `
+          <div class="card-box" style="grid-column:1/-1; text-align:center; padding:30px;">
+            <p style="margin:0 0 10px; font-weight:bold; color:#475569;">لا توجد مواد مضافة في هذا الحساب حالياً (الصفحة مصفرة/جديدة).</p>
+            <button type="button" class="btn-back" onclick="switchTab('manage-products')">+ أضف موادك الآن</button>
+          </div>
+        `;
+        return;
       }
 
-      renderTemplates();
-      renderProducts();
+      grid.innerHTML = products.map(p => `
+        <div class="product-card">
+          <h3 class="product-title">${p.name} 📦</h3>
+          <div class="product-meta">السعر: ${Number(p.price).toLocaleString()} د.ع</div>
+          <div class="product-meta">المتوفر: ${Number(p.qty)}</div>
+          <button type="button" class="btn-add" onclick="addToCart('${p.id}')">+ إضافة</button>
+        </div>
+      `).join('');
+    }
+
+    function addToCart(id) {
+      const products = getUserProducts();
+      const item = products.find(x => x.id === id);
+      if (!item || item.qty <= 0) return;
+      item.qty -= 1;
+      setUserProducts(products);
+      const cart = getCart();
+      cart.push(item);
+      setCart(cart);
+      renderStoreProducts();
+      renderLiveInvoice();
+    }
+
+    function addProductForCurrentUser() {
+      const name = document.getElementById('prod-name-input').value.trim();
+      const price = Number(document.getElementById('prod-price-input').value);
+      const qty = Number(document.getElementById('prod-qty-input').value);
+      if (!name || isNaN(price) || isNaN(qty)) return alert('أدخل اسم المادة والسعر والكمية');
+
+      const list = getUserProducts();
+      list.push({ id: 'pr_' + Date.now(), name, price, qty });
+      setUserProducts(list);
+      document.getElementById('prod-name-input').value = '';
+      document.getElementById('prod-price-input').value = '';
+      renderManageProducts();
+      renderStoreProducts();
+      renderLiveInvoice();
       renderAdminLogs();
-      updatePreview();
     }
 
-    function renderTemplates() {
-      const user = getCurrentUser();
-      const myDesigns = db.userDesigns.filter(d => d.userId === user.id);
-      const grid = document.getElementById('templates-grid');
+    function deleteUserProduct(id) {
+      const list = getUserProducts().filter(x => x.id !== id);
+      setUserProducts(list);
+      renderManageProducts();
+      renderStoreProducts();
+      renderLiveInvoice();
+      renderAdminLogs();
+    }
 
-      let html = SYSTEM_TEMPLATES.map(t => `
-        <div onclick="applyTemplate('${t.id}')" class="cursor-pointer border-2 border-gray-200 hover:border-indigo-500 rounded-xl p-3 bg-gray-50">
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">قالب جاهز</span>
-          <h4 class="font-bold text-sm mt-1">${t.name}</h4>
-          <p class="text-xs text-gray-500">${t.desc}</p>
+    function renderManageProducts() {
+      const list = getUserProducts();
+      document.getElementById('manage-products-tbody').innerHTML = list.length
+        ? list.map(p => `
+            <tr>
+              <td><strong>${p.name}</strong></td>
+              <td>${Number(p.price).toLocaleString()} د.ع</td>
+              <td>${Number(p.qty)}</td>
+              <td><button type="button" onclick="deleteUserProduct('${p.id}')" style="background:#fee2e2; color:#b91c1c; border:none; padding:5px 10px; border-radius:7px; font-weight:bold; cursor:pointer;">حذف</button></td>
+            </tr>
+          `).join('')
+        : `<tr><td colspan="4" style="text-align:center; color:#64748b;">لا توجد مواد لهذا الحساب بعد.</td></tr>`;
+    }
+
+    // =========================================================================
+    // 4. تصميم وترتيب الفاتورة الخاص بكل مستخدم
+    // =========================================================================
+    const SECTION_LABELS = {
+      header: '1. رأس الفاتورة (اللوغو واسم الصفحة)',
+      table: '2. جدول المواد والأسعار',
+      footer: '3. التوقيع والملاحظات'
+    };
+
+    let invoiceDesign = {
+      pageName: '',
+      logo: '',
+      border: '2px solid #cbd5e1',
+      fontSize: '15px',
+      signature: '',
+      order: ['header', 'table', 'footer']
+    };
+
+    function loadUserDesign() {
+      const u = getActiveUsername();
+      const reg = getUsersRegistry()[u] || { pageName: u };
+      const saved = JSON.parse(localStorage.getItem(userStorageKey('invoice_design')) || 'null');
+
+      if (saved) {
+        invoiceDesign = saved;
+      } else {
+        invoiceDesign = {
+          pageName: reg.pageName || u,
+          logo: '',
+          border: '2px solid #cbd5e1',
+          fontSize: '15px',
+          signature: '',
+          order: ['header', 'table', 'footer']
+        };
+      }
+
+      document.getElementById('des-page-name').value = invoiceDesign.pageName;
+      document.getElementById('des-border').value = invoiceDesign.border;
+      document.getElementById('des-font-size').value = invoiceDesign.fontSize;
+      renderOrderList();
+      renderLiveInvoice();
+    }
+
+    function renderOrderList() {
+      const wrap = document.getElementById('layout-order-list');
+      wrap.innerHTML = invoiceDesign.order.map((key, idx) => `
+        <div class="order-item">
+          <span>${SECTION_LABELS[key]}</span>
+          <div>
+            <button type="button" onclick="moveOrder(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} style="cursor:pointer;">⬆️</button>
+            <button type="button" onclick="moveOrder(${idx}, 1)" ${idx === invoiceDesign.order.length - 1 ? 'disabled' : ''} style="cursor:pointer;">⬇️</button>
+          </div>
         </div>
       `).join('');
-
-      html += myDesigns.map(d => `
-        <div onclick="applyDesignById('${d.id}')" class="cursor-pointer border-2 border-emerald-300 hover:border-emerald-600 rounded-xl p-3 bg-emerald-50/50">
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-600 text-white">تصميمي</span>
-          <h4 class="font-bold text-sm mt-1">${d.designName}</h4>
-          <p class="text-xs text-gray-600">${user.pageName}</p>
-        </div>
-      `).join('');
-
-      grid.innerHTML = html;
     }
 
-    function applyTemplate(id) {
-      const t = SYSTEM_TEMPLATES.find(x => x.id === id);
-      if (!t) return;
-      currentBorderStyle = t.borderStyle;
-      document.getElementById('inp-theme-color').value = t.themeColor;
-      document.getElementById('inp-font-family').value = t.fontFamily;
-      document.getElementById('inp-font-size').value = t.fontSize;
-      updatePreview();
+    function moveOrder(index, delta) {
+      const target = index + delta;
+      if (target < 0 || target >= invoiceDesign.order.length) return;
+      const tmp = invoiceDesign.order[index];
+      invoiceDesign.order[index] = invoiceDesign.order[target];
+      invoiceDesign.order[target] = tmp;
+      renderOrderList();
+      renderLiveInvoice();
     }
 
-    function applyDesignById(id) {
-      const d = db.userDesigns.find(x => x.id === id && x.userId === db.currentUserId);
-      if (d) applyDesign(d);
+    function applyPreset(preset) {
+      if (preset === 'classic') { invoiceDesign.border = '6px double #4c1d95'; invoiceDesign.fontSize = '15px'; }
+      if (preset === 'ornate')  { invoiceDesign.border = '5px dashed #b45309'; invoiceDesign.fontSize = '16px'; }
+      if (preset === 'modern')  { invoiceDesign.border = '8px ridge #0f766e';  invoiceDesign.fontSize = '15px'; }
+      document.getElementById('des-border').value = invoiceDesign.border;
+      document.getElementById('des-font-size').value = invoiceDesign.fontSize;
+      renderLiveInvoice();
     }
 
-    function applyDesign(d) {
-      document.getElementById('inp-store-name').value = d.storeName || '';
-      document.getElementById('inp-store-phone').value = d.storePhone || '';
-      document.getElementById('inp-store-address').value = d.storeAddress || '';
-      currentBorderStyle = d.borderStyle || 'border-style-classic';
-      document.getElementById('inp-theme-color').value = d.themeColor || '#1e3a8a';
-      document.getElementById('inp-font-family').value = d.fontFamily || 'font-cairo';
-      document.getElementById('inp-font-size').value = d.fontSize || 'text-sm';
-      document.getElementById('inp-logo-size').value = d.logoSize || 75;
-      document.getElementById('inp-footer-note').value = d.footerNote || '';
-      currentLogoDataUrl = d.logoDataUrl || '';
-      currentSignatureDataUrl = d.signatureDataUrl || '';
-      updatePreview();
-    }
-
-    function createBlankDesign() {
-      const user = getCurrentUser();
-      document.getElementById('inp-store-name').value = user.pageName;
-      document.getElementById('inp-store-phone').value = '07700000000';
-      document.getElementById('inp-store-address').value = 'العراق';
-      currentBorderStyle = 'border-style-none';
-      document.getElementById('inp-theme-color').value = '#1e3a8a';
-      document.getElementById('inp-font-family').value = 'font-cairo';
-      document.getElementById('inp-font-size').value = 'text-sm';
-      currentLogoDataUrl = '';
+    function resetDesignOnly() {
+      localStorage.removeItem(userStorageKey('invoice_design'));
       clearSignature();
-      updatePreview();
-    }
-
-    function saveCurrentDesignForUser() {
-      const user = getCurrentUser();
-      const designName = prompt('اسم التصميم للحفظ في حسابك:', 'تصميم ' + user.pageName);
-      if (!designName) return;
-
-      db.userDesigns.push({
-        id: 'd_' + Date.now(),
-        userId: user.id,
-        designName,
-        storeName: document.getElementById('inp-store-name').value,
-        storePhone: document.getElementById('inp-store-phone').value,
-        storeAddress: document.getElementById('inp-store-address').value,
-        borderStyle: currentBorderStyle,
-        themeColor: document.getElementById('inp-theme-color').value,
-        fontFamily: document.getElementById('inp-font-family').value,
-        fontSize: document.getElementById('inp-font-size').value,
-        logoDataUrl: currentLogoDataUrl,
-        logoSize: document.getElementById('inp-logo-size').value,
-        signatureDataUrl: currentSignatureDataUrl,
-        footerNote: document.getElementById('inp-footer-note').value
-      });
-      saveDB();
-      renderTemplates();
-      renderAdminLogs();
-    }
-
-    function setBorderStyle(st) {
-      currentBorderStyle = st;
-      updatePreview();
-    }
-
-    function setThemeColor(hex) {
-      document.getElementById('inp-theme-color').value = hex;
-      updatePreview();
+      loadUserDesign();
     }
 
     function handleLogoUpload(e) {
@@ -570,188 +710,156 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = ev => {
-        currentLogoDataUrl = ev.target.result;
-        updatePreview();
+        invoiceDesign.logo = ev.target.result;
+        renderLiveInvoice();
       };
       reader.readAsDataURL(file);
     }
 
-    function removeLogo() {
-      currentLogoDataUrl = '';
-      document.getElementById('inp-logo').value = '';
-      updatePreview();
-    }
+    function renderLiveInvoice() {
+      invoiceDesign.pageName = document.getElementById('des-page-name').value || 'اسم الصفحة';
+      invoiceDesign.border = document.getElementById('des-border').value;
+      invoiceDesign.fontSize = document.getElementById('des-font-size').value;
 
-    function updatePreview() {
-      const box = document.getElementById('invoice-preview-area');
-      const storeName = document.getElementById('inp-store-name').value || 'اسم الصفحة';
-      const phone = document.getElementById('inp-store-phone').value;
-      const addr = document.getElementById('inp-store-address').value;
-      const color = document.getElementById('inp-theme-color').value;
-      const font = document.getElementById('inp-font-family').value;
-      const size = document.getElementById('inp-font-size').value;
-      const logoSize = document.getElementById('inp-logo-size').value;
-      const note = document.getElementById('inp-footer-note').value;
-      const showSig = document.getElementById('inp-show-sig').checked;
+      const sheet = document.getElementById('live-invoice-sheet');
+      sheet.style.border = invoiceDesign.border;
+      sheet.style.fontSize = invoiceDesign.fontSize;
 
-      box.className = `bg-white p-7 rounded-lg shadow-md ${currentBorderStyle} ${font} ${size}`;
-      box.style.setProperty('--theme-color', color);
+      const items = getUserProducts();
+      const total = items.reduce((sum, x) => sum + (Number(x.price) || 0), 0);
 
-      document.getElementById('prev-store-name').textContent = storeName;
-      document.getElementById('prev-store-phone').textContent = phone ? 'الهاتف: ' + phone : '';
-      document.getElementById('prev-store-address').textContent = addr ? 'العنوان: ' + addr : '';
-      document.getElementById('prev-footer-note').textContent = note;
-      document.getElementById('prev-date').textContent = new Date().toLocaleDateString('ar-IQ');
+      const rowsHtml = items.length
+        ? items.map(x => `<tr><td>${x.name}</td><td>${Number(x.price).toLocaleString()} د.ع</td></tr>`).join('')
+        : `<tr><td colspan="2" style="text-align:center; color:#94a3b8;">لا توجد مواد مضافة لهذا الحساب بعد</td></tr>`;
 
-      const logoEl = document.getElementById('prev-logo');
-      if (currentLogoDataUrl) {
-        logoEl.src = currentLogoDataUrl;
-        logoEl.style.width = logoSize + 'px';
-        logoEl.style.height = logoSize + 'px';
-        logoEl.classList.remove('hidden');
-      } else {
-        logoEl.classList.add('hidden');
-      }
-
-      const sigBox = document.getElementById('prev-sig-box');
-      const sigImg = document.getElementById('prev-sig-img');
-      if (showSig) {
-        sigBox.classList.remove('hidden');
-        if (currentSignatureDataUrl) {
-          sigImg.src = currentSignatureDataUrl;
-          sigImg.classList.remove('hidden');
-        } else {
-          sigImg.classList.add('hidden');
-        }
-      } else {
-        sigBox.classList.add('hidden');
-      }
-
-      renderInvoiceItems();
-    }
-
-    function renderInvoiceItems() {
-      const items = db.products.filter(p => p.userId === db.currentUserId);
-      const tbody = document.getElementById('prev-items-body');
-      let total = 0;
-
-      if (items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400 text-xs">أضف مادة من "بضاعة الصفحة" أو اضغط "+ إضافة مادة"</td></tr>`;
-      } else {
-        tbody.innerHTML = items.map((it, i) => {
-          total += Number(it.price) || 0;
-          return `
-            <tr>
-              <td class="p-2">${i + 1}</td>
-              <td class="p-2 font-semibold">${it.name}</td>
-              <td class="p-2 text-center">1</td>
-              <td class="p-2 text-left font-bold">${Number(it.price).toLocaleString()} د.ع</td>
-            </tr>
-          `;
-        }).join('');
-      }
-      document.getElementById('prev-total').textContent = total.toLocaleString() + ' د.ع';
-    }
-
-    const canvas = document.getElementById('signature-pad');
-    const ctx = canvas.getContext('2d');
-    let drawing = false;
-    ctx.strokeStyle = '#111827';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-
-    function getPointerPos(e) {
-      const rect = canvas.getBoundingClientRect();
-      const cx = e.touches ? e.touches[0].clientX : e.clientX;
-      const cy = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: (cx - rect.left) * (canvas.width / rect.width),
-        y: (cy - rect.top) * (canvas.height / rect.height)
+      const blocks = {
+        header: `
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              ${invoiceDesign.logo ? `<img src="${invoiceDesign.logo}" style="width:52px; height:52px; object-fit:contain; border-radius:8px;" />` : ''}
+              <strong style="font-size:1.2em; color:#312e81;">${invoiceDesign.pageName}</strong>
+            </div>
+            <span style="font-size:0.8em; color:#64748b;">${new Date().toLocaleDateString('ar-IQ')}</span>
+          </div>
+        `,
+        table: `
+          <div>
+            <table>
+              <thead><tr><th>المادة</th><th>السعر</th></tr></thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+            <div style="text-align:left; margin-top:10px; font-weight:800; color:#4c1d95;">
+              المجموع: ${total.toLocaleString()} د.ع
+            </div>
+          </div>
+        `,
+        footer: `
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; border-top:1px dashed #cbd5e1; padding-top:10px; margin-top:auto;">
+            <span style="font-size:0.8em; color:#64748b;">فاتورة صادرة من: ${invoiceDesign.pageName}</span>
+            <div style="text-align:center;">
+              ${invoiceDesign.signature ? `<img src="${invoiceDesign.signature}" style="height:42px; display:block; margin:0 auto;" />` : ''}
+              <small style="border-top:1px solid #334155; padding-top:2px; display:inline-block;">التوقيع</small>
+            </div>
+          </div>
+        `
       };
+
+      sheet.innerHTML = invoiceDesign.order.map(k => blocks[k]).join('');
     }
 
-    canvas.addEventListener('pointerdown', e => { drawing = true; const p = getPointerPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
-    canvas.addEventListener('pointermove', e => { if (!drawing) return; const p = getPointerPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
-    window.addEventListener('pointerup', () => { if (drawing) { drawing = false; currentSignatureDataUrl = canvas.toDataURL(); updatePreview(); } });
+    function saveCurrentDesign() {
+      localStorage.setItem(userStorageKey('invoice_design'), JSON.stringify(invoiceDesign));
+      alert('تم حفظ تصميم وترتيب الفاتورة لحسابك فقط!');
+    }
+
+    const sigCanvas = document.getElementById('sig-canvas');
+    const sigCtx = sigCanvas.getContext('2d');
+    let drawingSig = false;
+    sigCtx.strokeStyle = '#0f172a';
+    sigCtx.lineWidth = 2;
+
+    sigCanvas.addEventListener('pointerdown', e => {
+      drawingSig = true;
+      const r = sigCanvas.getBoundingClientRect();
+      sigCtx.beginPath();
+      sigCtx.moveTo((e.clientX - r.left) * (sigCanvas.width / r.width), (e.clientY - r.top) * (sigCanvas.height / r.height));
+    });
+    sigCanvas.addEventListener('pointermove', e => {
+      if (!drawingSig) return;
+      const r = sigCanvas.getBoundingClientRect();
+      sigCtx.lineTo((e.clientX - r.left) * (sigCanvas.width / r.width), (e.clientY - r.top) * (sigCanvas.height / r.height));
+      sigCtx.stroke();
+    });
+    window.addEventListener('pointerup', () => {
+      if (drawingSig) {
+        drawingSig = false;
+        invoiceDesign.signature = sigCanvas.toDataURL();
+        renderLiveInvoice();
+      }
+    });
 
     function clearSignature() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      currentSignatureDataUrl = '';
-      updatePreview();
+      sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      invoiceDesign.signature = '';
+      renderLiveInvoice();
     }
 
-    function addUserProduct() {
-      const name = document.getElementById('new-prod-name').value.trim();
-      const price = parseInt(document.getElementById('new-prod-price').value, 10);
-      if (!name || isNaN(price)) return;
-      db.products.push({ id: 'pr_' + Date.now(), userId: db.currentUserId, name, price });
-      saveDB();
-      document.getElementById('new-prod-name').value = '';
-      document.getElementById('new-prod-price').value = '';
-      renderProducts();
-      updatePreview();
-    }
-
-    function addSampleRowToInvoice() {
-      db.products.push({ id: 'pr_' + Date.now(), userId: db.currentUserId, name: 'مادة تجريبية', price: 10000 });
-      saveDB();
-      renderProducts();
-      updatePreview();
-    }
-
-    function deleteUserProduct(id) {
-      db.products = db.products.filter(p => !(p.id === id && p.userId === db.currentUserId));
-      saveDB();
-      renderProducts();
-      updatePreview();
-    }
-
-    function renderProducts() {
-      const mine = db.products.filter(p => p.userId === db.currentUserId);
-      document.getElementById('user-products-table').innerHTML = mine.map(p => `
-        <tr>
-          <td class="p-3 font-bold">${p.name}</td>
-          <td class="p-3">${Number(p.price).toLocaleString()} د.ع</td>
-          <td class="p-3 text-xs font-mono">${p.userId}</td>
-          <td class="p-3 text-left"><button type="button" onclick="deleteUserProduct('${p.id}')" class="text-red-600 text-xs font-bold">حذف</button></td>
-        </tr>
-      `).join('');
-    }
-
+    // =========================================================================
+    // 5. سجل الدخول اليومي للأدمن
+    // =========================================================================
     function renderAdminLogs() {
-      document.getElementById('admin-logs-table').innerHTML = db.users.map(u => {
-        const logsToday = db.loginLogs.filter(l => l.userId === u.id && l.date === todayISO);
-        const last = logsToday.length ? logsToday[logsToday.length - 1].time : 'لا يوجد';
-        const dCount = db.userDesigns.filter(d => d.userId === u.id).length;
-        return `
-          <tr>
-            <td class="p-3 font-bold">${u.fullName}</td>
-            <td class="p-3 font-mono text-xs">${u.username}</td>
-            <td class="p-3 text-indigo-700 font-semibold">${u.pageName}</td>
-            <td class="p-3 text-center"><span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">${logsToday.length}</span></td>
-            <td class="p-3 text-center font-bold">${dCount}</td>
-            <td class="p-3 text-xs text-gray-500">${last}</td>
-          </tr>
-        `;
-      }).join('');
+      const reg = getUsersRegistry();
+      const logs = getLoginLogs();
+      const tbody = document.getElementById('admin-logs-tbody');
+      const usersList = Object.values(reg);
+
+      tbody.innerHTML = usersList.length
+        ? usersList.map(u => {
+            const todayLogs = logs.filter(l => l.username === u.username && l.date === TODAY_KEY);
+            const lastTime = todayLogs.length ? todayLogs[todayLogs.length - 1].time : 'لا يوجد دخول اليوم';
+            const userProdCount = JSON.parse(localStorage.getItem(`ys_u_${encodeURIComponent(u.username)}_products`) || '[]').length;
+            return `
+              <tr>
+                <td><strong>${u.username}</strong></td>
+                <td>${u.pageName}</td>
+                <td><strong>${todayLogs.length}</strong> مرة</td>
+                <td>${userProdCount}</td>
+                <td>${lastTime}</td>
+              </tr>
+            `;
+          }).join('')
+        : `<tr><td colspan="5" style="text-align:center;">لا يوجد مستخدمون مسجلون بعد.</td></tr>`;
     }
 
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-content').forEach(s => s.classList.add('hidden'));
-      document.getElementById('tab-' + tab).classList.remove('hidden');
-
-      ['invoice-builder', 'products', 'admin-logs'].forEach(id => {
-        const btn = document.getElementById('tab-btn-' + id);
-        if (id === tab) {
-          btn.className = 'px-5 py-3 text-xs sm:text-sm font-bold border-b-4 border-amber-400 text-amber-400 whitespace-nowrap';
-        } else {
-          btn.className = 'px-5 py-3 text-xs sm:text-sm font-bold border-b-4 border-transparent text-slate-300 hover:text-white whitespace-nowrap';
-        }
-      });
+    // =========================================================================
+    // 6. التنقل وتحديث الواجهة
+    // =========================================================================
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      document.getElementById('tab-btn-' + tabName).classList.add('active');
     }
 
-    renderAccountSwitcher();
-    loadWorkspace();
+    function refreshAllViews() {
+      const u = getActiveUsername();
+      const reg = getUsersRegistry()[u] || { pageName: u };
+      document.getElementById('banner-status').textContent = `الحساب النشط: ${u} | الصفحة: ${reg.pageName}`;
+      document.getElementById('active-user-badge').textContent = `المستخدم: ${u}`;
+      document.getElementById('cart-count').textContent = getCart().length;
+      renderStoreProducts();
+      renderManageProducts();
+      loadUserDesign();
+      renderAdminLogs();
+    }
+
+    // بدء التشغيل: إذا لم يكن هناك مستخدم مسجل يفتح شاشة الدخول، وإلا يفتح صفحته المعزولة
+    if (!getActiveUsername()) {
+      document.getElementById('main-app').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'block';
+    } else {
+      refreshAllViews();
+    }
   </script>
 </body>
 </html>
