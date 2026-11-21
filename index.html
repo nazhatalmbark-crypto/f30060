@@ -14,7 +14,6 @@
       color: #111827;
     }
 
-    /* شاشة الدخول */
     .login-wrapper {
       min-height: calc(100vh - 28px);
       display: flex;
@@ -30,19 +29,8 @@
       box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
       text-align: center;
     }
-    .login-title {
-      margin: 0 0 22px;
-      font-size: 22px;
-      font-weight: 800;
-      color: #0f172a;
-    }
-    .login-label {
-      display: block;
-      text-align: right;
-      font-size: 15px;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
+    .login-title { margin: 0 0 22px; font-size: 22px; font-weight: 800; color: #0f172a; }
+    .login-label { display: block; text-align: right; font-size: 15px; font-weight: 800; margin-bottom: 8px; }
     .login-input {
       width: 100%;
       padding: 12px 14px;
@@ -65,16 +53,9 @@
       border-radius: 14px;
       cursor: pointer;
     }
-    .login-btn:hover { background: #5b21b6; }
-    .login-footer {
-      margin-top: 22px;
-      font-size: 13px;
-      color: #334155;
-      line-height: 1.7;
-    }
+    .login-footer { margin-top: 22px; font-size: 13px; color: #334155; line-height: 1.7; }
     .login-footer span { color: #4f46e5; font-weight: 700; }
 
-    /* الحاوية الرئيسية بعرض ملموم ومرتب */
     .app-box {
       width: 100%;
       max-width: 560px;
@@ -99,14 +80,7 @@
       cursor: pointer;
     }
 
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     .top-title { font-size: 18px; font-weight: 800; color: #0f172a; }
     .top-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 
@@ -130,12 +104,7 @@
       display: none;
     }
 
-    .menu-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 12px;
-    }
+    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
     .menu-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
@@ -145,10 +114,7 @@
       cursor: pointer;
       transition: transform 0.12s ease, border-color 0.12s ease;
     }
-    .menu-card:hover {
-      transform: translateY(-2px);
-      border-color: #6d28d9;
-    }
+    .menu-card:hover { transform: translateY(-2px); border-color: #6d28d9; }
     .menu-card.accent-mint { background: #ecfdf5; border-color: #a7f3d0; }
     .menu-card h4 { margin: 0 0 4px; font-size: 14px; font-weight: 800; color: #0f172a; }
     .menu-card p { margin: 0; font-size: 11px; color: #475569; }
@@ -205,7 +171,7 @@
       background: #ffffff;
       padding: 16px;
       border-radius: 12px;
-      min-height: 280px;
+      min-height: 260px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -215,7 +181,6 @@
 </head>
 <body>
 
-  <!-- شاشة تسجيل الدخول -->
   <div id="login-screen" class="login-wrapper">
     <div class="login-card">
       <h1 class="login-title">🔒 تسجيل الدخول لنظام (ياسر ويب)</h1>
@@ -239,7 +204,6 @@
     </div>
   </div>
 
-  <!-- التطبيق الرئيسي -->
   <div id="app-screen" class="app-box">
     <div class="license-banner" onclick="openSection('sec-license')">
       ⚠️ أنت تستخدم النسخة المجانية المحدودة. أدخل كود التفعيل هنا
@@ -257,7 +221,6 @@
       📊 إحصائيات اليوم: مبيعات: <span id="lbl-sales">0</span> د.ع | الفواتير: <span id="lbl-invoices-count">0</span>
     </div>
 
-    <!-- لوحة الأدمن تظهر فقط لحساب الأدمن -->
     <div id="admin-panel" class="admin-box">
       <div style="font-weight:800; font-size:14px; color:#9f1239; margin-bottom:6px;">👑 لوحة تحكم الأدمن (توليد الأكواد وسجل الدخول)</div>
       <div style="font-size:12px; color:#4c0519; margin-bottom:8px;">إدارة وتوليد أكواد الاشتراكات الشهرية للزبائن ومتابعة الدخول اليومي:</div>
@@ -274,7 +237,6 @@
       </table>
     </div>
 
-    <!-- البطاقات القديمة كاملة + بطاقة تصميم الوصل -->
     <div class="menu-grid">
       <div class="menu-card" onclick="openSection('sec-pos')">
         <h4>🏠 الرئيسية والشبكة</h4>
@@ -322,7 +284,6 @@
       </div>
     </div>
 
-    <!-- 1. الرئيسية والشبكة للبيع السريع -->
     <div id="sec-pos" class="sub-panel">
       <div class="top-bar">
         <strong>البيع السريع والسلة</strong>
@@ -336,7 +297,6 @@
       </div>
     </div>
 
-    <!-- 2. إضافة مادة جديدة -->
     <div id="sec-add" class="sub-panel">
       <div class="top-bar">
         <strong>إضافة مادة جديدة للمخزن</strong>
@@ -350,7 +310,6 @@
       </div>
     </div>
 
-    <!-- 3. إضافة كمية لمادة قديمة -->
     <div id="sec-stock-add" class="sub-panel">
       <div class="top-bar">
         <strong>إضافة كمية لمادة موجودة</strong>
@@ -363,7 +322,6 @@
       </div>
     </div>
 
-    <!-- 4. جرد المخزن -->
     <div id="sec-inventory" class="sub-panel">
       <div class="top-bar">
         <strong>جرد المخزن الحالي</strong>
@@ -375,7 +333,6 @@
       </table>
     </div>
 
-    <!-- 5. العملاء والديون -->
     <div id="sec-customers" class="sub-panel">
       <div class="top-bar">
         <strong>العملاء والديون</strong>
@@ -392,7 +349,6 @@
       </table>
     </div>
 
-    <!-- 6. إدارة الموردين -->
     <div id="sec-suppliers" class="sub-panel">
       <div class="top-bar">
         <strong>إدارة الموردين</strong>
@@ -409,7 +365,6 @@
       </table>
     </div>
 
-    <!-- 7. سجل الفواتير -->
     <div id="sec-invoices" class="sub-panel">
       <div class="top-bar">
         <strong>سجل الفواتير والوصول</strong>
@@ -421,7 +376,6 @@
       </table>
     </div>
 
-    <!-- 8. الصندوق والمصاريف -->
     <div id="sec-cash" class="sub-panel">
       <div class="top-bar">
         <strong>الصندوق والمصاريف</strong>
@@ -438,7 +392,6 @@
       </table>
     </div>
 
-    <!-- 9. التقارير والأرباح -->
     <div id="sec-reports" class="sub-panel">
       <div class="top-bar">
         <strong>التقارير والأرباح</strong>
@@ -451,7 +404,6 @@
       </div>
     </div>
 
-    <!-- 10. تفعيل النسخة المدفوعة -->
     <div id="sec-license" class="sub-panel">
       <div class="top-bar">
         <strong>تفعيل النسخة المدفوعة</strong>
@@ -464,7 +416,6 @@
       <div id="lic-msg" style="margin-top:8px; font-size:12px; font-weight:bold;"></div>
     </div>
 
-    <!-- 11. تصميم وترتيب الوصل الجديد -->
     <div id="sec-receipt" class="sub-panel">
       <div class="top-bar">
         <strong>تصميم وترتيب الوصل</strong>
