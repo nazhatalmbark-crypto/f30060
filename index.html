@@ -173,7 +173,8 @@
       <button type="button" id="b-store" class="active" onclick="openTab('store')">المواد والسلة</button>
       <button type="button" id="b-add" onclick="openTab('add')">إضافة موادي</button>
       <button type="button" id="b-inv" onclick="openTab('inv')">تصميم وترتيب الفاتورة</button>
-      <button type="button" id="b-logs" onclick="openTab('logs')">سجل الدخول اليومي</button>
+      <!-- زر لوحة الأدمن يظهر فقط لحساب الأدمن -->
+      <button type="button" id="b-logs" style="display:none;" onclick="openTab('logs')">سجل الدخول اليومي</button>
     </div>
 
     <!-- 1. المواد والسلة -->
@@ -255,9 +256,9 @@
       </div>
     </div>
 
-    <!-- 4. سجل الدخول اليومي -->
+    <!-- 4. سجل الدخول اليومي (خاص بالأدمن فقط) -->
     <div id="p-logs" class="panel white-box">
-      <h3 style="margin:0 0 10px;">سجل المستخدمين ومرات الدخول اليوم</h3>
+      <h3 style="margin:0 0 10px;">سجل المستخدمين ومرات الدخول اليوم (لوحة الأدمن)</h3>
       <table>
         <thead>
           <tr><th>اسم المستخدم</th><th>مرات الدخول اليوم</th><th>عدد المواد</th><th>آخر دخول</th></tr>
@@ -268,13 +269,18 @@
   </div>
 
   <script>
-    // مخزن داخل الصفحة يعمل بكل الحالات (حتى بالكروم بوك والوضع الخفي)
     const DB = {
       currentUser: 'مستخدم_جديد',
       users: { 'مستخدم_جديد': { created: todayStr() } },
       logs: [{ user: 'مستخدم_جديد', date: todayStr(), time: nowStr() }],
-      dataByUser: {} // كل مستخدم له كائن مستقل: { products: [], cart: [], design: null }
+      dataByUser: {}
     };
+
+    // التحقق إذا الحساب الحالي هو أدمن
+    function isAdminUser() {
+      const u = (DB.currentUser || '').trim().toLowerCase();
+      return u === 'admin' || u === 'الأدمن' || u === 'الادمن';
+    }
 
     function todayStr() {
       return new Date().toISOString().slice(0, 10);
@@ -283,39 +289,8 @@
       return new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
     }
 
-    function ensureUserBucket(u) {
-      if (!DB.dataByUser[u]) {
-        DB.dataByUser[u] = {
-          products: [],
-          cart: [],
-          design: {
-            shop: u,
-            logo: '',
-            border: '2px solid #334155',
-            size: '15px',
-            sig: '',
-            order: ['head', 'items', 'foot']
-          }
-        };
-      }
-      return DB.dataByUser[u];
-    }
-
-    function switchToNewUser() {
-      const name = document.getElementById('inp-switch-user').value.trim();
-      if (!name) return alert('اكتب اسم الحساب أولاً');
-      DB.currentUser = name;
-      if (!DB.users[name]) DB.users[name] = { created: todayStr() };
-      DB.logs.push({ user: name, date: todayStr(), time: nowStr() });
-      ensureUserBucket(name);
-      document.getElementById('inp-switch-user').value = '';
-      syncDesignInputs();
-      renderAll();
-    }
-
-    function clearCurrentUserData() {
-      const u = DB.currentUser;
-      DB.dataByUser[u] = {
+    function createEmptyBucket(u) {
+      return {
         products: [],
         cart: [],
         design: {
@@ -327,6 +302,41 @@
           order: ['head', 'items', 'foot']
         }
       };
+    }
+
+    function ensureUserBucket(u) {
+      if (!DB.dataByUser[u]) {
+        DB.dataByUser[u] = createEmptyBucket(u);
+      }
+      return DB.dataByUser[u];
+    }
+
+    function switchToNewUser() {
+      const name = document.getElementById('inp-switch-user').value.trim();
+      if (!name) return alert('اكتب اسم الحساب أولاً');
+
+      // تصفير بضاعة وسلة وتصميم الحساب الجديد حتى لا يظهر أي شيء من غير حساب
+      DB.currentUser = name;
+      DB.dataByUser[name] = createEmptyBucket(name);
+      if (!DB.users[name]) DB.users[name] = { created: todayStr() };
+      DB.logs.push({ user: name, date: todayStr(), time: nowStr() });
+
+      document.getElementById('inp-switch-user').value = '';
+      document.getElementById('inp-search').value = '';
+      document.getElementById('store-list').innerHTML = '';
+
+      // إرجاع التبويب إلى المواد وإخفاء لوحة الأدمن إذا لم يكن أدمن
+      openTab('store');
+      clearSig();
+      syncDesignInputs();
+      renderAll();
+    }
+
+    function clearCurrentUserData() {
+      const u = DB.currentUser;
+      DB.dataByUser[u] = createEmptyBucket(u);
+      document.getElementById('inp-search').value = '';
+      document.getElementById('store-list').innerHTML = '';
       clearSig();
       syncDesignInputs();
       renderAll();
@@ -490,6 +500,10 @@
     }
 
     function drawLogs() {
+      if (!isAdminUser()) {
+        document.getElementById('logs-body').innerHTML = '';
+        return;
+      }
       const tb = document.getElementById('logs-body');
       tb.innerHTML = Object.keys(DB.users).map(u => {
         const dayLogs = DB.logs.filter(l => l.user === u && l.date === todayStr());
@@ -499,7 +513,25 @@
       }).join('');
     }
 
+    function syncAdminVisibility() {
+      const adminBtn = document.getElementById('b-logs');
+      const adminPanel = document.getElementById('p-logs');
+      if (isAdminUser()) {
+        adminBtn.style.display = 'inline-block';
+      } else {
+        adminBtn.style.display = 'none';
+        adminPanel.classList.remove('active');
+        adminBtn.classList.remove('active');
+        document.getElementById('logs-body').innerHTML = '';
+        if (!document.querySelector('.panel.active')) {
+          document.getElementById('p-store').classList.add('active');
+          document.getElementById('b-store').classList.add('active');
+        }
+      }
+    }
+
     function openTab(name) {
+      if (name === 'logs' && !isAdminUser()) return;
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
       document.getElementById('p-' + name).classList.add('active');
@@ -510,6 +542,7 @@
       const b = ensureUserBucket(DB.currentUser);
       document.getElementById('lbl-user').textContent = DB.currentUser;
       document.getElementById('lbl-cart').textContent = b.cart.length;
+      syncAdminVisibility();
       drawStore();
       drawProdTable();
       drawInvoice();
