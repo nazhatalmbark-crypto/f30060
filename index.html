@@ -1,224 +1,953 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>ياسر ويب - النظام الشامل</title>
-    <style>
-        body { font-family: Tahoma, sans-serif; background: #2c1654; color: #fff; padding: 10px; margin: 0; }
-        .container { max-width: 900px; margin: auto; background: #381d6a; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #4a2882; padding-bottom: 10px; margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .card { background: #4a2882; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; border: 1px solid #5c33a3; }
-        .card:hover { background: #5c33a3; }
-        input, button { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; font-size: 16px; border-radius: 8px; border: none; }
-        input { background: #2c1654; color: #fff; border: 1px solid #5c33a3; }
-        button { background: #ff9800; color: #000; font-weight: bold; cursor: pointer; }
-        button:hover { background: #e68900; }
-        button.logout { background: #dc3545; color: white; width: auto; padding: 8px 20px; }
-        button.ban { background: #dc3545; color: white; padding: 6px 12px; }
-        button.unban { background: #28a745; color: white; padding: 6px 12px; }
-        button.view-logs { background: #007bff; color: white; margin-bottom: 15px; font-size: 15px; }
-        table { width: 100%; margin-top: 15px; border-collapse: collapse; background: #2c1654; }
-        th, td { border: 1px solid #5c33a3; padding: 12px; text-align: center; }
-        th { background: #4a2882; }
-        .section-divider { border: 0; height: 2px; background: #ff9800; margin: 25px 0; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام إدارة الصفحات وإنشاء الفواتير</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f3f4f6;
+    }
+
+    /* خطوط الفاتورة القابلة للتغيير */
+    .font-cairo { font-family: 'Cairo', sans-serif; }
+    .font-tajawal { font-family: 'Tajawal', sans-serif; }
+    .font-amiri { font-family: 'Amiri', serif; }
+
+    /* إطارات وزخارف الفاتورة */
+    .border-style-none {
+      border: 1px solid #e5e7eb;
+    }
+    .border-style-classic {
+      border: 6px double var(--theme-color, #1e3a8a);
+      box-shadow: inset 0 0 0 4px #ffffff, inset 0 0 0 6px var(--theme-color, #1e3a8a);
+    }
+    .border-style-modern {
+      border-top: 12px solid var(--theme-color, #0f766e);
+      border-bottom: 12px solid var(--theme-color, #0f766e);
+      border-left: 1px solid #e5e7eb;
+      border-right: 1px solid #e5e7eb;
+    }
+    .border-style-ornate {
+      border: 3px solid var(--theme-color, #92400e);
+      background-image: radial-gradient(circle at 12px 12px, var(--theme-color, #92400e) 2px, transparent 2.5px),
+                        radial-gradient(circle at calc(100% - 12px) 12px, var(--theme-color, #92400e) 2px, transparent 2.5px),
+                        radial-gradient(circle at 12px calc(100% - 12px), var(--theme-color, #92400e) 2px, transparent 2.5px),
+                        radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), var(--theme-color, #92400e) 2px, transparent 2.5px);
+    }
+
+    /* إعدادات الطباعة لإخفاء القوائم وطباعة الفاتورة فقط */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #invoice-preview-area, #invoice-preview-area * {
+        visibility: visible;
+      }
+      #invoice-preview-area {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        box-shadow: none !important;
+      }
+    }
+  </style>
 </head>
-<body>
+<body class="text-gray-800">
 
-<div class="container">
+  <!-- الشريط العلوي: إدارة الحسابات وعزل الصفحات -->
+  <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-amber-500 text-slate-900 font-extrabold px-3 py-1.5 rounded-lg text-lg">
+          نظام الفواتير
+        </div>
+        <span class="text-sm text-slate-300 hidden sm:inline">بيئة معزولة لكل صفحة ومتجر</span>
+      </div>
 
-    <!-- ================================================================= -->
-    <!-- [الخانة الأولى]: واجهة تسجيل الدخول للنظام                         -->
-    <!-- ================================================================= -->
-    <div id="login-section" style="text-align: center; padding: 40px 20px;">
-        <h2>تسجيل الدخول - ياسر ويب</h2>
-        <p style="color: #d1c4e9; font-size: 14px; margin-bottom: 20px;">(ملاحظة: أدخل اسم المستخدم <b>ياسر</b> لفتح لوحة الأدمن والسجلات الكاملة)</p>
-        <input type="text" id="username" placeholder="اسم المستخدم">
-        <input type="password" id="password" placeholder="كلمة المرور">
-        <button onclick="handleLogin()">دخول للنظام</button>
+      <!-- تبديل الحساب أو تسجيل دخول جديد -->
+      <div class="flex flex-wrap items-center gap-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+        <span class="text-xs text-slate-400 px-2">الحساب النشط:</span>
+        <select id="account-switcher" onchange="switchAccount(this.value)" class="bg-slate-700 text-white text-sm rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-amber-400">
+        </select>
+        <button onclick="openNewAccountModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
+          + تسجيل حساب جديد
+        </button>
+      </div>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- [الخانة الثانية]: لوحة التحكم والواجهة الرئيسية (تظهر للأدمن)       -->
-    <!-- ================================================================= -->
-    <div id="admin-dashboard" style="display:none;">
-        <div class="header">
-            <h3>ياسر ويب - الرئيسية (أدمن)</h3>
-            <button class="logout" onclick="logout()">خروج</button>
+    <!-- شريط التبويبات الرئيسي -->
+    <nav class="bg-slate-800 border-t border-slate-700">
+      <div class="max-w-7xl mx-auto px-4 flex gap-2 overflow-x-auto">
+        <button onclick="switchTab('invoice-builder')" id="tab-btn-invoice-builder" class="tab-btn px-5 py-3 text-sm font-bold border-b-4 border-amber-400 text-amber-400 transition whitespace-nowrap">
+          إنشاء فاتورة وتصميمها
+        </button>
+        <button onclick="switchTab('products')" id="tab-btn-products" class="tab-btn px-5 py-3 text-sm font-bold border-b-4 border-transparent text-slate-300 hover:text-white transition whitespace-nowrap">
+          بضاعة الصفحة (معزولة)
+        </button>
+        <button onclick="switchTab('admin-logs')" id="tab-btn-admin-logs" class="tab-btn px-5 py-3 text-sm font-bold border-b-4 border-transparent text-slate-300 hover:text-white transition whitespace-nowrap">
+          لوحة الإدارة (سجل الدخول اليومي)
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- المحتوى الرئيسي -->
+  <main class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- ==================== التبويب 1: إنشاء فاتورة ==================== -->
+    <section id="tab-invoice-builder" class="tab-content space-y-6">
+      
+      <!-- شريط القوالب الجاهزة + التصاميم المحفوظة + إنشاء تصميم جديد -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-gray-900">1. اختر قالباً جاهزاً أو أنشئ تصميمك الخاص</h2>
+            <p class="text-xs text-gray-500">يمكنك اعتماد القالب مباشرة أو تعديل حوافه وخطه وشعاره وحفظه لحساب صفحتك فقط.</p>
+          </div>
+          <button onclick="createBlankDesign()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-2">
+            <span>+ إنشاء تصميم من الصفر</span>
+          </button>
         </div>
 
-        <!-- زر فتح جدول السجلات والتحكم اليدوي بالحظر -->
-        <button class="view-logs" onclick="toggleLogsView()">📋 سجلات دخول المستخدمين والتحكم بالحظر اليدوي</button>
+        <!-- شبكة القوالب الجاهزة وتصاميم المستخدم -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" id="templates-grid">
+          <!-- يتم تعبئتها عبر الجافاسكربت -->
+        </div>
+      </div>
 
-        <!-- شبكة أقسام مشروعك الـ 11 الأصلية -->
-        <div id="main-app-grid">
-            <div class="grid">
-                <div class="card">➕ إضافة مادة جديدة</div>
-                <div class="card">📦 جرد المخزن</div>
-                <div class="card">💰 إضافة كمية لمادة</div>
-                <div class="card">👥 العملاء والديون</div>
-                <div class="card">🏢 إدارة الموردين</div>
-                <div class="card">📄 سجل الفواتير</div>
-                <div class="card">🪙 الصندوق والمصاريف</div>
-                <div class="card">📊 الرئيسية والشبكة</div>
+      <!-- منطقة التعديل + المعاينة الحية -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- لوحة أدوات التعديل (5 أعمدة) -->
+        <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-5">
+          <div class="flex items-center justify-between border-b pb-3">
+            <h3 class="font-extrabold text-gray-900">2. تخصيص وتعديل الفاتورة</h3>
+            <button onclick="saveCurrentDesignForUser()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg shadow transition">
+              حفظ التصميم لصفحتي
+            </button>
+          </div>
+
+          <!-- معلومات الصفحة -->
+          <div class="space-y-3">
+            <label class="block text-xs font-bold text-gray-700">اسم الصفحة أو المحل بالفاتورة</label>
+            <input type="text" id="inp-store-name" oninput="updatePreview()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="مثال: متجر الأناقة" />
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">رقم الهاتف / واتساب</label>
+                <input type="text" id="inp-store-phone" oninput="updatePreview()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none" placeholder="07700000000" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">العنوان / الحساب</label>
+                <input type="text" id="inp-store-address" oninput="updatePreview()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none" placeholder="البصرة - الجزائر" />
+              </div>
             </div>
+          </div>
+
+          <!-- رفع اللوجو / الصورة -->
+          <div class="space-y-2 border-t pt-4">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-gray-700">شعار الصفحة (Logo) أو صورة</label>
+              <button onclick="removeLogo()" class="text-xs text-red-600 hover:underline">حذف الشعار</button>
+            </div>
+            <input type="file" id="inp-logo" accept="image/*" onchange="handleLogoUpload(event)" class="block w-full text-xs text-gray-500 file:ml-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+            <div class="flex items-center gap-3 pt-1">
+              <span class="text-xs text-gray-600">حجم الشعار:</span>
+              <input type="range" id="inp-logo-size" min="40" max="140" value="75" oninput="updatePreview()" class="w-full accent-indigo-600" />
+            </div>
+          </div>
+
+          <!-- الحواف والزخرفة والألوان -->
+          <div class="space-y-3 border-t pt-4">
+            <label class="block text-xs font-bold text-gray-700">شكل الحواف والزخرفة</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="setBorderStyle('border-style-none')" class="border-btn border rounded-lg py-2 px-3 text-xs font-semibold hover:bg-gray-50">بسيط بدون إطار</button>
+              <button type="button" onclick="setBorderStyle('border-style-classic')" class="border-btn border-2 border-double border-blue-800 rounded-lg py-2 px-3 text-xs font-semibold hover:bg-blue-50">إطار كلاسيكي مزدوج</button>
+              <button type="button" onclick="setBorderStyle('border-style-modern')" class="border-btn border-t-4 border-b-4 border-teal-700 rounded-lg py-2 px-3 text-xs font-semibold hover:bg-teal-50">إطار عصري علوي/سفلي</button>
+              <button type="button" onclick="setBorderStyle('border-style-ornate')" class="border-btn border-2 border-amber-700 rounded-lg py-2 px-3 text-xs font-semibold hover:bg-amber-50">زخرفة زوايا فاخرة</button>
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+              <label class="text-xs font-bold text-gray-700">لون الفاتورة الرئيسي:</label>
+              <div class="flex items-center gap-2">
+                <input type="color" id="inp-theme-color" value="#1e3a8a" oninput="updatePreview()" class="w-8 h-8 rounded cursor-pointer border-0" />
+                <button onclick="setThemeColor('#1e3a8a')" class="w-5 h-5 rounded-full bg-blue-900"></button>
+                <button onclick="setThemeColor('#0f766e')" class="w-5 h-5 rounded-full bg-teal-700"></button>
+                <button onclick="setThemeColor('#92400e')" class="w-5 h-5 rounded-full bg-amber-800"></button>
+                <button onclick="setThemeColor('#881337')" class="w-5 h-5 rounded-full bg-rose-900"></button>
+                <button onclick="setThemeColor('#111827')" class="w-5 h-5 rounded-full bg-gray-900"></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- التحكم بالخط وحجمه -->
+          <div class="space-y-3 border-t pt-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">نوع الخط</label>
+                <select id="inp-font-family" onchange="updatePreview()" class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs outline-none">
+                  <option value="font-cairo">خط كايرو (Cairo)</option>
+                  <option value="font-tajawal">خط تجوال (Tajawal)</option>
+                  <option value="font-amiri">خط أميري (زخرفي كلاسيكي)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">حجم الخط العام</label>
+                <select id="inp-font-size" onchange="updatePreview()" class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs outline-none">
+                  <option value="text-xs">صغير</option>
+                  <option value="text-sm" selected>متوسط (قياسي)</option>
+                  <option value="text-base">كبير</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- التوقيع الإلكتروني المباشر -->
+          <div class="space-y-2 border-t pt-4">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-gray-700">توقيع صاحب الصفحة (ارسم بالماوس أو الإصبع)</label>
+              <button type="button" onclick="clearSignature()" class="text-xs text-red-600 hover:underline">مسح التوقيع</button>
+            </div>
+            <canvas id="signature-pad" width="360" height="100" class="w-full border border-dashed border-gray-400 rounded-lg bg-gray-50 cursor-crosshair touch-none"></canvas>
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] text-gray-500">يظهر التوقيع تلقائياً أسفل الفاتورة</span>
+              <label class="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                <input type="checkbox" id="inp-show-sig" checked onchange="updatePreview()" class="accent-indigo-600">
+                إظهار التوقيع
+              </label>
+            </div>
+          </div>
+
+          <!-- ملاحظات أسفل الفاتورة -->
+          <div class="border-t pt-4">
+            <label class="block text-xs font-bold text-gray-700 mb-1">ملاحظة ختامية بالفاتورة</label>
+            <input type="text" id="inp-footer-note" oninput="updatePreview()" value="شكراً لتسوقكم معنا! الاستبدال خلال 3 أيام مع إبراز الفاتورة." class="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none" />
+          </div>
         </div>
 
-        <!-- قسم جدول السجلات والحظر (يفتح عند الضغط على الزر أعلاه) -->
-        <div id="logs-section" style="display:none;">
-            <h3>سجلات حضور ودخول المستخدمين</h3>
-            <p style="font-size: 13px; color: #d1c4e9;">الحظر يدوي بالكامل وبيدك وحدك، لا يتم حظر أي شخص تلقائياً أبداً إلا إذا ضغطت على زر "حظر يدوي".</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>اسم المستخدم</th>
-                        <th>وقت وتاريخ آخر دخول</th>
-                        <th>عدد مرات الدخول</th>
-                        <th>حالة الحساب</th>
-                        <th>الإجراء اليدوي (حظر / رفع الحظر)</th>
-                    </tr>
-                </thead>
-                <tbody id="logs-table-body">
-                    <!-- تعبئة السجلات ديناميكياً -->
-                </tbody>
-            </table>
-        </div>
-    </div>
+        <!-- المعاينة الحية للفاتورة (7 أعمدة) -->
+        <div class="lg:col-span-7 space-y-3">
+          <div class="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-gray-200 shadow-sm">
+            <span class="text-sm font-bold text-gray-700">معاينة الفاتورة النهائية</span>
+            <div class="flex gap-2">
+              <button onclick="addSampleRowToInvoice()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-3 py-2 rounded-lg transition">
+                + إضافة مادة تجريبية
+              </button>
+              <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition">
+                طباعة / حفظ PDF
+              </button>
+            </div>
+          </div>
 
-    <!-- ================================================================= -->
-    <!-- [الخانة الثالثة]: واجهة المستخدم العادي                            -->
-    <!-- ================================================================= -->
-    <div id="user-dashboard" style="display:none;">
-        <h2>مرحباً بك في النظام!</h2>
-        <p>تم تسجيل دخولك بنجاح كمستخدم عادي.</p>
-        <button class="logout" onclick="logout()">تسجيل خروج</button>
-    </div>
-
-</div>
-
-<script>
-    /* ================================================================= */
-    /* [الخانة الرابعة]: معالجة البيانات، الفحص، والتخزين المحلي         */
-    /* ================================================================= */
-    function handleLogin() {
-        const uInput = document.getElementById('username').value.trim();
-        if(!uInput) {
-            alert('الرجاء كتابة اسم المستخدم أولاً!');
-            return;
-        }
-
-        let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
-
-        // فحص ما إذا كان الحساب محظوراً بقرارك اليدوي السابق
-        if(usersDB[uInput] && usersDB[uInput].status === 'banned') {
-            alert('عذراً، هذا الحساب محظور من قبل الإدارة!');
-            return;
-        }
-
-        const now = new Date().toLocaleString('ar-IQ');
-        const role = (uInput.toLowerCase() === 'ياسر') ? 'admin' : 'user';
-
-        if(!usersDB[uInput]) {
-            usersDB[uInput] = { count: 1, lastLogin: now, status: 'active', role: role };
-        } else {
-            usersDB[uInput].count += 1;
-            usersDB[uInput].lastLogin = now;
-            usersDB[uInput].role = role;
-        }
-
-        localStorage.setItem('system_users_db', JSON.stringify(usersDB));
-        localStorage.setItem('current_user', uInput);
-        checkSession();
-    }
-
-    /* ================================================================= */
-    /* [الخانة الخامسة]: توزيع الواجهات حسب الصلاحية                      */
-    /* ================================================================= */
-    function checkSession() {
-        const currentUser = localStorage.getItem('current_user');
-        if(!currentUser) return;
-
-        let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
-        const userData = usersDB[currentUser];
-
-        document.getElementById('login-section').style.display = 'none';
-
-        if(userData && userData.role === 'admin') {
-            document.getElementById('admin-dashboard').style.display = 'block';
-            document.getElementById('user-dashboard').style.display = 'none';
-            renderLogsTable();
-        } else {
-            document.getElementById('admin-dashboard').style.display = 'none';
-            document.getElementById('user-dashboard').style.display = 'block';
-        }
-    }
-
-    /* ================================================================= */
-    /* [الخانة السادسة]: التحكم بعرض جدول السجلات وربط أزرار الحظر اليدوي  */
-    /* ================================================================= */
-    function toggleLogsView() {
-        const logsSec = document.getElementById('logs-section');
-        const mainGrid = document.getElementById('main-app-grid');
-        if(logsSec.style.display === 'none') {
-            logsSec.style.display = 'block';
-            mainGrid.style.display = 'none';
-            renderLogsTable();
-        } else {
-            logsSec.style.display = 'none';
-            mainGrid.style.display = 'block';
-        }
-    }
-
-    function renderLogsTable() {
-        let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
-        const tbody = document.getElementById('logs-table-body');
-        tbody.innerHTML = '';
-
-        for(let username in usersDB) {
-            let data = usersDB[username];
-            let tr = document.createElement('tr');
+          <!-- ورقة الفاتورة -->
+          <div id="invoice-preview-area" class="bg-white p-8 rounded-lg shadow-md border-style-classic font-cairo text-sm transition-all" style="--theme-color: #1e3a8a;">
             
-            tr.innerHTML = `
-                <td><b>${username}</b> ${data.role === 'admin' ? '(أدمن)' : ''}</td>
-                <td>${data.lastLogin}</td>
-                <td>${data.count} مرات</td>
-                <td>${data.status === 'active' ? '<span style="color:#28a745; font-weight:bold;">نشط</span>' : '<span style="color:#dc3545; font-weight:bold;">محظور</span>'}</td>
-                <td>
-                    ${username.toLowerCase() !== 'ياسر' ? (
-                        data.status === 'active' ? 
-                            `<button class="ban" onclick="toggleBan('${username}', 'banned')">حظر يدوي</button>` : 
-                            `<button class="unban" onclick="toggleBan('${username}', 'active')">رفع الحظر</button>`
-                    ) : '<span style="color:#aaa; font-style:italic;">المشرف الرئيسي</span>'}
-                </td>
-            `;
-            tbody.appendChild(tr);
+            <!-- رأس الفاتورة -->
+            <div class="flex items-start justify-between border-b-2 pb-5 mb-6" style="border-color: var(--theme-color);">
+              <div class="flex items-center gap-4">
+                <img id="prev-logo" src="" alt="شعار الصفحة" class="hidden object-contain rounded-lg" style="width: 75px; height: 75px;" />
+                <div>
+                  <h1 id="prev-store-name" class="text-2xl font-extrabold" style="color: var(--theme-color);">اسم صفحتك هنا</h1>
+                  <p id="prev-store-address" class="text-gray-600 mt-1">العنوان: بغداد / البصرة</p>
+                  <p id="prev-store-phone" class="text-gray-600">الهاتف: 07700000000</p>
+                </div>
+              </div>
+              <div class="text-left">
+                <span class="inline-block px-3 py-1 rounded text-white font-bold text-xs mb-2" style="background-color: var(--theme-color);">
+                  فاتورة مبيعات
+                </span>
+                <p class="text-gray-600 text-xs">رقم الفاتورة: <strong>#1042</strong></p>
+                <p class="text-gray-600 text-xs">التاريخ: <strong id="prev-date"></strong></p>
+              </div>
+            </div>
+
+            <!-- بيانات الزبون -->
+            <div class="bg-gray-50 p-3 rounded-lg mb-5 flex justify-between text-xs border border-gray-200">
+              <span><strong>اسم الزبون:</strong> زبون نقدي / طلب أونلاين</span>
+              <span><strong>طريقة الدفع:</strong> الدفع عند الاستلام</span>
+            </div>
+
+            <!-- جدول المواد -->
+            <table class="w-full text-right border-collapse mb-6">
+              <thead>
+                <tr class="text-white" style="background-color: var(--theme-color);">
+                  <th class="p-2.5 rounded-tr-md">#</th>
+                  <th class="p-2.5">اسم المادة / المنتج</th>
+                  <th class="p-2.5 text-center">الكمية</th>
+                  <th class="p-2.5 text-center">السعر</th>
+                  <th class="p-2.5 rounded-tl-md text-left">المجموع</th>
+                </tr>
+              </thead>
+              <tbody id="prev-items-body" class="divide-y divide-gray-200">
+                <!-- تتعبأ تلقائياً من بضاعة الصفحة النشطة -->
+              </tbody>
+            </table>
+
+            <!-- المجموع الكلي -->
+            <div class="flex justify-end mb-8">
+              <div class="w-64 bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-1.5">
+                <div class="flex justify-between text-xs text-gray-600">
+                  <span>المجموع الفرعي:</span>
+                  <span id="prev-subtotal">0 د.ع</span>
+                </div>
+                <div class="flex justify-between text-xs text-gray-600">
+                  <span>أجور التوصيل:</span>
+                  <span>5,000 د.ع</span>
+                </div>
+                <div class="flex justify-between font-extrabold text-base border-t pt-1.5" style="color: var(--theme-color);">
+                  <span>المبلغ الإجمالي:</span>
+                  <span id="prev-total">5,000 د.ع</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- التذييل والتوقيع -->
+            <div class="flex items-end justify-between border-t pt-4">
+              <p id="prev-footer-note" class="text-xs text-gray-500 max-w-sm">
+                شكراً لتسوقكم معنا! الاستبدال خلال 3 أيام مع إبراز الفاتورة.
+              </p>
+              <div id="prev-sig-box" class="text-center">
+                <img id="prev-sig-img" src="" alt="التوقيع" class="h-14 mx-auto object-contain hidden" />
+                <div class="w-36 border-t border-gray-400 mt-1 pt-1 text-xs font-bold text-gray-700">
+                  توقيع وختم الصفحة
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== التبويب 2: بضاعة الصفحة (معزولة لكل مستخدم) ==================== -->
+    <section id="tab-products" class="tab-content hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
+          <div>
+            <h2 class="text-lg font-extrabold text-gray-900">مخزن بضاعة الصفحة: <span id="products-owner-label" class="text-indigo-600"></span></h2>
+            <p class="text-xs text-gray-500">هذه البضاعة مرتبطة بمعرّف هذه الصفحة فقط (user_id) ولا تظهر لأي صفحة أخرى.</p>
+          </div>
+          <div class="flex gap-2">
+            <input type="text" id="new-prod-name" placeholder="اسم المنتج" class="border rounded-lg px-3 py-2 text-sm outline-none" />
+            <input type="number" id="new-prod-price" placeholder="السعر (د.ع)" class="border rounded-lg px-3 py-2 text-sm w-32 outline-none" />
+            <button onclick="addUserProduct()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2 rounded-lg">
+              + إضافة بضاعة
+            </button>
+          </div>
+        </div>
+
+        <table class="w-full text-right border-collapse">
+          <thead>
+            <tr class="bg-gray-100 text-gray-700 text-xs">
+              <th class="p-3 rounded-tr-lg">اسم المادة</th>
+              <th class="p-3">سعر البيع</th>
+              <th class="p-3">معرّف المالك (عزل البيانات)</th>
+              <th class="p-3 rounded-tl-lg text-left">إجراء</th>
+            </tr>
+          </thead>
+          <tbody id="user-products-table" class="divide-y text-sm"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================== التبويب 3: لوحة الإدارة وسجل الدخول اليومي ==================== -->
+    <section id="tab-admin-logs" class="tab-content hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div class="mb-5">
+          <h2 class="text-lg font-extrabold text-gray-900">لوحة الإدارة: متابعة الحسابات وعدد مرات الدخول اليومي</h2>
+          <p class="text-xs text-gray-500">تُظهر هذه القائمة كل حساب مسجل في موقعك، اسم الشخص، اسم صفحته، وكم مرة دخل اليوم.</p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-right border-collapse">
+            <thead>
+              <tr class="bg-slate-900 text-white text-xs">
+                <th class="p-3 rounded-tr-lg">اسم الشخص / المستخدم</th>
+                <th class="p-3">الحساب المسجل (البريد / اليوزر)</th>
+                <th class="p-3">اسم الصفحة</th>
+                <th class="p-3 text-center">مرات الدخول اليوم</th>
+                <th class="p-3 text-center">عدد التصاميم المحفوظة</th>
+                <th class="p-3 rounded-tl-lg">آخر دخول</th>
+              </tr>
+            </thead>
+            <tbody id="admin-logs-table" class="divide-y text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- نافذة تسجيل حساب صفحة جديد -->
+  <div id="new-account-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+      <h3 class="text-lg font-extrabold text-gray-900">تسجيل حساب صفحة / متجر جديد</h3>
+      <p class="text-xs text-gray-500">سيتم إنشاء مساحة معزولة تماماً لبضاعة وتصاميم فواتير هذا الحساب وتسجيل دخوله في لوحة الإدارة.</p>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold mb-1">اسم الشخص الكامل</label>
+          <input type="text" id="reg-fullname" placeholder="مثال: علي حسين" class="w-full border rounded-lg px-3 py-2 text-sm outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold mb-1">اسم المستخدم / الحساب</label>
+          <input type="text" id="reg-username" placeholder="مثال: ali_store@gmail.com" class="w-full border rounded-lg px-3 py-2 text-sm outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold mb-1">اسم الصفحة أو المحل</label>
+          <input type="text" id="reg-pagename" placeholder="مثال: أزياء بغداد" class="w-full border rounded-lg px-3 py-2 text-sm outline-none" />
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3">
+        <button onclick="closeNewAccountModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">إلغاء</button>
+        <button onclick="registerNewAccount()" class="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg">إنشاء والدخول</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. القوالب الجاهزة العامة (متاحة للجميع للقراءة فقط)
+    // ==========================================
+    const SYSTEM_TEMPLATES = [
+      {
+        id: 'tpl_classic',
+        name: 'القالب الكلاسيكي الفاخر',
+        desc: 'إطار مزدوج مع خط أميري الرسمي',
+        borderStyle: 'border-style-classic',
+        themeColor: '#1e3a8a',
+        fontFamily: 'font-amiri',
+        fontSize: 'text-sm'
+      },
+      {
+        id: 'tpl_modern',
+        name: 'القالب العصري للمتاجر',
+        desc: 'شريط علوي وسفلي نظيف مع خط كايرو',
+        borderStyle: 'border-style-modern',
+        themeColor: '#0f766e',
+        fontFamily: 'font-cairo',
+        fontSize: 'text-sm'
+      },
+      {
+        id: 'tpl_ornate',
+        name: 'القالب المزخرف الذهبي',
+        desc: 'زخرفة زوايا دائرية وألوان دافئة',
+        borderStyle: 'border-style-ornate',
+        themeColor: '#92400e',
+        fontFamily: 'font-tajawal',
+        fontSize: 'text-sm'
+      }
+    ];
+
+    // ==========================================
+    // 2. هيكل البيانات المعزولة (يحاكي قاعدة البيانات)
+    // ==========================================
+    const DEFAULT_DB = {
+      currentUserId: 'user_1',
+      users: [
+        { id: 'user_1', fullName: 'أحمد الكعبي', username: 'ahmed.shop', pageName: 'متجر النخبة للإلكترونيات' },
+        { id: 'user_2', fullName: 'سارة الموسوي', username: 'sara.boutique', pageName: 'بوتيك سارة للأزياء' }
+      ],
+      // سجل الدخول اليومي (يظهر في لوحة الإدارة)
+      loginLogs: [
+        { userId: 'user_1', date: new Date().toISOString().split('T')[0], time: '09:15 ص' },
+        { userId: 'user_1', date: new Date().toISOString().split('T')[0], time: '02:30 م' },
+        { userId: 'user_2', date: new Date().toISOString().split('T')[0], time: '11:05 ص' }
+      ],
+      // تصاميم الفواتير المحفوظة (معزولة حسب userId)
+      userDesigns: [
+        {
+          id: 'des_101',
+          userId: 'user_1',
+          designName: 'تصميم متجر النخبة الرسمي',
+          storeName: 'متجر النخبة للإلكترونيات',
+          storePhone: '07712345678',
+          storeAddress: 'البصرة - العشار',
+          borderStyle: 'border-style-modern',
+          themeColor: '#0f766e',
+          fontFamily: 'font-cairo',
+          fontSize: 'text-sm',
+          logoDataUrl: '',
+          logoSize: 75,
+          signatureDataUrl: '',
+          footerNote: 'الضمان الحقيقي لمدة سنة كاملة من تاريخ الفاتورة.'
         }
+      ],
+      // بضاعة كل صفحة (معزولة تماماً حسب userId)
+      products: [
+        { id: 'p1', userId: 'user_1', name: 'سماعة رأس لاسلكية Pro', price: 45000 },
+        { id: 'p2', userId: 'user_1', name: 'شاحن سريع 65 واط', price: 25000 },
+        { id: 'p3', userId: 'user_2', name: 'فستان سهرة مطرز', price: 85000 },
+        { id: 'p4', userId: 'user_2', name: 'حقيبة يد جلد طبيعي', price: 55000 }
+      ]
+    };
+
+    let db = JSON.parse(localStorage.getItem('invoice_saas_db')) || DEFAULT_DB;
+    let currentBorderStyle = 'border-style-classic';
+    let currentLogoDataUrl = '';
+    let currentSignatureDataUrl = '';
+
+    function saveDB() {
+      localStorage.setItem('invoice_saas_db', JSON.stringify(db));
     }
 
-    /* ================================================================= */
-    /* [الخانة السابعة]: تنفيذ الحظر أو رفع الحظر يدوياً حسب رغبتك        */
-    /* ================================================================= */
-    function toggleBan(username, newStatus) {
-        let usersDB = JSON.parse(localStorage.getItem('system_users_db')) || {};
-        if(usersDB[username]) {
-            usersDB[username].status = newStatus;
-            localStorage.setItem('system_users_db', JSON.stringify(usersDB));
-            renderLogsTable();
+    // ==========================================
+    // 3. إدارة الحسابات وعزل البيانات وتسجيل الدخول
+    // ==========================================
+    function getCurrentUser() {
+      return db.users.find(u => u.id === db.currentUserId) || db.users[0];
+    }
+
+    function recordLogin(userId) {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const timeStr = now.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+      db.loginLogs.push({ userId, date: todayStr, time: timeStr });
+      saveDB();
+    }
+
+    function renderAccountSwitcher() {
+      const select = document.getElementById('account-switcher');
+      select.innerHTML = db.users.map(u => `
+        <option value="${u.id}" ${u.id === db.currentUserId ? 'selected' : ''}>
+          ${u.pageName} (${u.fullName})
+        </option>
+      `).join('');
+    }
+
+    function switchAccount(userId) {
+      db.currentUserId = userId;
+      recordLogin(userId);
+      loadUserWorkspace();
+    }
+
+    function openNewAccountModal() {
+      document.getElementById('new-account-modal').classList.remove('hidden');
+      document.getElementById('new-account-modal').classList.add('flex');
+    }
+
+    function closeNewAccountModal() {
+      document.getElementById('new-account-modal').classList.add('hidden');
+      document.getElementById('new-account-modal').classList.remove('flex');
+    }
+
+    function registerNewAccount() {
+      const fullName = document.getElementById('reg-fullname').value.trim();
+      const username = document.getElementById('reg-username').value.trim();
+      const pageName = document.getElementById('reg-pagename').value.trim();
+
+      if (!fullName || !username || !pageName) {
+        alert('يرجى ملء جميع الحقول لتسجيل الحساب.');
+        return;
+      }
+
+      const newUser = {
+        id: 'user_' + Date.now(),
+        fullName,
+        username,
+        pageName
+      };
+
+      db.users.push(newUser);
+      db.currentUserId = newUser.id;
+      recordLogin(newUser.id);
+
+      document.getElementById('reg-fullname').value = '';
+      document.getElementById('reg-username').value = '';
+      document.getElementById('reg-pagename').value = '';
+      closeNewAccountModal();
+      renderAccountSwitcher();
+      loadUserWorkspace();
+    }
+
+    // تحميل مساحة عمل الصفحة النشطة فقط
+    function loadUserWorkspace() {
+      const user = getCurrentUser();
+      document.getElementById('inp-store-name').value = user.pageName;
+      document.getElementById('products-owner-label').textContent = user.pageName;
+
+      // تحميل آخر تصميم محفوظ لهذا المستخدم إن وجد
+      const myDesigns = db.userDesigns.filter(d => d.userId === user.id);
+      if (myDesigns.length > 0) {
+        applyDesignObject(myDesigns[myDesigns.length - 1]);
+      } else {
+        createBlankDesign();
+      }
+
+      renderTemplatesGrid();
+      renderUserProducts();
+      renderAdminLogs();
+      updatePreview();
+    }
+
+    // ==========================================
+    // 4. القوالب الجاهزة والتصاميم المحفوظة للمستخدم
+    // ==========================================
+    function renderTemplatesGrid() {
+      const user = getCurrentUser();
+      const myDesigns = db.userDesigns.filter(d => d.userId === user.id);
+      const grid = document.getElementById('templates-grid');
+
+      let html = '';
+
+      // عرض القوالب الجاهزة العامة
+      SYSTEM_TEMPLATES.forEach(tpl => {
+        html += `
+          <div onclick="applySystemTemplate('${tpl.id}')" class="cursor-pointer border-2 border-gray-200 hover:border-indigo-500 rounded-xl p-3.5 transition bg-gray-50 hover:bg-indigo-50/40">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">قالب جاهز</span>
+              <span class="w-4 h-4 rounded-full" style="background-color: ${tpl.themeColor}"></span>
+            </div>
+            <h4 class="font-bold text-sm text-gray-900">${tpl.name}</h4>
+            <p class="text-xs text-gray-500 mt-0.5">${tpl.desc}</p>
+          </div>
+        `;
+      });
+
+      // عرض التصاميم المحفوظة الخاصة بهذه الصفحة فقط
+      myDesigns.forEach(des => {
+        html += `
+          <div onclick="applySavedUserDesign('${des.id}')" class="cursor-pointer border-2 border-emerald-300 hover:border-emerald-600 rounded-xl p-3.5 transition bg-emerald-50/50">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-600 text-white">تصميمي المحفوظ</span>
+              <span class="w-4 h-4 rounded-full" style="background-color: ${des.themeColor}"></span>
+            </div>
+            <h4 class="font-bold text-sm text-gray-900">${des.designName}</h4>
+            <p class="text-xs text-gray-600 mt-0.5">خاص بـ: ${user.pageName}</p>
+          </div>
+        `;
+      });
+
+      grid.innerHTML = html;
+    }
+
+    function applySystemTemplate(tplId) {
+      const tpl = SYSTEM_TEMPLATES.find(t => t.id === tplId);
+      if (!tpl) return;
+      currentBorderStyle = tpl.borderStyle;
+      document.getElementById('inp-theme-color').value = tpl.themeColor;
+      document.getElementById('inp-font-family').value = tpl.fontFamily;
+      document.getElementById('inp-font-size').value = tpl.fontSize;
+      updatePreview();
+    }
+
+    function applySavedUserDesign(desId) {
+      const des = db.userDesigns.find(d => d.id === desId && d.userId === db.currentUserId);
+      if (des) applyDesignObject(des);
+    }
+
+    function applyDesignObject(des) {
+      document.getElementById('inp-store-name').value = des.storeName || '';
+      document.getElementById('inp-store-phone').value = des.storePhone || '';
+      document.getElementById('inp-store-address').value = des.storeAddress || '';
+      currentBorderStyle = des.borderStyle || 'border-style-classic';
+      document.getElementById('inp-theme-color').value = des.themeColor || '#1e3a8a';
+      document.getElementById('inp-font-family').value = des.fontFamily || 'font-cairo';
+      document.getElementById('inp-font-size').value = des.fontSize || 'text-sm';
+      document.getElementById('inp-logo-size').value = des.logoSize || 75;
+      document.getElementById('inp-footer-note').value = des.footerNote || '';
+      currentLogoDataUrl = des.logoDataUrl || '';
+      currentSignatureDataUrl = des.signatureDataUrl || '';
+      updatePreview();
+    }
+
+    function createBlankDesign() {
+      const user = getCurrentUser();
+      document.getElementById('inp-store-name').value = user.pageName;
+      document.getElementById('inp-store-phone').value = '07700000000';
+      document.getElementById('inp-store-address').value = 'العراق';
+      currentBorderStyle = 'border-style-none';
+      document.getElementById('inp-theme-color').value = '#111827';
+      document.getElementById('inp-font-family').value = 'font-cairo';
+      document.getElementById('inp-font-size').value = 'text-sm';
+      currentLogoDataUrl = '';
+      clearSignature();
+      updatePreview();
+    }
+
+    function saveCurrentDesignForUser() {
+      const user = getCurrentUser();
+      const designName = prompt('أدخل اسماً لحفظ هذا التصميم في حسابك:', 'تصميم فاتورة ' + user.pageName);
+      if (!designName) return;
+
+      const newDesign = {
+        id: 'des_' + Date.now(),
+        userId: user.id, // عزل التصميم لصاحب الصفحة فقط
+        designName,
+        storeName: document.getElementById('inp-store-name').value,
+        storePhone: document.getElementById('inp-store-phone').value,
+        storeAddress: document.getElementById('inp-store-address').value,
+        borderStyle: currentBorderStyle,
+        themeColor: document.getElementById('inp-theme-color').value,
+        fontFamily: document.getElementById('inp-font-family').value,
+        fontSize: document.getElementById('inp-font-size').value,
+        logoDataUrl: currentLogoDataUrl,
+        logoSize: document.getElementById('inp-logo-size').value,
+        signatureDataUrl: currentSignatureDataUrl,
+        footerNote: document.getElementById('inp-footer-note').value
+      };
+
+      db.userDesigns.push(newDesign);
+      saveDB();
+      renderTemplatesGrid();
+      renderAdminLogs();
+      alert('تم حفظ التصميم بنجاح في حساب صفحتك (' + user.pageName + ') ولن يظهر لأي صفحة أخرى.');
+    }
+
+    // ==========================================
+    // 5. تحديث المعاينة الحية للفاتورة
+    // ==========================================
+    function setBorderStyle(styleClass) {
+      currentBorderStyle = styleClass;
+      updatePreview();
+    }
+
+    function setThemeColor(hex) {
+      document.getElementById('inp-theme-color').value = hex;
+      updatePreview();
+    }
+
+    function handleLogoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        currentLogoDataUrl = e.target.result;
+        updatePreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeLogo() {
+      currentLogoDataUrl = '';
+      document.getElementById('inp-logo').value = '';
+      updatePreview();
+    }
+
+    function updatePreview() {
+      const preview = document.getElementById('invoice-preview-area');
+      const storeName = document.getElementById('inp-store-name').value || 'اسم الصفحة';
+      const storePhone = document.getElementById('inp-store-phone').value;
+      const storeAddress = document.getElementById('inp-store-address').value;
+      const themeColor = document.getElementById('inp-theme-color').value;
+      const fontFamily = document.getElementById('inp-font-family').value;
+      const fontSize = document.getElementById('inp-font-size').value;
+      const logoSize = document.getElementById('inp-logo-size').value;
+      const footerNote = document.getElementById('inp-footer-note').value;
+      const showSig = document.getElementById('inp-show-sig').checked;
+
+      // تحديث الكلاسات واللون
+      preview.className = `bg-white p-8 rounded-lg shadow-md transition-all ${currentBorderStyle} ${fontFamily} ${fontSize}`;
+      preview.style.setProperty('--theme-color', themeColor);
+
+      // تحديث النصوص
+      document.getElementById('prev-store-name').textContent = storeName;
+      document.getElementById('prev-store-phone').textContent = storePhone ? 'الهاتف: ' + storePhone : '';
+      document.getElementById('prev-store-address').textContent = storeAddress ? 'العنوان: ' + storeAddress : '';
+      document.getElementById('prev-footer-note').textContent = footerNote;
+      document.getElementById('prev-date').textContent = new Date().toLocaleDateString('ar-IQ');
+
+      // تحديث الشعار
+      const logoImg = document.getElementById('prev-logo');
+      if (currentLogoDataUrl) {
+        logoImg.src = currentLogoDataUrl;
+        logoImg.style.width = logoSize + 'px';
+        logoImg.style.height = logoSize + 'px';
+        logoImg.classList.remove('hidden');
+      } else {
+        logoImg.classList.add('hidden');
+      }
+
+      // تحديث التوقيع
+      const sigBox = document.getElementById('prev-sig-box');
+      const sigImg = document.getElementById('prev-sig-img');
+      if (showSig) {
+        sigBox.classList.remove('hidden');
+        if (currentSignatureDataUrl) {
+          sigImg.src = currentSignatureDataUrl;
+          sigImg.classList.remove('hidden');
+        } else {
+          sigImg.classList.add('hidden');
         }
+      } else {
+        sigBox.classList.add('hidden');
+      }
+
+      renderInvoiceItems();
     }
 
-    function logout() {
-        localStorage.removeItem('current_user');
-        location.reload();
+    function renderInvoiceItems() {
+      // جلب بضاعة الصفحة النشطة فقط لمنع أي تداخل
+      const userProducts = db.products.filter(p => p.userId === db.currentUserId);
+      const tbody = document.getElementById('prev-items-body');
+      let subtotal = 0;
+
+      if (userProducts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400 text-xs">لا توجد بضاعة مضافة لهذه الصفحة بعد. أضف بضاعة من تبويب "بضاعة الصفحة".</td></tr>`;
+      } else {
+        tbody.innerHTML = userProducts.map((item, idx) => {
+          subtotal += item.price;
+          return `
+            <tr>
+              <td class="p-2.5">${idx + 1}</td>
+              <td class="p-2.5 font-semibold">${item.name}</td>
+              <td class="p-2.5 text-center">1</td>
+              <td class="p-2.5 text-center">${item.price.toLocaleString()} د.ع</td>
+              <td class="p-2.5 text-left font-bold">${item.price.toLocaleString()} د.ع</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      const delivery = userProducts.length > 0 ? 5000 : 0;
+      document.getElementById('prev-subtotal').textContent = subtotal.toLocaleString() + ' د.ع';
+      document.getElementById('prev-total').textContent = (subtotal + delivery).toLocaleString() + ' د.ع';
     }
 
-    window.onload = function() {
-        if(localStorage.getItem('current_user')) {
-            checkSession();
-        }
-    }
-</script>
+    // ==========================================
+    // 6. لوحة التوقيع بالرسم (Canvas)
+    // ==========================================
+    const canvas = document.getElementById('signature-pad');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
 
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    canvas.addEventListener('mousedown', (e) => { isDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+    canvas.addEventListener('mousemove', (e) => { if (!isDrawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+    canvas.addEventListener('mouseup', () => { isDrawing = false; currentSignatureDataUrl = canvas.toDataURL(); updatePreview(); });
+
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); isDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (!isDrawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+    canvas.addEventListener('touchend', () => { isDrawing = false; currentSignatureDataUrl = canvas.toDataURL(); updatePreview(); });
+
+    function clearSignature() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      currentSignatureDataUrl = '';
+      updatePreview();
+    }
+
+    // ==========================================
+    // 7. إدارة بضاعة الصفحة ولوحة الإدارة
+    // ==========================================
+    function addUserProduct() {
+      const name = document.getElementById('new-prod-name').value.trim();
+      const price = parseInt(document.getElementById('new-prod-price').value);
+      if (!name || isNaN(price)) return;
+
+      db.products.push({
+        id: 'p_' + Date.now(),
+        userId: db.currentUserId, // ربط البضاعة بالمستخدم الحالي فقط
+        name,
+        price
+      });
+      saveDB();
+      document.getElementById('new-prod-name').value = '';
+      document.getElementById('new-prod-price').value = '';
+      renderUserProducts();
+      updatePreview();
+    }
+
+    function addSampleRowToInvoice() {
+      db.products.push({
+        id: 'p_' + Date.now(),
+        userId: db.currentUserId,
+        name: 'منتج إضافي #' + (db.products.filter(p => p.userId === db.currentUserId).length + 1),
+        price: 15000
+      });
+      saveDB();
+      renderUserProducts();
+      updatePreview();
+    }
+
+    function deleteUserProduct(prodId) {
+      db.products = db.products.filter(p => !(p.id === prodId && p.userId === db.currentUserId));
+      saveDB();
+      renderUserProducts();
+      updatePreview();
+    }
+
+    function renderUserProducts() {
+      const myProducts = db.products.filter(p => p.userId === db.currentUserId);
+      const tbody = document.getElementById('user-products-table');
+      tbody.innerHTML = myProducts.map(p => `
+        <tr>
+          <td class="p-3 font-bold">${p.name}</td>
+          <td class="p-3">${p.price.toLocaleString()} د.ع</td>
+          <td class="p-3"><span class="text-xs bg-gray-100 px-2 py-1 rounded font-mono">${p.userId}</span></td>
+          <td class="p-3 text-left">
+            <button onclick="deleteUserProduct('${p.id}')" class="text-red-600 hover:underline text-xs font-bold">حذف</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderAdminLogs() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const tbody = document.getElementById('admin-logs-table');
+
+      tbody.innerHTML = db.users.map(u => {
+        const todayLogs = db.loginLogs.filter(l => l.userId === u.id && l.date === todayStr);
+        const lastLog = todayLogs.length > 0 ? todayLogs[todayLogs.length - 1].time : 'لا يوجد دخول اليوم';
+        const designsCount = db.userDesigns.filter(d => d.userId === u.id).length;
+
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="p-3 font-bold text-gray-900">${u.fullName}</td>
+            <td class="p-3 text-gray-600 font-mono text-xs">${u.username}</td>
+            <td class="p-3 font-semibold text-indigo-700">${u.pageName}</td>
+            <td class="p-3 text-center">
+              <span class="bg-emerald-100 text-emerald-800 font-extrabold px-3 py-1 rounded-full text-xs">
+                ${todayLogs.length} مرات اليوم
+              </span>
+            </td>
+            <td class="p-3 text-center font-bold">${designsCount}</td>
+            <td class="p-3 text-xs text-gray-500">${lastLog}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==========================================
+    // 8. التنقل بين التبويبات
+    // ==========================================
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-amber-400', 'text-amber-400');
+        btn.classList.add('border-transparent', 'text-slate-300');
+      });
+      const activeBtn = document.getElementById('tab-btn-' + tabId);
+      activeBtn.classList.add('border-amber-400', 'text-amber-400');
+      activeBtn.classList.remove('border-transparent', 'text-slate-300');
+    }
+
+    // تشغيل التطبيق عند الفتح
+    renderAccountSwitcher();
+    loadUserWorkspace();
+  </script>
 </body>
 </html>
