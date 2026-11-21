@@ -234,7 +234,6 @@
 </head>
 <body>
 
-  <!-- شاشة تسجيل الدخول: حقل فارغ تماماً بدون أي قيمة افتراضية -->
   <div id="login-screen" class="login-wrapper">
     <div class="login-card">
       <h1 class="login-title">🔒 تسجيل الدخول لنظام (ياسر ويب)</h1>
@@ -258,7 +257,6 @@
     </div>
   </div>
 
-  <!-- التطبيق الرئيسي -->
   <div id="app-screen" class="app-box">
     <div class="top-bar">
       <div>
@@ -278,13 +276,11 @@
       <button type="button" id="b-logs" style="display:none;" onclick="openTab('logs')">سجل الدخول اليومي</button>
     </div>
 
-    <!-- 1. المواد والسلة -->
     <div id="p-store" class="panel active">
       <input type="text" id="inp-search" placeholder="بحث عن مادة..." oninput="drawStore()" style="width:100%; padding:10px; border-radius:10px; border:1px solid #cbd5e1;" />
       <div id="store-list" class="grid-cards"></div>
     </div>
 
-    <!-- 2. إضافة مواد المستخدم -->
     <div id="p-add" class="panel white-box">
       <h3 style="margin:0 0 10px;">إضافة مواد لهذا الحساب فقط</h3>
       <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -301,7 +297,6 @@
       </table>
     </div>
 
-    <!-- 3. تصميم وترتيب الفاتورة (أشكال متعددة + تخصيص وترتيب كامل) -->
     <div id="p-inv" class="panel">
       <div class="two-col">
         <div class="white-box">
@@ -365,7 +360,6 @@
       </div>
     </div>
 
-    <!-- 4. سجل الدخول اليومي (للأدمن فقط) -->
     <div id="p-logs" class="panel white-box">
       <h3 style="margin:0 0 10px;">سجل المستخدمين ومرات الدخول اليوم</h3>
       <table>
@@ -378,7 +372,6 @@
   </div>
 
   <script>
-    // ضمان تفريغ حقل اسم المستخدم ومنع أي قيمة تلقائية عند التحميل
     (function enforceCleanLoginField() {
       const input = document.getElementById('login-user-input');
       if (!input) return;
