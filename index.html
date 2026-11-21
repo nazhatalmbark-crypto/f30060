@@ -3,23 +3,96 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>شبكة المواد السريعة - ياسر ويب</title>
+  <title>تسجيل الدخول لنظام (ياسر ويب)</title>
   <style>
     * { box-sizing: border-box; font-family: Arial, Tahoma, sans-serif; }
     body {
       margin: 0;
       min-height: 100vh;
       background: linear-gradient(135deg, #2e1065, #5b21b6);
-      padding: 14px;
+      padding: 16px;
       color: #111827;
     }
-    .box {
-      max-width: 1000px;
+
+    /* واجهة تسجيل الدخول المطابقة للصورة مع حقل فارغ دائماً */
+    .login-wrapper {
+      min-height: calc(100vh - 32px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border-radius: 26px;
+      padding: 32px 26px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      text-align: center;
+    }
+    .login-title {
+      margin: 0 0 26px;
+      font-size: 24px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .login-label {
+      display: block;
+      text-align: right;
+      font-size: 16px;
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 10px;
+    }
+    .login-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 16px;
+      border-radius: 14px;
+      border: 1.5px solid #cbd5e1;
+      outline: none;
+      margin-bottom: 18px;
+      background: #ffffff;
+      color: #111827;
+    }
+    .login-input:focus {
+      border-color: #6d28d9;
+    }
+    .login-btn {
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+      background: #6d28d9;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+    }
+    .login-btn:hover {
+      background: #5b21b6;
+    }
+    .login-footer {
+      margin-top: 26px;
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.7;
+    }
+    .login-footer a, .login-footer span {
+      color: #4f46e5;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    /* التطبيق بعد الدخول */
+    .app-box {
+      max-width: 1020px;
       margin: 0 auto;
       background: #f8fafc;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 18px;
-      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+      display: none;
     }
     .top-bar {
       display: flex;
@@ -100,12 +173,6 @@
       cursor: pointer;
       font-size: 12px;
     }
-    input, select {
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid #cbd5e1;
-      font-size: 13px;
-    }
     .two-col {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
@@ -153,33 +220,55 @@
   </style>
 </head>
 <body>
-  <div class="box">
-    <!-- شريط الحساب والتبديل الفوري -->
-    <div class="top-bar">
-      <div>
-        الحساب الحالي: <span id="lbl-user">مستخدم_جديد</span> |
-        السلة: <span id="lbl-cart">0</span>
-      </div>
-      <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
-        <input type="text" id="inp-switch-user" placeholder="اكتب اسم حساب جديد..." style="width:160px;" />
-        <button type="button" class="btn-green" onclick="switchToNewUser()">دخول بحساب جديد (مصفر)</button>
-        <button type="button" class="btn-red" onclick="clearCurrentUserData()">تصفير حسابي</button>
+
+  <!-- شاشة تسجيل الدخول مع حقل فارغ دائماً -->
+  <div id="login-screen" class="login-wrapper">
+    <div class="login-card">
+      <h1 class="login-title">🔒 تسجيل الدخول لنظام (ياسر ويب)</h1>
+      <label class="login-label" for="login-user-input">اسم المستخدم أو المحل:</label>
+      <input
+        type="text"
+        id="login-user-input"
+        class="login-input"
+        value=""
+        placeholder=""
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+      />
+      <button type="button" class="login-btn" onclick="loginFromScreen()">دخول للنظام</button>
+
+      <div class="login-footer">
+        <div>لطلب أو تجديد كود النسخة المدفوعة:</div>
+        <div>📷 انستغرام: <span>@yaser120120120120</span></div>
       </div>
     </div>
+  </div>
 
-    <h2 style="margin:0 0 12px; color:#1e1b4b;">شبكة المواد السريعة - ياسر ويب</h2>
+  <!-- التطبيق الرئيسي -->
+  <div id="app-screen" class="app-box">
+    <div class="top-bar">
+      <div>
+        الحساب: <span id="lbl-user">---</span> |
+        السلة: <span id="lbl-cart">0</span>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn-red" onclick="clearMyStore()">تصفير بضاعتي</button>
+        <button type="button" class="btn-purple" onclick="goToLoginScreen()">خروج / حساب جديد</button>
+      </div>
+    </div>
 
     <div class="nav">
       <button type="button" id="b-store" class="active" onclick="openTab('store')">المواد والسلة</button>
       <button type="button" id="b-add" onclick="openTab('add')">إضافة موادي</button>
       <button type="button" id="b-inv" onclick="openTab('inv')">تصميم وترتيب الفاتورة</button>
-      <!-- زر لوحة الأدمن يظهر فقط لحساب الأدمن -->
       <button type="button" id="b-logs" style="display:none;" onclick="openTab('logs')">سجل الدخول اليومي</button>
     </div>
 
     <!-- 1. المواد والسلة -->
     <div id="p-store" class="panel active">
-      <input type="text" id="inp-search" placeholder="بحث عن مادة..." oninput="drawStore()" style="width:100%;" />
+      <input type="text" id="inp-search" placeholder="بحث عن مادة..." oninput="drawStore()" style="width:100%; padding:10px; border-radius:10px; border:1px solid #cbd5e1;" />
       <div id="store-list" class="grid-cards"></div>
     </div>
 
@@ -187,9 +276,9 @@
     <div id="p-add" class="panel white-box">
       <h3 style="margin:0 0 10px;">إضافة مواد لهذا الحساب فقط</h3>
       <div style="display:flex; flex-wrap:wrap; gap:8px;">
-        <input type="text" id="p-name" placeholder="اسم المادة" />
-        <input type="number" id="p-price" placeholder="السعر" style="width:110px;" />
-        <input type="number" id="p-qty" placeholder="الكمية" value="5" style="width:90px;" />
+        <input type="text" id="p-name" placeholder="اسم المادة" style="padding:8px; border-radius:8px; border:1px solid #cbd5e1;" />
+        <input type="number" id="p-price" placeholder="السعر" style="width:110px; padding:8px; border-radius:8px; border:1px solid #cbd5e1;" />
+        <input type="number" id="p-qty" placeholder="الكمية" value="5" style="width:90px; padding:8px; border-radius:8px; border:1px solid #cbd5e1;" />
         <button type="button" class="btn-purple" onclick="addProd()">+ إضافة</button>
       </div>
       <table>
@@ -208,7 +297,7 @@
 
           <div style="margin-bottom:8px;">
             <label style="font-size:12px; font-weight:bold; display:block;">اسم الصفحة:</label>
-            <input type="text" id="inv-shop" oninput="drawInvoice()" style="width:100%;" />
+            <input type="text" id="inv-shop" oninput="drawInvoice()" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;" />
           </div>
 
           <div style="margin-bottom:8px;">
@@ -219,7 +308,7 @@
           <div style="display:flex; gap:8px; margin-bottom:10px;">
             <div style="flex:1;">
               <label style="font-size:12px; font-weight:bold; display:block;">الحواف:</label>
-              <select id="inv-border" onchange="drawInvoice()" style="width:100%;">
+              <select id="inv-border" onchange="drawInvoice()" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
                 <option value="2px solid #334155">بسيط</option>
                 <option value="6px double #5b21b6">كلاسيكي مزدوج</option>
                 <option value="4px dashed #b45309">مزخرف متقطع</option>
@@ -227,7 +316,7 @@
             </div>
             <div style="flex:1;">
               <label style="font-size:12px; font-weight:bold; display:block;">حجم الخط:</label>
-              <select id="inv-size" onchange="drawInvoice()" style="width:100%;">
+              <select id="inv-size" onchange="drawInvoice()" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
                 <option value="13px">صغير</option>
                 <option value="15px" selected>متوسط</option>
                 <option value="18px">كبير</option>
@@ -256,9 +345,9 @@
       </div>
     </div>
 
-    <!-- 4. سجل الدخول اليومي (خاص بالأدمن فقط) -->
+    <!-- 4. سجل الدخول اليومي (للأدمن فقط) -->
     <div id="p-logs" class="panel white-box">
-      <h3 style="margin:0 0 10px;">سجل المستخدمين ومرات الدخول اليوم (لوحة الأدمن)</h3>
+      <h3 style="margin:0 0 10px;">سجل المستخدمين ومرات الدخول اليوم</h3>
       <table>
         <thead>
           <tr><th>اسم المستخدم</th><th>مرات الدخول اليوم</th><th>عدد المواد</th><th>آخر دخول</th></tr>
@@ -269,18 +358,13 @@
   </div>
 
   <script>
+    // قاعدة بيانات معزولة بالكامل حسب اسم المستخدم (ولا تحتوي أي بضاعة افتراضية للمستخدمين الجدد)
     const DB = {
-      currentUser: 'مستخدم_جديد',
-      users: { 'مستخدم_جديد': { created: todayStr() } },
-      logs: [{ user: 'مستخدم_جديد', date: todayStr(), time: nowStr() }],
-      dataByUser: {}
+      currentUser: '',
+      users: {},
+      logs: [],
+      buckets: {}
     };
-
-    // التحقق إذا الحساب الحالي هو أدمن
-    function isAdminUser() {
-      const u = (DB.currentUser || '').trim().toLowerCase();
-      return u === 'admin' || u === 'الأدمن' || u === 'الادمن';
-    }
 
     function todayStr() {
       return new Date().toISOString().slice(0, 10);
@@ -288,13 +372,17 @@
     function nowStr() {
       return new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
     }
+    function isAdmin() {
+      const u = (DB.currentUser || '').trim().toLowerCase();
+      return u === 'admin' || u === 'الأدمن' || u === 'الادمن';
+    }
 
-    function createEmptyBucket(u) {
+    function makeEmptyBucket(username) {
       return {
         products: [],
         cart: [],
         design: {
-          shop: u,
+          shop: username,
           logo: '',
           border: '2px solid #334155',
           size: '15px',
@@ -304,41 +392,57 @@
       };
     }
 
-    function ensureUserBucket(u) {
-      if (!DB.dataByUser[u]) {
-        DB.dataByUser[u] = createEmptyBucket(u);
+    function getBucket(username) {
+      if (!DB.buckets[username]) {
+        DB.buckets[username] = makeEmptyBucket(username);
       }
-      return DB.dataByUser[u];
+      return DB.buckets[username];
     }
 
-    function switchToNewUser() {
-      const name = document.getElementById('inp-switch-user').value.trim();
-      if (!name) return alert('اكتب اسم الحساب أولاً');
+    function loginFromScreen() {
+      const input = document.getElementById('login-user-input');
+      const username = (input.value || '').trim();
+      if (!username) {
+        alert('اكتب اسم المستخدم أو المحل أولاً');
+        return;
+      }
 
-      // تصفير بضاعة وسلة وتصميم الحساب الجديد حتى لا يظهر أي شيء من غير حساب
-      DB.currentUser = name;
-      DB.dataByUser[name] = createEmptyBucket(name);
-      if (!DB.users[name]) DB.users[name] = { created: todayStr() };
-      DB.logs.push({ user: name, date: todayStr(), time: nowStr() });
+      DB.currentUser = username;
 
-      document.getElementById('inp-switch-user').value = '';
-      document.getElementById('inp-search').value = '';
-      document.getElementById('store-list').innerHTML = '';
+      // إذا كان حساب جديد لم يدخل من قبل، ننشئ له مخزوناً فارغاً تماماً (0 مواد)
+      if (!DB.users[username]) {
+        DB.users[username] = { created: todayStr() };
+        DB.buckets[username] = makeEmptyBucket(username);
+      }
 
-      // إرجاع التبويب إلى المواد وإخفاء لوحة الأدمن إذا لم يكن أدمن
+      DB.logs.push({ user: username, date: todayStr(), time: nowStr() });
+
+      // تفريغ حقل الدخول حتى لا يبقى أي اسم مكتوب
+      input.value = '';
+
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'block';
+
       openTab('store');
-      clearSig();
-      syncDesignInputs();
+      clearSigCanvasOnly();
+      syncDesignFields();
       renderAll();
     }
 
-    function clearCurrentUserData() {
-      const u = DB.currentUser;
-      DB.dataByUser[u] = createEmptyBucket(u);
-      document.getElementById('inp-search').value = '';
-      document.getElementById('store-list').innerHTML = '';
-      clearSig();
-      syncDesignInputs();
+    function goToLoginScreen() {
+      DB.currentUser = '';
+      document.getElementById('app-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      const input = document.getElementById('login-user-input');
+      input.value = '';
+      input.focus();
+    }
+
+    function clearMyStore() {
+      if (!DB.currentUser) return;
+      DB.buckets[DB.currentUser] = makeEmptyBucket(DB.currentUser);
+      clearSigCanvasOnly();
+      syncDesignFields();
       renderAll();
     }
 
@@ -347,7 +451,7 @@
       const price = Number(document.getElementById('p-price').value);
       const qty = Number(document.getElementById('p-qty').value);
       if (!name || !price) return;
-      const b = ensureUserBucket(DB.currentUser);
+      const b = getBucket(DB.currentUser);
       b.products.push({ id: String(Date.now() + Math.random()), name, price, qty: qty || 1 });
       document.getElementById('p-name').value = '';
       document.getElementById('p-price').value = '';
@@ -355,13 +459,13 @@
     }
 
     function delProd(id) {
-      const b = ensureUserBucket(DB.currentUser);
+      const b = getBucket(DB.currentUser);
       b.products = b.products.filter(x => x.id !== id);
       renderAll();
     }
 
     function addCart(id) {
-      const b = ensureUserBucket(DB.currentUser);
+      const b = getBucket(DB.currentUser);
       const item = b.products.find(x => x.id === id);
       if (!item || item.qty <= 0) return;
       item.qty -= 1;
@@ -371,11 +475,11 @@
 
     function drawStore() {
       const q = (document.getElementById('inp-search').value || '').trim().toLowerCase();
-      const b = ensureUserBucket(DB.currentUser);
+      const b = getBucket(DB.currentUser);
       const list = b.products.filter(x => !q || x.name.toLowerCase().includes(q));
       const wrap = document.getElementById('store-list');
       if (!list.length) {
-        wrap.innerHTML = `<div class="white-box" style="grid-column:1/-1; text-align:center;">لا توجد مواد في هذا الحساب حالياً (الحساب مصفر/جديد). أضف مواد من تبويب "إضافة موادي".</div>`;
+        wrap.innerHTML = `<div class="white-box" style="grid-column:1/-1; text-align:center;">لا توجد مواد في هذا الحساب حالياً. يمكنك إضافة موادك من تبويب "إضافة موادي".</div>`;
         return;
       }
       wrap.innerHTML = list.map(x => `
@@ -383,23 +487,23 @@
           <h4 style="margin:0 0 8px;">${x.name}</h4>
           <div>السعر: ${x.price.toLocaleString()} د.ع</div>
           <div style="margin-bottom:10px;">المتوفر: ${x.qty}</div>
-          <button type="button" class="btn-purple" style="width:100%;" onclick="addCart('${x.id}')">+ إضافة للسلة</button>
+          <button type="button" class="btn-purple" style="width:100%;" onclick="addCart('${x.id}')">+ إضافة</button>
         </div>
       `).join('');
     }
 
     function drawProdTable() {
-      const b = ensureUserBucket(DB.currentUser);
+      const b = getBucket(DB.currentUser);
       const tb = document.getElementById('prod-table-body');
       tb.innerHTML = b.products.length
         ? b.products.map(x => `<tr><td>${x.name}</td><td>${x.price}</td><td>${x.qty}</td><td><button type="button" class="btn-red" onclick="delProd('${x.id}')">حذف</button></td></tr>`).join('')
-        : `<tr><td colspan="4" style="text-align:center;">فارغ</td></tr>`;
+        : `<tr><td colspan="4" style="text-align:center;">لا توجد مواد</td></tr>`;
     }
 
     const LABELS = { head: 'رأس الفاتورة (اللوغو والاسم)', items: 'جدول المواد', foot: 'التوقيع' };
 
-    function syncDesignInputs() {
-      const d = ensureUserBucket(DB.currentUser).design;
+    function syncDesignFields() {
+      const d = getBucket(DB.currentUser).design;
       document.getElementById('inv-shop').value = d.shop;
       document.getElementById('inv-border').value = d.border;
       document.getElementById('inv-size').value = d.size;
@@ -407,7 +511,7 @@
     }
 
     function drawOrderList() {
-      const d = ensureUserBucket(DB.currentUser).design;
+      const d = getBucket(DB.currentUser).design;
       document.getElementById('order-box').innerHTML = d.order.map((k, i) => `
         <div class="order-row">
           <span>${LABELS[k]}</span>
@@ -420,7 +524,7 @@
     }
 
     function moveOrd(i, step) {
-      const d = ensureUserBucket(DB.currentUser).design;
+      const d = getBucket(DB.currentUser).design;
       const j = i + step;
       if (j < 0 || j >= d.order.length) return;
       [d.order[i], d.order[j]] = [d.order[j], d.order[i]];
@@ -433,14 +537,14 @@
       if (!f) return;
       const r = new FileReader();
       r.onload = ev => {
-        ensureUserBucket(DB.currentUser).design.logo = ev.target.result;
+        getBucket(DB.currentUser).design.logo = ev.target.result;
         drawInvoice();
       };
       r.readAsDataURL(f);
     }
 
     function drawInvoice() {
-      const b = ensureUserBucket(DB.currentUser);
+      const b = getBucket(DB.currentUser);
       const d = b.design;
       d.shop = document.getElementById('inv-shop').value || DB.currentUser;
       d.border = document.getElementById('inv-border').value;
@@ -477,7 +581,7 @@
 
     function saveDesign() {
       drawInvoice();
-      alert('تم حفظ التصميم لحساب ' + DB.currentUser);
+      alert('تم حفظ تصميم الفاتورة لحساب ' + DB.currentUser);
     }
 
     const cv = document.getElementById('sig');
@@ -487,20 +591,25 @@
     cv.addEventListener('pointerdown', e => { down = true; cx.beginPath(); cx.moveTo(e.offsetX, e.offsetY); });
     cv.addEventListener('pointermove', e => { if (down) { cx.lineTo(e.offsetX, e.offsetY); cx.stroke(); } });
     window.addEventListener('pointerup', () => {
-      if (down) {
+      if (down && DB.currentUser) {
         down = false;
-        ensureUserBucket(DB.currentUser).design.sig = cv.toDataURL();
+        getBucket(DB.currentUser).design.sig = cv.toDataURL();
         drawInvoice();
       }
     });
-    function clearSig() {
+    function clearSigCanvasOnly() {
       cx.clearRect(0, 0, cv.width, cv.height);
-      ensureUserBucket(DB.currentUser).design.sig = '';
-      drawInvoice();
+    }
+    function clearSig() {
+      clearSigCanvasOnly();
+      if (DB.currentUser) {
+        getBucket(DB.currentUser).design.sig = '';
+        drawInvoice();
+      }
     }
 
     function drawLogs() {
-      if (!isAdminUser()) {
+      if (!isAdmin()) {
         document.getElementById('logs-body').innerHTML = '';
         return;
       }
@@ -508,30 +617,26 @@
       tb.innerHTML = Object.keys(DB.users).map(u => {
         const dayLogs = DB.logs.filter(l => l.user === u && l.date === todayStr());
         const last = dayLogs.length ? dayLogs[dayLogs.length - 1].time : '-';
-        const cnt = (DB.dataByUser[u] && DB.dataByUser[u].products.length) || 0;
+        const cnt = (DB.buckets[u] && DB.buckets[u].products.length) || 0;
         return `<tr><td><strong>${u}</strong></td><td>${dayLogs.length}</td><td>${cnt}</td><td>${last}</td></tr>`;
       }).join('');
     }
 
-    function syncAdminVisibility() {
-      const adminBtn = document.getElementById('b-logs');
-      const adminPanel = document.getElementById('p-logs');
-      if (isAdminUser()) {
-        adminBtn.style.display = 'inline-block';
+    function syncAdminTab() {
+      const btn = document.getElementById('b-logs');
+      const panel = document.getElementById('p-logs');
+      if (isAdmin()) {
+        btn.style.display = 'inline-block';
       } else {
-        adminBtn.style.display = 'none';
-        adminPanel.classList.remove('active');
-        adminBtn.classList.remove('active');
+        btn.style.display = 'none';
+        panel.classList.remove('active');
+        btn.classList.remove('active');
         document.getElementById('logs-body').innerHTML = '';
-        if (!document.querySelector('.panel.active')) {
-          document.getElementById('p-store').classList.add('active');
-          document.getElementById('b-store').classList.add('active');
-        }
       }
     }
 
     function openTab(name) {
-      if (name === 'logs' && !isAdminUser()) return;
+      if (name === 'logs' && !isAdmin()) return;
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
       document.getElementById('p-' + name).classList.add('active');
@@ -539,18 +644,22 @@
     }
 
     function renderAll() {
-      const b = ensureUserBucket(DB.currentUser);
+      if (!DB.currentUser) return;
+      const b = getBucket(DB.currentUser);
       document.getElementById('lbl-user').textContent = DB.currentUser;
       document.getElementById('lbl-cart').textContent = b.cart.length;
-      syncAdminVisibility();
+      syncAdminTab();
       drawStore();
       drawProdTable();
       drawInvoice();
       drawLogs();
     }
 
-    syncDesignInputs();
-    renderAll();
+    // ضمان أن يبدأ حقل اسم المستخدم فارغاً دائماً عند التحميل
+    window.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('login-user-input');
+      input.value = '';
+    });
   </script>
 </body>
 </html>
