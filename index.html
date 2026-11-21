@@ -14,7 +14,6 @@
       color: #111827;
     }
 
-    /* واجهة تسجيل الدخول المطابقة للصورة مع حقل فارغ دائماً */
     .login-wrapper {
       min-height: calc(100vh - 32px);
       display: flex;
@@ -78,13 +77,11 @@
       color: #334155;
       line-height: 1.7;
     }
-    .login-footer a, .login-footer span {
+    .login-footer span {
       color: #4f46e5;
       font-weight: 700;
-      text-decoration: none;
     }
 
-    /* التطبيق بعد الدخول */
     .app-box {
       max-width: 1020px;
       margin: 0 auto;
@@ -221,7 +218,7 @@
 </head>
 <body>
 
-  <!-- شاشة تسجيل الدخول مع حقل فارغ دائماً -->
+  <!-- شاشة تسجيل الدخول: حقل فارغ دائماً بدون تعبئة تلقائية -->
   <div id="login-screen" class="login-wrapper">
     <div class="login-card">
       <h1 class="login-title">🔒 تسجيل الدخول لنظام (ياسر ويب)</h1>
@@ -229,10 +226,13 @@
       <input
         type="text"
         id="login-user-input"
+        name="field_x_9912"
         class="login-input"
         value=""
         placeholder=""
-        autocomplete="off"
+        readonly
+        onfocus="this.removeAttribute('readonly');"
+        autocomplete="new-password"
         autocorrect="off"
         autocapitalize="off"
         spellcheck="false"
@@ -358,7 +358,6 @@
   </div>
 
   <script>
-    // قاعدة بيانات معزولة بالكامل حسب اسم المستخدم (ولا تحتوي أي بضاعة افتراضية للمستخدمين الجدد)
     const DB = {
       currentUser: '',
       users: {},
@@ -409,7 +408,6 @@
 
       DB.currentUser = username;
 
-      // إذا كان حساب جديد لم يدخل من قبل، ننشئ له مخزوناً فارغاً تماماً (0 مواد)
       if (!DB.users[username]) {
         DB.users[username] = { created: todayStr() };
         DB.buckets[username] = makeEmptyBucket(username);
@@ -417,8 +415,8 @@
 
       DB.logs.push({ user: username, date: todayStr(), time: nowStr() });
 
-      // تفريغ حقل الدخول حتى لا يبقى أي اسم مكتوب
       input.value = '';
+      input.setAttribute('readonly', 'readonly');
 
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app-screen').style.display = 'block';
@@ -433,9 +431,7 @@
       DB.currentUser = '';
       document.getElementById('app-screen').style.display = 'none';
       document.getElementById('login-screen').style.display = 'flex';
-      const input = document.getElementById('login-user-input');
-      input.value = '';
-      input.focus();
+      forceEmptyLoginInput();
     }
 
     function clearMyStore() {
@@ -655,11 +651,16 @@
       drawLogs();
     }
 
-    // ضمان أن يبدأ حقل اسم المستخدم فارغاً دائماً عند التحميل
-    window.addEventListener('DOMContentLoaded', () => {
+    function forceEmptyLoginInput() {
       const input = document.getElementById('login-user-input');
+      if (!input) return;
       input.value = '';
-    });
+      input.setAttribute('readonly', 'readonly');
+    }
+
+    window.addEventListener('DOMContentLoaded', forceEmptyLoginInput);
+    window.addEventListener('pageshow', forceEmptyLoginInput);
+    setTimeout(forceEmptyLoginInput, 120);
   </script>
 </body>
 </html>
