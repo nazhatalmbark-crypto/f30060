@@ -53,6 +53,7 @@
       border-radius: 14px;
       cursor: pointer;
     }
+    .login-btn:hover { background: #5b21b6; }
     .login-footer { margin-top: 22px; font-size: 13px; color: #334155; line-height: 1.7; }
     .login-footer span { color: #4f46e5; font-weight: 700; }
 
@@ -505,7 +506,7 @@
     function nowStr() { return new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' }); }
     function isAdmin() {
       const u = (DB.currentUser || '').trim().toLowerCase();
-      return u === 'admin' || u === 'الأدمن' || u === 'الادمن';
+      return u === 'ياسر' || u === 'ياسر ويب' || u === 'admin' || u === 'الأدمن' || u === 'الادمن';
     }
 
     function makeEmptyBucket(username) {
