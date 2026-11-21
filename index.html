@@ -472,10 +472,37 @@
   </div>
 
   <script>
+    const STORAGE_KEY = 'yasser_web_local_data_v1';
+
     const state = {
       currentUser: '',
       usersData: {}
     };
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          currentUser: state.currentUser,
+          usersData: state.usersData
+        }));
+      } catch (err) {
+        console.warn('تعذر حفظ البيانات محلياً:', err);
+      }
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          state.usersData = parsed.usersData && typeof parsed.usersData === 'object' ? parsed.usersData : {};
+          state.currentUser = typeof parsed.currentUser === 'string' ? parsed.currentUser : '';
+        }
+      } catch (err) {
+        console.warn('تعذر قراءة البيانات المحفوظة:', err);
+      }
+    }
 
     function createEmptyAccount(userName) {
       return {
@@ -513,6 +540,7 @@
       }
       state.currentUser = name;
       getAccount();
+      saveState();
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('main-screen').style.display = 'block';
       switchTab('tab-products');
@@ -521,6 +549,7 @@
 
     function logoutSystem() {
       state.currentUser = '';
+      saveState();
       document.getElementById('main-screen').style.display = 'none';
       document.getElementById('login-screen').style.display = 'flex';
       document.getElementById('username-input').value = '';
@@ -563,6 +592,7 @@
         qty
       });
 
+      saveState();
       document.getElementById('prod-name').value = '';
       document.getElementById('prod-price').value = '';
       document.getElementById('prod-qty').value = '10';
@@ -590,6 +620,7 @@
           count: 1
         });
       }
+      saveState();
       renderAll();
     }
 
@@ -608,6 +639,7 @@
       if (item.count <= 0) {
         acc.cart.splice(idx, 1);
       }
+      saveState();
       renderAll();
     }
 
@@ -633,6 +665,7 @@
       acc.invoices.unshift(newInvoice);
       acc.selectedInvoiceId = newInvoice.id;
       acc.cart = [];
+      saveState();
 
       msgEl.style.color = '#047857';
       msgEl.textContent = 'تم إتمام البيع وإصدار الفاتورة رقم #' + newInvoice.id;
@@ -661,6 +694,7 @@
         balance
       });
 
+      saveState();
       document.getElementById('cust-name').value = '';
       document.getElementById('cust-phone').value = '';
       document.getElementById('cust-balance').value = '0';
@@ -674,6 +708,7 @@
       const acc = getAccount();
       if (!acc) return;
       acc.selectedInvoiceId = invId;
+      saveState();
       renderInvoices();
     }
 
@@ -685,6 +720,7 @@
       }
       if (!acc.selectedInvoiceId) {
         acc.selectedInvoiceId = acc.invoices[0].id;
+        saveState();
         renderInvoices();
       }
       const invPanel = document.getElementById('tab-invoices');
@@ -863,6 +899,15 @@
       renderCart();
       renderInvoices();
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      if (state.currentUser && state.usersData[state.currentUser]) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-screen').style.display = 'block';
+        renderAll();
+      }
+    });
   </script>
 </body>
 </html>
