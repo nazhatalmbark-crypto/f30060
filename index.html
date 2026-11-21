@@ -125,10 +125,10 @@
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .pos-product-card {
-      background: #f8fafc;
+      background: #ffffff;
       border: 1.5px solid #cbd5e1;
       border-radius: 14px;
       padding: 12px 10px;
@@ -136,26 +136,43 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 8px;
+      gap: 6px;
       box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
     }
     .pos-product-card:hover {
       border-color: #6d28d9;
       background: #faf5ff;
     }
-    .pos-prod-name {
-      font-size: 14px;
-      font-weight: 800;
-      color: #0f172a;
+    .pos-prod-name { font-size: 14px; font-weight: 800; color: #0f172a; }
+    .pos-prod-price { font-size: 13px; font-weight: 700; color: #5b21b6; }
+    .pos-prod-qty { font-size: 11px; color: #475569; }
+
+    /* صندوق السلة داخل البيع السريع */
+    .cart-box {
+      background: #f8fafc;
+      border: 1.5px solid #ddd6fe;
+      border-radius: 14px;
+      padding: 10px;
+      margin-top: 10px;
     }
-    .pos-prod-price {
+    .cart-box-title {
       font-size: 13px;
-      font-weight: 700;
-      color: #5b21b6;
+      font-weight: 800;
+      color: #312e81;
+      margin-bottom: 8px;
     }
-    .pos-prod-qty {
-      font-size: 11px;
-      color: #475569;
+    .cart-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      padding: 6px 10px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 700;
     }
 
     .sub-panel {
@@ -189,11 +206,15 @@
       border: 1px solid #6d28d9;
       background: #f5f3ff;
       color: #4c1d95;
-      padding: 5px 9px;
+      padding: 6px 10px;
       border-radius: 8px;
       font-size: 11px;
       font-weight: bold;
       cursor: pointer;
+    }
+    .preset-chip.active-style {
+      background: #6d28d9;
+      color: #ffffff;
     }
     .order-row {
       display: flex;
@@ -330,9 +351,14 @@
       </div>
       <input type="text" id="pos-search" placeholder="ابحث عن مادة..." oninput="drawPos()" style="width:100%; margin-bottom:10px;" />
       <div id="pos-items" class="pos-cards-grid"></div>
-      <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
-        <strong>إجمالي السلة: <span id="cart-total">0</span> د.ع</strong>
-        <button type="button" class="btn-green" onclick="checkoutCart()">إصدار وصل بيع</button>
+
+      <div class="cart-box">
+        <div class="cart-box-title">🛒 محتويات السلة الحالية:</div>
+        <div id="cart-items-list"></div>
+        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <strong>إجمالي السلة: <span id="cart-total">0</span> د.ع</strong>
+          <button type="button" class="btn-green" onclick="checkoutCart()">إصدار وصل بيع</button>
+        </div>
       </div>
     </div>
 
@@ -461,11 +487,12 @@
         <button type="button" class="btn-gray" onclick="closeSections()">رجوع للبطاقات</button>
       </div>
 
+      <div style="font-size:12px; font-weight:800; margin-bottom:6px; color:#312e81;">اختر شكل الفاتورة أو الوصل المطلوب:</div>
       <div class="preset-bar">
-        <button type="button" class="preset-chip" onclick="applyReceiptStyle('classic')">شكل كلاسيكي</button>
-        <button type="button" class="preset-chip" onclick="applyReceiptStyle('royal')">شكل ملكي ذهبي</button>
-        <button type="button" class="preset-chip" onclick="applyReceiptStyle('modern')">شكل عصري</button>
-        <button type="button" class="preset-chip" onclick="applyReceiptStyle('minimal')">شكل بسيط</button>
+        <button type="button" id="style-btn-classic" class="preset-chip" onclick="applyReceiptStyle('classic')">شكل كلاسيكي</button>
+        <button type="button" id="style-btn-royal" class="preset-chip" onclick="applyReceiptStyle('royal')">شكل ملكي ذهبي</button>
+        <button type="button" id="style-btn-modern" class="preset-chip" onclick="applyReceiptStyle('modern')">شكل عصري</button>
+        <button type="button" id="style-btn-minimal" class="preset-chip" onclick="applyReceiptStyle('minimal')">شكل بسيط</button>
       </div>
 
       <div style="margin-bottom:8px;">
@@ -558,6 +585,8 @@
         licensed: false,
         receipt: {
           shop: username,
+          styleName: 'شكل بسيط',
+          styleKey: 'minimal',
           logo: '',
           border: '2px solid #334155',
           bgColor: '#ffffff',
@@ -647,7 +676,23 @@
       const item = b.products.find(p => p.id === id);
       if (!item || item.qty <= 0) return;
       item.qty -= 1;
-      b.cart.push(item);
+      b.cart.push({
+        cartItemId: String(Date.now() + Math.random()),
+        prodId: item.id,
+        name: item.name,
+        price: Number(item.price)
+      });
+      renderAll();
+    }
+
+    function removeFromCart(cartItemId) {
+      const b = getBucket(DB.currentUser);
+      const idx = b.cart.findIndex(c => c.cartItemId === cartItemId);
+      if (idx === -1) return;
+      const removed = b.cart[idx];
+      const prod = b.products.find(p => p.id === removed.prodId);
+      if (prod) prod.qty += 1;
+      b.cart.splice(idx, 1);
       renderAll();
     }
 
@@ -705,14 +750,43 @@
 
     const REC_LABELS = { head: 'رأس الوصل (اللوغو والاسم)', items: 'جدول المواد والمجموع', foot: 'التوقيع' };
 
+    function highlightStyleButton(styleKey) {
+      document.querySelectorAll('.preset-chip').forEach(btn => btn.classList.remove('active-style'));
+      const activeBtn = document.getElementById('style-btn-' + styleKey);
+      if (activeBtn) activeBtn.classList.add('active-style');
+    }
+
     function applyReceiptStyle(styleKey) {
       const d = getBucket(DB.currentUser).receipt;
-      if (styleKey === 'classic') { d.border = '6px double #5b21b6'; d.bgColor = '#ffffff'; d.accentColor = '#4c1d95'; d.size = '15px'; }
-      else if (styleKey === 'royal') { d.border = '5px dashed #b45309'; d.bgColor = '#fffbeb'; d.accentColor = '#92400e'; d.size = '16px'; }
-      else if (styleKey === 'modern') { d.border = '7px ridge #0f766e'; d.bgColor = '#f0fdfa'; d.accentColor = '#0f766e'; d.size = '15px'; }
-      else { d.border = '2px solid #334155'; d.bgColor = '#ffffff'; d.accentColor = '#1e293b'; d.size = '14px'; }
+      d.styleKey = styleKey;
+      if (styleKey === 'classic') {
+        d.styleName = 'شكل كلاسيكي';
+        d.border = '6px double #5b21b6';
+        d.bgColor = '#ffffff';
+        d.accentColor = '#4c1d95';
+        d.size = '15px';
+      } else if (styleKey === 'royal') {
+        d.styleName = 'شكل ملكي ذهبي';
+        d.border = '5px dashed #b45309';
+        d.bgColor = '#fffbeb';
+        d.accentColor = '#92400e';
+        d.size = '16px';
+      } else if (styleKey === 'modern') {
+        d.styleName = 'شكل عصري';
+        d.border = '7px ridge #0f766e';
+        d.bgColor = '#f0fdfa';
+        d.accentColor = '#0f766e';
+        d.size = '15px';
+      } else {
+        d.styleName = 'شكل بسيط';
+        d.border = '2px solid #334155';
+        d.bgColor = '#ffffff';
+        d.accentColor = '#1e293b';
+        d.size = '14px';
+      }
       document.getElementById('rec-border').value = d.border;
       document.getElementById('rec-size').value = d.size;
+      highlightStyleButton(styleKey);
       drawReceipt();
     }
 
@@ -721,6 +795,7 @@
       document.getElementById('rec-shop').value = d.shop;
       document.getElementById('rec-border').value = d.border;
       document.getElementById('rec-size').value = d.size;
+      highlightStyleButton(d.styleKey || 'minimal');
       drawRecOrderList();
     }
 
@@ -776,7 +851,10 @@
         head: `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid ${d.accentColor || '#312e81'}; padding-bottom:8px;">
           <div style="display:flex; align-items:center; gap:8px;">
             ${d.logo ? `<img src="${d.logo}" style="width:42px; height:42px; object-fit:contain;" />` : ''}
-            <strong style="color:${d.accentColor || '#312e81'};">${d.shop}</strong>
+            <div>
+              <strong style="color:${d.accentColor || '#312e81'};">${d.shop}</strong>
+              <div style="font-size:11px; color:#64748b;">النموذج: ${d.styleName || 'شكل بسيط'}</div>
+            </div>
           </div>
           <small>${todayStr()}</small>
         </div>`,
@@ -830,10 +908,20 @@
             <div class="pos-prod-name">${x.name}</div>
             <div class="pos-prod-price">${Number(x.price).toLocaleString()} د.ع</div>
             <div class="pos-prod-qty">متوفر: ${x.qty}</div>
-            <button type="button" class="btn-purple" onclick="addToCart('${x.id}')">+ سلة</button>
+            <button type="button" class="btn-purple" onclick="addToCart('${x.id}')" ${x.qty <= 0 ? 'disabled' : ''}>+ سلة</button>
           </div>
         `).join('')
         : `<div style="font-size:12px; color:#64748b; text-align:center; grid-column:1 / -1;">لا توجد مواد مضافة بعد</div>`;
+
+      document.getElementById('cart-items-list').innerHTML = b.cart.length
+        ? b.cart.map(c => `
+          <div class="cart-item-row">
+            <span>${c.name} — ${Number(c.price).toLocaleString()} د.ع</span>
+            <button type="button" class="btn-red" onclick="removeFromCart('${c.cartItemId}')">إزالة</button>
+          </div>
+        `).join('')
+        : `<div style="font-size:12px; color:#64748b; text-align:center;">السلة فارغة حالياً</div>`;
+
       document.getElementById('cart-total').textContent = b.cart.reduce((s, x) => s + Number(x.price), 0).toLocaleString();
     }
 
