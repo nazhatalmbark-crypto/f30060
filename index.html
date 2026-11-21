@@ -120,6 +120,44 @@
     .menu-card h4 { margin: 0 0 4px; font-size: 14px; font-weight: 800; color: #0f172a; }
     .menu-card p { margin: 0; font-size: 11px; color: #475569; }
 
+    /* بطاقات المواد في البيع السريع */
+    .pos-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .pos-product-card {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 12px 10px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+    }
+    .pos-product-card:hover {
+      border-color: #6d28d9;
+      background: #faf5ff;
+    }
+    .pos-prod-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .pos-prod-price {
+      font-size: 13px;
+      font-weight: 700;
+      color: #5b21b6;
+    }
+    .pos-prod-qty {
+      font-size: 11px;
+      color: #475569;
+    }
+
     .sub-panel {
       display: none;
       background: #ffffff;
@@ -291,7 +329,7 @@
         <button type="button" class="btn-gray" onclick="closeSections()">رجوع للبطاقات</button>
       </div>
       <input type="text" id="pos-search" placeholder="ابحث عن مادة..." oninput="drawPos()" style="width:100%; margin-bottom:10px;" />
-      <div id="pos-items"></div>
+      <div id="pos-items" class="pos-cards-grid"></div>
       <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
         <strong>إجمالي السلة: <span id="cart-total">0</span> د.ع</strong>
         <button type="button" class="btn-green" onclick="checkoutCart()">إصدار وصل بيع</button>
@@ -505,7 +543,7 @@
     function todayStr() { return new Date().toISOString().slice(0, 10); }
     function nowStr() { return new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' }); }
     function isAdmin() {
-      const u = (DB.currentUser || '').trim().toLowerCase();
+      const u = (DB.currentUser || '').replace(/\s+/g, ' ').trim().toLowerCase();
       return u === 'ياسر' || u === 'ياسر ويب' || u === 'admin' || u === 'الأدمن' || u === 'الادمن';
     }
 
@@ -787,8 +825,15 @@
       const b = getBucket(DB.currentUser);
       const list = b.products.filter(x => !q || x.name.toLowerCase().includes(q));
       document.getElementById('pos-items').innerHTML = list.length
-        ? list.map(x => `<div class="order-row"><span>${x.name} (${x.price} د.ع | متوفر: ${x.qty})</span><button type="button" class="btn-purple" onclick="addToCart('${x.id}')">+ سلة</button></div>`).join('')
-        : `<div style="font-size:12px; color:#64748b; text-align:center;">لا توجد مواد مضافة بعد</div>`;
+        ? list.map(x => `
+          <div class="pos-product-card">
+            <div class="pos-prod-name">${x.name}</div>
+            <div class="pos-prod-price">${Number(x.price).toLocaleString()} د.ع</div>
+            <div class="pos-prod-qty">متوفر: ${x.qty}</div>
+            <button type="button" class="btn-purple" onclick="addToCart('${x.id}')">+ سلة</button>
+          </div>
+        `).join('')
+        : `<div style="font-size:12px; color:#64748b; text-align:center; grid-column:1 / -1;">لا توجد مواد مضافة بعد</div>`;
       document.getElementById('cart-total').textContent = b.cart.reduce((s, x) => s + Number(x.price), 0).toLocaleString();
     }
 
