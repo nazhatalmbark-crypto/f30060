@@ -181,6 +181,22 @@
       border-radius: 14px;
       border: 1px solid #e2e8f0;
     }
+    .preset-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .preset-chip {
+      border: 1px solid #6d28d9;
+      background: #f5f3ff;
+      color: #4c1d95;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+    }
     .order-row {
       display: flex;
       justify-content: space-between;
@@ -193,10 +209,10 @@
       font-weight: bold;
     }
     .inv-preview {
-      background: #fff;
+      background: #ffffff;
       padding: 18px;
       border-radius: 12px;
-      min-height: 320px;
+      min-height: 330px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -218,7 +234,7 @@
 </head>
 <body>
 
-  <!-- شاشة تسجيل الدخول: حقل فارغ دائماً بدون تعبئة تلقائية -->
+  <!-- شاشة تسجيل الدخول: حقل فارغ تماماً بدون أي قيمة افتراضية -->
   <div id="login-screen" class="login-wrapper">
     <div class="login-card">
       <h1 class="login-title">🔒 تسجيل الدخول لنظام (ياسر ويب)</h1>
@@ -226,12 +242,8 @@
       <input
         type="text"
         id="login-user-input"
-        name="field_x_9912"
+        name="u_entry_clean"
         class="login-input"
-        value=""
-        placeholder=""
-        readonly
-        onfocus="this.removeAttribute('readonly');"
         autocomplete="new-password"
         autocorrect="off"
         autocapitalize="off"
@@ -289,29 +301,37 @@
       </table>
     </div>
 
-    <!-- 3. تصميم وترتيب الفاتورة -->
+    <!-- 3. تصميم وترتيب الفاتورة (أشكال متعددة + تخصيص وترتيب كامل) -->
     <div id="p-inv" class="panel">
       <div class="two-col">
         <div class="white-box">
-          <h3 style="margin:0 0 10px;">تخصيص وترتيب الفاتورة</h3>
+          <h3 style="margin:0 0 10px;">أشكال وتصميم وترتيب الفاتورة</h3>
+
+          <div class="preset-bar">
+            <button type="button" class="preset-chip" onclick="applyInvoiceStyle('classic')">شكل كلاسيكي</button>
+            <button type="button" class="preset-chip" onclick="applyInvoiceStyle('royal')">شكل ملكي ذهبي</button>
+            <button type="button" class="preset-chip" onclick="applyInvoiceStyle('modern')">شكل عصري</button>
+            <button type="button" class="preset-chip" onclick="applyInvoiceStyle('minimal')">شكل بسيط</button>
+          </div>
 
           <div style="margin-bottom:8px;">
-            <label style="font-size:12px; font-weight:bold; display:block;">اسم الصفحة:</label>
+            <label style="font-size:12px; font-weight:bold; display:block;">اسم الصفحة أو المحل:</label>
             <input type="text" id="inv-shop" oninput="drawInvoice()" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;" />
           </div>
 
           <div style="margin-bottom:8px;">
-            <label style="font-size:12px; font-weight:bold; display:block;">صورة / لوغو:</label>
+            <label style="font-size:12px; font-weight:bold; display:block;">صورة أو لوغو الفاتورة:</label>
             <input type="file" accept="image/*" onchange="setLogo(event)" />
           </div>
 
           <div style="display:flex; gap:8px; margin-bottom:10px;">
             <div style="flex:1;">
-              <label style="font-size:12px; font-weight:bold; display:block;">الحواف:</label>
+              <label style="font-size:12px; font-weight:bold; display:block;">إطار وشكل الحواف:</label>
               <select id="inv-border" onchange="drawInvoice()" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
-                <option value="2px solid #334155">بسيط</option>
-                <option value="6px double #5b21b6">كلاسيكي مزدوج</option>
-                <option value="4px dashed #b45309">مزخرف متقطع</option>
+                <option value="2px solid #334155">إطار مستقيم بسيط</option>
+                <option value="6px double #5b21b6">إطار كلاسيكي مزدوج</option>
+                <option value="5px dashed #b45309">إطار مزخرف متقطع</option>
+                <option value="7px ridge #0f766e">إطار بارز فاخر</option>
               </select>
             </div>
             <div style="flex:1;">
@@ -325,7 +345,7 @@
           </div>
 
           <div style="margin-bottom:10px;">
-            <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">ترتيب أقسام الفاتورة:</label>
+            <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">ترتيب أقسام الفاتورة (للأعلى أو الأسفل):</label>
             <div id="order-box"></div>
           </div>
 
@@ -336,7 +356,7 @@
           </div>
 
           <button type="button" class="btn-green" onclick="saveDesign()">حفظ تصميم الفاتورة لحسابي</button>
-          <button type="button" class="btn-purple" onclick="window.print()">طباعة</button>
+          <button type="button" class="btn-purple" onclick="window.print()">طباعة الفاتورة</button>
         </div>
 
         <div class="white-box">
@@ -358,6 +378,26 @@
   </div>
 
   <script>
+    // ضمان تفريغ حقل اسم المستخدم ومنع أي قيمة تلقائية عند التحميل
+    (function enforceCleanLoginField() {
+      const input = document.getElementById('login-user-input');
+      if (!input) return;
+
+      const clearNow = () => {
+        if (document.activeElement !== input) {
+          input.value = '';
+        }
+      };
+
+      clearNow();
+      window.addEventListener('DOMContentLoaded', clearNow);
+      window.addEventListener('load', clearNow);
+      window.addEventListener('pageshow', clearNow);
+      setTimeout(clearNow, 50);
+      setTimeout(clearNow, 250);
+      setTimeout(clearNow, 600);
+    })();
+
     const DB = {
       currentUser: '',
       users: {},
@@ -384,6 +424,8 @@
           shop: username,
           logo: '',
           border: '2px solid #334155',
+          bgColor: '#ffffff',
+          accentColor: '#312e81',
           size: '15px',
           sig: '',
           order: ['head', 'items', 'foot']
@@ -416,8 +458,6 @@
       DB.logs.push({ user: username, date: todayStr(), time: nowStr() });
 
       input.value = '';
-      input.setAttribute('readonly', 'readonly');
-
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app-screen').style.display = 'block';
 
@@ -431,7 +471,9 @@
       DB.currentUser = '';
       document.getElementById('app-screen').style.display = 'none';
       document.getElementById('login-screen').style.display = 'flex';
-      forceEmptyLoginInput();
+      const input = document.getElementById('login-user-input');
+      input.value = '';
+      input.focus();
     }
 
     function clearMyStore() {
@@ -498,6 +540,34 @@
 
     const LABELS = { head: 'رأس الفاتورة (اللوغو والاسم)', items: 'جدول المواد', foot: 'التوقيع' };
 
+    function applyInvoiceStyle(styleKey) {
+      const d = getBucket(DB.currentUser).design;
+      if (styleKey === 'classic') {
+        d.border = '6px double #5b21b6';
+        d.bgColor = '#ffffff';
+        d.accentColor = '#4c1d95';
+        d.size = '15px';
+      } else if (styleKey === 'royal') {
+        d.border = '5px dashed #b45309';
+        d.bgColor = '#fffbeb';
+        d.accentColor = '#92400e';
+        d.size = '16px';
+      } else if (styleKey === 'modern') {
+        d.border = '7px ridge #0f766e';
+        d.bgColor = '#f0fdfa';
+        d.accentColor = '#0f766e';
+        d.size = '15px';
+      } else {
+        d.border = '2px solid #334155';
+        d.bgColor = '#ffffff';
+        d.accentColor = '#1e293b';
+        d.size = '14px';
+      }
+      document.getElementById('inv-border').value = d.border;
+      document.getElementById('inv-size').value = d.size;
+      drawInvoice();
+    }
+
     function syncDesignFields() {
       const d = getBucket(DB.currentUser).design;
       document.getElementById('inv-shop').value = d.shop;
@@ -548,21 +618,26 @@
 
       const sheet = document.getElementById('inv-sheet');
       sheet.style.border = d.border;
+      sheet.style.backgroundColor = d.bgColor || '#ffffff';
       sheet.style.fontSize = d.size;
 
+      const total = b.products.reduce((sum, x) => sum + (Number(x.price) || 0), 0);
       const rows = b.products.length
-        ? b.products.map(p => `<tr><td>${p.name}</td><td>${p.price}</td></tr>`).join('')
+        ? b.products.map(p => `<tr><td>${p.name}</td><td>${Number(p.price).toLocaleString()} د.ع</td></tr>`).join('')
         : `<tr><td colspan="2" style="text-align:center;">لا توجد مواد</td></tr>`;
 
       const parts = {
-        head: `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+        head: `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid ${d.accentColor || '#312e81'}; padding-bottom:8px;">
           <div style="display:flex; align-items:center; gap:8px;">
             ${d.logo ? `<img src="${d.logo}" style="width:45px; height:45px; object-fit:contain;" />` : ''}
-            <strong>${d.shop}</strong>
+            <strong style="color:${d.accentColor || '#312e81'};">${d.shop}</strong>
           </div>
           <small>${todayStr()}</small>
         </div>`,
-        items: `<table><thead><tr><th>المادة</th><th>السعر</th></tr></thead><tbody>${rows}</tbody></table>`,
+        items: `<div>
+          <table><thead><tr><th>المادة</th><th>السعر</th></tr></thead><tbody>${rows}</tbody></table>
+          <div style="text-align:left; margin-top:8px; font-weight:bold; color:${d.accentColor || '#312e81'};">المجموع: ${total.toLocaleString()} د.ع</div>
+        </div>`,
         foot: `<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:auto; border-top:1px dashed #cbd5e1; padding-top:8px;">
           <small>فاتورة: ${d.shop}</small>
           <div style="text-align:center;">
@@ -650,17 +725,6 @@
       drawInvoice();
       drawLogs();
     }
-
-    function forceEmptyLoginInput() {
-      const input = document.getElementById('login-user-input');
-      if (!input) return;
-      input.value = '';
-      input.setAttribute('readonly', 'readonly');
-    }
-
-    window.addEventListener('DOMContentLoaded', forceEmptyLoginInput);
-    window.addEventListener('pageshow', forceEmptyLoginInput);
-    setTimeout(forceEmptyLoginInput, 120);
   </script>
 </body>
 </html>
