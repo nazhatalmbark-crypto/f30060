@@ -6,16 +6,16 @@
   <title>إدارة المبيعات والمخازن</title>
   <style>
     :root {
-      --primary: #5b549e;
-      --primary-dark: #463f82;
-      --primary-soft: #eceaf8;
-      --primary-tint: #f5f4fc;
-      --bg-outer: #e9e7f5;
-      --bg-app: #f7f7fb;
+      --primary: #564f9c;
+      --primary-dark: #403a7a;
+      --primary-soft: #eae8f7;
+      --primary-tint: #f4f3fc;
+      --bg-outer: #e4dff5;
+      --bg-app: #f6f6fa;
       --bg-card: #ffffff;
-      --bg-muted: #f0eff6;
-      --text-main: #181824;
-      --text-muted: #727285;
+      --bg-muted: #efeff6;
+      --text-main: #171722;
+      --text-muted: #767687;
       --border: #e4e3ee;
       --danger: #dc2626;
       --warn: #b45309;
@@ -24,7 +24,7 @@
     }
 
     body.dark-theme {
-      --bg-outer: #100f1c;
+      --bg-outer: #0f0e1b;
       --bg-app: #151424;
       --bg-card: #1e1d33;
       --bg-muted: #272540;
@@ -43,12 +43,12 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: linear-gradient(155deg, #dcd7f2, #f5f4fb 48%, #e4dff7);
+      background: linear-gradient(155deg, #d7d0f0, #f5f4fb 50%, #e1dcf5);
       color: var(--text-main);
     }
 
     body.dark-theme {
-      background: linear-gradient(155deg, #100f1c, #18172b);
+      background: linear-gradient(155deg, #0f0e1b, #18172b);
     }
 
     /* شاشة الدخول */
@@ -67,7 +67,7 @@
       background: var(--bg-card);
       border-radius: 22px;
       padding: 26px 22px;
-      box-shadow: 0 20px 45px rgba(24, 24, 36, 0.22);
+      box-shadow: 0 20px 45px rgba(23, 23, 34, 0.22);
       text-align: center;
     }
 
@@ -78,7 +78,7 @@
     }
 
     body.dark-theme .login-card h1 {
-      color: #c4bff2;
+      color: #c7c2f5;
     }
 
     .login-card p {
@@ -113,7 +113,7 @@
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(91, 84, 158, 0.14);
+      box-shadow: 0 0 0 3px rgba(86, 79, 156, 0.14);
     }
 
     .btn {
@@ -172,10 +172,10 @@
       min-height: 100vh;
       background: var(--bg-app);
       padding-bottom: 84px;
-      box-shadow: 0 0 32px rgba(24, 24, 36, 0.08);
+      box-shadow: 0 0 32px rgba(23, 23, 34, 0.08);
     }
 
-    /* الشريط العلوي بأسلوب الصور المرجعية */
+    /* الشريط العلوي */
     .top-bar {
       background: var(--bg-app);
       border-bottom: 1px solid var(--border);
@@ -276,7 +276,7 @@
       padding: 22px 14px;
       text-align: center;
       cursor: pointer;
-      box-shadow: 0 3px 10px rgba(24, 24, 36, 0.03);
+      box-shadow: 0 3px 10px rgba(23, 23, 34, 0.03);
       transition: transform 0.14s ease, border-color 0.14s ease;
     }
 
@@ -330,7 +330,7 @@
       justify-content: space-between;
       gap: 12px;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(24, 24, 36, 0.03);
+      box-shadow: 0 2px 8px rgba(23, 23, 34, 0.03);
     }
 
     .menu-row-card:hover {
@@ -359,14 +359,14 @@
       color: #d5d0fa;
     }
 
-    /* بطاقات الفاتورة كما في الصورة الثانية */
+    /* بطاقات الفاتورة */
     .box-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 14px 16px;
       margin-bottom: 14px;
-      box-shadow: 0 2px 8px rgba(24, 24, 36, 0.03);
+      box-shadow: 0 2px 8px rgba(23, 23, 34, 0.03);
     }
 
     .customer-select-row {
@@ -452,7 +452,7 @@
       margin-bottom: 12px;
     }
 
-    /* شاشة السندات كما في الصورة الثالثة */
+    /* شاشة السندات */
     .filter-tabs-scroll {
       display: flex;
       gap: 14px;
@@ -483,7 +483,7 @@
     }
 
     body.dark-theme .filter-tab-btn.active {
-      color: #c4bff2;
+      color: #c7c2f5;
     }
 
     .dot {
@@ -559,7 +559,7 @@
       padding: 11px 16px;
       font-size: 13px;
       font-weight: 800;
-      box-shadow: 0 8px 20px rgba(70, 63, 130, 0.28);
+      box-shadow: 0 8px 20px rgba(64, 58, 122, 0.28);
     }
 
     /* شريط الفرز في العملاء */
@@ -590,7 +590,7 @@
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
 
-    /* إعدادات الفاتورة كما في الصورة السادسة */
+    /* إعدادات الفاتورة */
     .settings-group-title {
       font-size: 12px;
       font-weight: 700;
@@ -766,14 +766,14 @@
     }
 
     body.dark-theme .status-msg {
-      color: #c4bff2;
+      color: #c7c2f5;
     }
 
     /* نافذة سؤال: تريد تكص وصل لو لا؟ */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(24, 24, 36, 0.56);
+      background: rgba(23, 23, 34, 0.56);
       display: none;
       align-items: center;
       justify-content: center;
@@ -803,7 +803,7 @@
     }
 
     body.dark-theme .modal-card h3 {
-      color: #c4bff2;
+      color: #c7c2f5;
     }
 
     .modal-card p {
@@ -893,7 +893,7 @@
 
   <!-- التطبيق الرئيسي -->
   <div id="app-shell" class="app-shell">
-    <!-- الهيدر العلوي المتغير حسب الصفحة -->
+    <!-- الهيدر العلوي -->
     <header class="top-bar no-print">
       <div class="top-bar-side">
         <button type="button" id="top-left-btn" class="top-icon-btn" onclick="handleTopLeftAction()" title="التقارير">📊</button>
@@ -922,7 +922,7 @@
         <div id="admin-code-out" class="status-msg"></div>
       </div>
 
-      <!-- 1. الرئيسية (6 بطاقات مرتبة مثل الصورة الأولى) -->
+      <!-- 1. الرئيسية (6 بطاقات مرتبة) -->
       <section id="sec-home" class="view-section active">
         <div class="section-subtitle-pill">لإدارة المبيعات</div>
         <div class="hub-grid">
@@ -962,7 +962,7 @@
         </div>
       </section>
 
-      <!-- 2. إنشاء فاتورة (نفس ترتيب الصورة الثانية + خيار الوصل عند الإنزال) -->
+      <!-- 2. إنشاء فاتورة + خيار الوصل عند إنزال البضاعة -->
       <section id="sec-cart" class="view-section">
         <div class="box-card">
           <div class="customer-select-row">
@@ -1068,7 +1068,7 @@
         </div>
       </section>
 
-      <!-- 5. المخزن (3 بطاقات أفقية مثل الصورة الخامسة) -->
+      <!-- 5. المخزن (3 بطاقات أفقية) -->
       <section id="sec-warehouses" class="view-section">
         <div class="menu-stack">
           <div class="menu-row-card" onclick="openSection('sec-purchases')">
@@ -1161,7 +1161,7 @@
         </div>
       </section>
 
-      <!-- 9. السندات والمالية (نفس ترتيب الصورة الثالثة) -->
+      <!-- 9. السندات والمالية -->
       <section id="sec-finance" class="view-section">
         <div class="filter-tabs-scroll">
           <button type="button" class="filter-tab-btn active" data-vtab="all" onclick="setVoucherFilter('all', this)">الكل</button>
@@ -1246,7 +1246,7 @@
         </div>
       </section>
 
-      <!-- 11. العملاء (نفس ترتيب الصورة الرابعة) -->
+      <!-- 11. العملاء -->
       <section id="sec-customers" class="view-section">
         <div class="search-box-wrap">
           <input type="text" id="customer-search" placeholder="ابحث عن عميل..." oninput="renderCustomersView()" />
@@ -1287,7 +1287,7 @@
         </div>
       </section>
 
-      <!-- 13. إعدادات الفاتورة (نفس ترتيب الصورة السادسة) -->
+      <!-- 13. إعدادات الفاتورة -->
       <section id="sec-invoice-settings" class="view-section">
         <div class="settings-group-title">أزرار الحفظ والطباعة</div>
         <div class="setting-row-card" onclick="setInvoiceSetting('printMode', 'print_only')">
