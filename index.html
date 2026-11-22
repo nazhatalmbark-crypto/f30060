@@ -89,25 +89,29 @@
 
     .form-group {
       text-align: right;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
 
     .form-group label {
       display: block;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 700;
-      margin-bottom: 5px;
+      margin-bottom: 6px;
       color: var(--text-main);
     }
 
     input, select, textarea {
       width: 100%;
-      padding: 10px 12px;
+      padding: 11px 14px;
       border: 1px solid var(--border);
       border-radius: 12px;
       font-size: 13px;
       background: var(--bg-card);
       color: var(--text-main);
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: #9ca3af;
     }
 
     input:focus, select:focus, textarea:focus {
@@ -119,8 +123,8 @@
     .btn {
       border: none;
       border-radius: 12px;
-      padding: 9px 14px;
-      font-size: 12px;
+      padding: 10px 16px;
+      font-size: 13px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
@@ -364,7 +368,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 14px 16px;
+      padding: 18px 20px;
       margin-bottom: 14px;
       box-shadow: 0 2px 8px rgba(23, 23, 34, 0.03);
     }
@@ -588,6 +592,13 @@
       background: var(--bg-card);
       color: var(--text-main);
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-actions-end {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
     }
 
     /* إعدادات الفاتورة */
@@ -1264,25 +1275,29 @@
         <button type="button" class="btn btn-primary fab-btn" onclick="openSection('sec-add-customer')">👤+ إضافة عميل</button>
       </section>
 
-      <!-- 12. إضافة عميل -->
+      <!-- 12. إضافة عميل جديد (بنفس ترتيب الصورة مع حقل الموقع وأقرب شارع مكان الرصيد) -->
       <section id="sec-add-customer" class="view-section">
         <div class="box-card">
-          <h3 style="margin-top:0;">إضافة عميل جديد</h3>
+          <h3 style="margin:0 0 18px; font-size:16px; font-weight:800;">إضافة عميل جديد</h3>
           <div class="form-group">
-            <label>اسم العميل</label>
+            <label for="cust-name-in">اسم العميل</label>
             <input type="text" id="cust-name-in" placeholder="اسم العميل" />
           </div>
           <div class="form-group">
-            <label>رقم الهاتف</label>
+            <label for="cust-phone-in">رقم الهاتف</label>
             <input type="text" id="cust-phone-in" placeholder="07700000000" />
           </div>
           <div class="form-group">
-            <label>رصيد افتتاحي / دين (د.ع — اختياري)</label>
-            <input type="number" id="cust-debt-in" value="0" />
+            <label for="cust-location-in">الموقع</label>
+            <input type="text" id="cust-location-in" placeholder="المنطقة أو الموقع" />
           </div>
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="btn btn-primary" onclick="addCustomerItem()">حفظ العميل</button>
+          <div class="form-group">
+            <label for="cust-street-in">أقرب شارع</label>
+            <input type="text" id="cust-street-in" placeholder="أقرب شارع أو نقطة دالة" />
+          </div>
+          <div class="form-actions-end">
             <button type="button" class="btn btn-muted" onclick="openSection('sec-customers')">رجوع للعملاء</button>
+            <button type="button" class="btn btn-primary" onclick="addCustomerItem()">حفظ العميل</button>
           </div>
         </div>
       </section>
@@ -2105,20 +2120,24 @@
       if (!a) return;
       const name = (document.getElementById('cust-name-in').value || '').trim();
       const phone = (document.getElementById('cust-phone-in').value || '').trim() || '-';
-      const debt = Number(document.getElementById('cust-debt-in').value) || 0;
+      const location = (document.getElementById('cust-location-in').value || '').trim() || '-';
+      const nearestStreet = (document.getElementById('cust-street-in').value || '').trim() || '-';
       if (!name) return;
 
       a.customers.push({
         id: 'cu_' + Date.now(),
         name,
         phone,
-        debt,
+        location,
+        nearestStreet,
+        debt: 0,
         lastAction: 'اليوم'
       });
 
       document.getElementById('cust-name-in').value = '';
       document.getElementById('cust-phone-in').value = '';
-      document.getElementById('cust-debt-in').value = '0';
+      document.getElementById('cust-location-in').value = '';
+      document.getElementById('cust-street-in').value = '';
       persist();
       openSection('sec-customers');
     }
@@ -2390,7 +2409,9 @@
       let list = a.customers.filter(c =>
         !q ||
         (c.name || '').toLowerCase().includes(q) ||
-        (c.phone || '').toLowerCase().includes(q)
+        (c.phone || '').toLowerCase().includes(q) ||
+        (c.location || '').toLowerCase().includes(q) ||
+        (c.nearestStreet || '').toLowerCase().includes(q)
       );
 
       if (customerSort === 'debt') {
@@ -2421,6 +2442,9 @@
         } else if (debt < 0) {
           amountHtml = `<div style="font-size:14px; font-weight:800; color:#16a34a;">${money(Math.abs(debt))}</div><div style="font-size:11px; color:#16a34a;">له رصيد</div>`;
         }
+        const locLine = (c.location && c.location !== '-') || (c.nearestStreet && c.nearestStreet !== '-')
+          ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">📍 ${c.location || '-'} • ${c.nearestStreet || '-'}</div>`
+          : '';
         return `
           <div class="entity-card">
             <div style="display:flex; align-items:center; gap:10px;">
@@ -2429,7 +2453,8 @@
             </div>
             <div style="text-align:right;">
               <div style="font-size:14px; font-weight:800;">${c.name}</div>
-              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${invCount} فاتورة • ${finCount} سند</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${invCount} فاتورة • ${finCount} سند • 📞 ${c.phone || '-'}</div>
+              ${locLine}
               <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">🕒 آخر حركة: ${c.lastAction || 'اليوم'}</div>
             </div>
           </div>
