@@ -6,32 +6,33 @@
   <title>إدارة المبيعات والمخازن</title>
   <style>
     :root {
-      --primary: #146c43;
-      --primary-dark: #0f5132;
-      --primary-soft: #d1e7dd;
-      --primary-tint: #eef7f2;
-      --bg-outer: #e9efec;
-      --bg-app: #f8faf9;
+      --primary: #5b549e;
+      --primary-dark: #463f82;
+      --primary-soft: #eceaf8;
+      --primary-tint: #f5f4fc;
+      --bg-outer: #e9e7f5;
+      --bg-app: #f7f7fb;
       --bg-card: #ffffff;
-      --bg-muted: #f1f5f3;
-      --text-main: #111827;
-      --text-muted: #6b7280;
-      --border: #e2e8e5;
+      --bg-muted: #f0eff6;
+      --text-main: #181824;
+      --text-muted: #727285;
+      --border: #e4e3ee;
       --danger: #dc2626;
       --warn: #b45309;
-      --info: #1d4ed8;
+      --info: #2563eb;
+      --success: #16a34a;
     }
 
     body.dark-theme {
-      --bg-outer: #0b1410;
-      --bg-app: #101c17;
-      --bg-card: #172720;
-      --bg-muted: #1f332a;
-      --text-main: #f3f6f4;
-      --text-muted: #9eb0a7;
-      --border: #284035;
-      --primary-soft: #1e4231;
-      --primary-tint: #193427;
+      --bg-outer: #100f1c;
+      --bg-app: #151424;
+      --bg-card: #1e1d33;
+      --bg-muted: #272540;
+      --text-main: #f4f4fa;
+      --text-muted: #a3a1bd;
+      --border: #323052;
+      --primary-soft: #2e2b54;
+      --primary-tint: #252245;
     }
 
     * {
@@ -42,8 +43,12 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--bg-outer);
+      background: linear-gradient(155deg, #dcd7f2, #f5f4fb 48%, #e4dff7);
       color: var(--text-main);
+    }
+
+    body.dark-theme {
+      background: linear-gradient(155deg, #100f1c, #18172b);
     }
 
     /* شاشة الدخول */
@@ -62,7 +67,7 @@
       background: var(--bg-card);
       border-radius: 22px;
       padding: 26px 22px;
-      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.22);
+      box-shadow: 0 20px 45px rgba(24, 24, 36, 0.22);
       text-align: center;
     }
 
@@ -73,7 +78,7 @@
     }
 
     body.dark-theme .login-card h1 {
-      color: #6ee7b7;
+      color: #c4bff2;
     }
 
     .login-card p {
@@ -108,7 +113,7 @@
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(20, 108, 67, 0.14);
+      box-shadow: 0 0 0 3px rgba(91, 84, 158, 0.14);
     }
 
     .btn {
@@ -139,7 +144,7 @@
     }
 
     body.dark-theme .btn-soft {
-      color: #a7f3d0;
+      color: #d5d0fa;
     }
 
     .btn-muted {
@@ -162,12 +167,12 @@
     /* إطار التطبيق */
     .app-shell {
       display: none;
-      max-width: 860px;
+      max-width: 820px;
       margin: 0 auto;
       min-height: 100vh;
       background: var(--bg-app);
       padding-bottom: 84px;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 0 32px rgba(24, 24, 36, 0.08);
     }
 
     /* الشريط العلوي بأسلوب الصور المرجعية */
@@ -224,7 +229,7 @@
     }
 
     body.dark-theme .count-pill {
-      color: #a7f3d0;
+      color: #d5d0fa;
     }
 
     .content-area {
@@ -271,7 +276,7 @@
       padding: 22px 14px;
       text-align: center;
       cursor: pointer;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
+      box-shadow: 0 3px 10px rgba(24, 24, 36, 0.03);
       transition: transform 0.14s ease, border-color 0.14s ease;
     }
 
@@ -294,7 +299,7 @@
     }
 
     body.dark-theme .hub-icon {
-      color: #a7f3d0;
+      color: #d5d0fa;
     }
 
     .hub-title {
@@ -325,7 +330,7 @@
       justify-content: space-between;
       gap: 12px;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      box-shadow: 0 2px 8px rgba(24, 24, 36, 0.03);
     }
 
     .menu-row-card:hover {
@@ -351,7 +356,7 @@
     }
 
     body.dark-theme .menu-row-icon {
-      color: #a7f3d0;
+      color: #d5d0fa;
     }
 
     /* بطاقات الفاتورة كما في الصورة الثانية */
@@ -361,7 +366,7 @@
       border-radius: 18px;
       padding: 14px 16px;
       margin-bottom: 14px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      box-shadow: 0 2px 8px rgba(24, 24, 36, 0.03);
     }
 
     .customer-select-row {
@@ -478,7 +483,7 @@
     }
 
     body.dark-theme .filter-tab-btn.active {
-      color: #6ee7b7;
+      color: #c4bff2;
     }
 
     .dot {
@@ -554,7 +559,7 @@
       padding: 11px 16px;
       font-size: 13px;
       font-weight: 800;
-      box-shadow: 0 8px 20px rgba(15, 81, 50, 0.28);
+      box-shadow: 0 8px 20px rgba(70, 63, 130, 0.28);
     }
 
     /* شريط الفرز في العملاء */
@@ -708,6 +713,10 @@
       font-weight: 700;
     }
 
+    body.dark-theme .badge-qty {
+      color: #d5d0fa;
+    }
+
     .badge-low {
       background: #fee2e2;
       color: #b91c1c;
@@ -757,14 +766,14 @@
     }
 
     body.dark-theme .status-msg {
-      color: #6ee7b7;
+      color: #c4bff2;
     }
 
     /* نافذة سؤال: تريد تكص وصل لو لا؟ */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(17, 24, 39, 0.56);
+      background: rgba(24, 24, 36, 0.56);
       display: none;
       align-items: center;
       justify-content: center;
@@ -794,7 +803,7 @@
     }
 
     body.dark-theme .modal-card h3 {
-      color: #6ee7b7;
+      color: #c4bff2;
     }
 
     .modal-card p {
@@ -816,7 +825,7 @@
       bottom: 0;
       left: 0;
       right: 0;
-      max-width: 860px;
+      max-width: 820px;
       margin: 0 auto;
       background: var(--bg-card);
       border-top: 1px solid var(--border);
@@ -847,7 +856,7 @@
     }
 
     body.dark-theme .nav-item.active {
-      color: #a7f3d0;
+      color: #d5d0fa;
     }
 
     @media print {
@@ -1005,7 +1014,7 @@
 
         <div id="cart-action-buttons" class="no-print" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
           <button type="button" id="btn-sell-print" class="btn btn-primary btn-full" onclick="promptReceiptChoice(true)">
-            🖨️ إنزال البضاعة وبيع
+            🖨️ بيع وطباعة الفاتورة
           </button>
           <button type="button" id="btn-sell-save" class="btn btn-soft btn-full" style="display:none;" onclick="promptReceiptChoice(false)">
             💾 حفظ بدون طباعة
@@ -1078,7 +1087,7 @@
               <div class="menu-row-icon">📦</div>
               <div>
                 <div style="font-weight:800; font-size:14px;">عرض المواد</div>
-                <div style="font-size:11px; color:var(--text-muted);">إدارة المواد والأرصدة والمخازن</div>
+                <div style="font-size:11px; color:var(--text-muted);">إدارة المواد والأرصدة</div>
               </div>
             </div>
             <span style="color:var(--text-muted); font-size:18px;">‹</span>
@@ -1089,7 +1098,7 @@
               <div class="menu-row-icon">🧾</div>
               <div>
                 <div style="font-weight:800; font-size:14px;">سجل الشراء</div>
-                <div style="font-size:11px; color:var(--text-muted);">عرض فواتير الموردين والمشتريات</div>
+                <div style="font-size:11px; color:var(--text-muted);">عرض فواتير الموردين</div>
               </div>
             </div>
             <span style="color:var(--text-muted); font-size:18px;">‹</span>
@@ -1173,7 +1182,7 @@
         <div class="box-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <span style="font-size:11px; color:var(--text-muted);" id="voucher-count-label">0 سند</span>
-            <strong style="font-size:13px;">إحصائيات الصندوق والرصيد: <span id="fin-balance-amount">0 د.ع</span></strong>
+            <strong style="font-size:13px;">إحصائيات الصندوق: <span id="fin-balance-amount">0 د.ع</span></strong>
           </div>
           <div class="stats-4-grid">
             <div>
@@ -1774,7 +1783,7 @@
       document.getElementById('new-prod-cost').value = '';
       document.getElementById('new-prod-qty').value = '10';
       document.getElementById('new-prod-barcode').value = '';
-      msg.style.color = '#0f5132';
+      msg.style.color = '#16a34a';
       msg.textContent = 'تمت إضافة المادة بنجاح.';
       renderAll();
     }
@@ -1942,7 +1951,7 @@
         }
       } else {
         if (msg) {
-          msg.style.color = '#0f5132';
+          msg.style.color = '#16a34a';
           msg.textContent = 'تم إنزال البضاعة وتحديث الحسابات بدون وصل.';
         }
         renderAll();
@@ -1990,7 +1999,7 @@
       }
 
       persist();
-      msg.style.color = '#0f5132';
+      msg.style.color = '#16a34a';
       msg.textContent = 'تمت إضافة ' + qty + ' إلى رصيد ' + p.name;
       renderAll();
     }
@@ -2038,7 +2047,7 @@
       document.getElementById('exp-note').value = '';
       document.getElementById('exp-val').value = '';
       persist();
-      msg.style.color = '#0f5132';
+      msg.style.color = '#16a34a';
       msg.textContent = 'تم حفظ السند بنجاح.';
       renderAll();
     }
@@ -2079,7 +2088,7 @@
       }
 
       persist();
-      msg.style.color = '#0f5132';
+      msg.style.color = '#16a34a';
       msg.textContent = 'تم تسجيل المرتجع وإعادة ' + qty + ' إلى المخزون.';
       renderAll();
     }
@@ -2157,7 +2166,7 @@
       const a = acc();
       if (!a) return;
       const payload = {
-        app: 'yasser_web_pos',
+        app: 'pos_local_backup',
         exportedAt: new Date().toISOString(),
         accountName: appState.currentUser,
         data: a
@@ -2190,7 +2199,7 @@
             owner: appState.currentUser
           };
           persist();
-          msg.style.color = '#0f5132';
+          msg.style.color = '#16a34a';
           msg.textContent = 'تمت استعادة النسخة الاحتياطية بنجاح.';
           renderAll();
         } catch (err) {
@@ -2265,17 +2274,17 @@
       if (btnPrint && btnSave) {
         if (mode === 'print_only') {
           btnPrint.style.display = 'inline-flex';
-          btnPrint.textContent = '🖨️ إنزال البضاعة وبيع';
+          btnPrint.textContent = '🖨️ بيع وطباعة الفاتورة';
           btnSave.style.display = 'none';
         } else if (mode === 'save_only') {
           btnPrint.style.display = 'none';
           btnSave.style.display = 'inline-flex';
-          btnSave.textContent = '💾 إنزال البضاعة وحفظ';
+          btnSave.textContent = '💾 حفظ بدون طباعة';
         } else {
           btnPrint.style.display = 'inline-flex';
-          btnPrint.textContent = '🖨️ إنزال البضاعة وطباعة';
+          btnPrint.textContent = '🖨️ بيع وطباعة الفاتورة';
           btnSave.style.display = 'inline-flex';
-          btnSave.textContent = '💾 إنزال البضاعة وحفظ بدون طباعة';
+          btnSave.textContent = '💾 حفظ بدون طباعة';
         }
       }
 
