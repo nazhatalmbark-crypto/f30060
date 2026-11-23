@@ -628,6 +628,28 @@
       border-color: var(--primary);
     }
 
+    .quick-qty-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .quick-qty-btn {
+      padding: 3px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      border: 1px solid var(--border);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      cursor: pointer;
+    }
+
+    body.dark-theme .quick-qty-btn {
+      color: #d5d0fa;
+    }
+
     .info-kv {
       display: flex;
       justify-content: space-between;
@@ -990,7 +1012,6 @@
 </head>
 <body>
 
-  <!-- شاشة الدخول -->
   <div id="login-screen" class="login-screen">
     <div class="login-card">
       <h1>إدارة المبيعات والمخازن</h1>
@@ -1003,7 +1024,6 @@
     </div>
   </div>
 
-  <!-- التطبيق الرئيسي على شكل تليفون -->
   <div id="app-shell" class="app-shell">
     <header class="top-bar no-print">
       <div class="top-bar-side">
@@ -1038,7 +1058,6 @@
         <div id="admin-code-out" class="status-msg"></div>
       </div>
 
-      <!-- 1. الرئيسية -->
       <section id="sec-home" class="view-section active">
         <div class="section-subtitle-pill">لإدارة المبيعات</div>
         <div class="hub-grid">
@@ -1078,7 +1097,6 @@
         </div>
       </section>
 
-      <!-- تفعيل النسخة المدفوعة والعداد التنازلي 30 يوم -->
       <section id="sec-activation" class="view-section">
         <div class="box-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -1123,7 +1141,6 @@
         </div>
       </section>
 
-      <!-- إنشاء فاتورة -->
       <section id="sec-cart" class="view-section">
         <div class="box-card">
           <div class="customer-select-row">
@@ -1183,7 +1200,6 @@
         </div>
       </section>
 
-      <!-- اختيار المواد -->
       <section id="sec-sales" class="view-section">
         <div class="search-row">
           <button type="button" class="btn btn-soft" onclick="openSection('sec-add-product')">+ مادة</button>
@@ -1193,7 +1209,6 @@
         <div id="products-grid" class="products-grid"></div>
       </section>
 
-      <!-- إضافة مادة جديدة -->
       <section id="sec-add-product" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">إضافة مادة جديدة</h3>
@@ -1229,7 +1244,6 @@
         </div>
       </section>
 
-      <!-- المخزن -->
       <section id="sec-warehouses" class="view-section">
         <div class="menu-stack">
           <div class="menu-row-card" onclick="openSection('sec-purchases')">
@@ -1267,7 +1281,6 @@
         </div>
       </section>
 
-      <!-- قائمة شراء -->
       <section id="sec-purchases" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">قائمة شراء - توريد الكميات</h3>
@@ -1294,7 +1307,6 @@
         </div>
       </section>
 
-      <!-- عرض المواد -->
       <section id="sec-catalog" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">المخازن والفروع</h3>
@@ -1311,10 +1323,10 @@
             <button type="button" class="btn btn-soft" onclick="openSection('sec-add-product')">+ إضافة مادة</button>
           </div>
           <div id="catalog-list"></div>
+          <div id="catalog-msg" class="status-msg"></div>
         </div>
       </section>
 
-      <!-- سجل الشراء -->
       <section id="sec-purchases-log" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">سجل فواتير الشراء</h3>
@@ -1322,7 +1334,6 @@
         </div>
       </section>
 
-      <!-- السندات -->
       <section id="sec-finance" class="view-section">
         <div class="filter-tabs-scroll">
           <button type="button" class="filter-tab-btn active" data-vtab="all" onclick="setVoucherFilter('all', this)">الكل</button>
@@ -1379,7 +1390,6 @@
         <button type="button" class="btn btn-primary fab-btn" onclick="openSection('sec-add-voucher')">+ سند جديد</button>
       </section>
 
-      <!-- إضافة سند جديد -->
       <section id="sec-add-voucher" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">إنشاء سند جديد</h3>
@@ -1417,7 +1427,6 @@
         </div>
       </section>
 
-      <!-- العملاء -->
       <section id="sec-customers" class="view-section">
         <div class="search-box-wrap">
           <input type="text" id="customer-search" placeholder="ابحث عن عميل..." oninput="renderCustomersView()" />
@@ -1435,7 +1444,6 @@
         <button type="button" class="btn btn-primary fab-btn" onclick="openSection('sec-add-customer')">👤+ إضافة عميل</button>
       </section>
 
-      <!-- صفحة تفاصيل العميل + زر إصدار سند قبض -->
       <section id="sec-customer-detail" class="view-section">
         <div id="customer-detail-card" class="box-card"></div>
 
@@ -1472,7 +1480,6 @@
         </div>
       </section>
 
-      <!-- فاتورة سند القبض للعميل -->
       <section id="sec-receipt-invoice" class="view-section">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;" class="no-print">
           <h3 style="margin:0; font-size:15px;">فاتورة سند القبض</h3>
@@ -1481,7 +1488,6 @@
         <div id="receipt-invoice-sheet" class="invoice-paper"></div>
       </section>
 
-      <!-- إضافة عميل جديد -->
       <section id="sec-add-customer" class="view-section">
         <div class="box-card">
           <h3 style="margin:0 0 16px; font-size:16px; font-weight:800;">إضافة عميل جديد</h3>
@@ -1508,7 +1514,6 @@
         </div>
       </section>
 
-      <!-- إعدادات الفاتورة -->
       <section id="sec-invoice-settings" class="view-section">
         <div class="settings-group-title">أزرار الحفظ والطباعة</div>
         <div class="setting-row-card" onclick="setInvoiceSetting('printMode', 'print_only')">
@@ -1597,7 +1602,6 @@
         </div>
       </section>
 
-      <!-- الفواتير وطباعة PDF -->
       <section id="sec-invoices" class="view-section">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;" class="no-print">
           <h3 style="margin:0; font-size:15px;">سجل الفواتير وطباعة PDF</h3>
@@ -1607,7 +1611,6 @@
         <div id="invoice-sheet" class="invoice-paper"></div>
       </section>
 
-      <!-- إرجاع بيع -->
       <section id="sec-returns" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">إرجاع بيع / تسجيل مرتجع</h3>
@@ -1632,7 +1635,6 @@
         </div>
       </section>
 
-      <!-- التقارير -->
       <section id="sec-reports" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">ملخص التقارير</h3>
@@ -1657,7 +1659,6 @@
         </div>
       </section>
 
-      <!-- الموردين -->
       <section id="sec-suppliers" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">الموردين</h3>
@@ -1674,7 +1675,6 @@
         </div>
       </section>
 
-      <!-- النسخ الاحتياطي -->
       <section id="sec-backup" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">النسخ الاحتياطي للبيانات</h3>
@@ -1693,7 +1693,6 @@
       </section>
     </main>
 
-    <!-- نافذة سؤال: تريد تكص وصل لو لا؟ -->
     <div id="receipt-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="receipt-modal-title">
       <div class="modal-card">
         <h3 id="receipt-modal-title">تريد تكص وصل لو لا؟</h3>
@@ -2109,6 +2108,21 @@
       document.getElementById('new-prod-barcode').value = '';
       msg.style.color = '#16a34a';
       msg.textContent = 'تمت إضافة المادة بنجاح.';
+      renderAll();
+    }
+
+    function quickAddStock(prodId, delta) {
+      const a = acc();
+      if (!a) return;
+      const p = a.products.find(x => x.id === prodId);
+      if (!p || !delta) return;
+      p.qty = Math.max(0, Number(p.qty || 0) + delta);
+      persist();
+      const msg = document.getElementById('catalog-msg');
+      if (msg) {
+        msg.style.color = '#16a34a';
+        msg.textContent = `تم تحديث رصيد "${p.name}" (+${delta}) — الرصيد الحالي: ${p.qty}`;
+      }
       renderAll();
     }
 
@@ -3051,6 +3065,227 @@
       }).join('');
     }
 
+    function renderCustomerDetailView() {
+      const a = acc();
+      if (!a) return;
+      const c = a.customers.find(x => x.id === selectedCustomerId) || a.customers[0];
+      const detailCard = document.getElementById('customer-detail-card');
+      const histList = document.getElementById('customer-history-list');
+
+      if (!c) {
+        if (detailCard) detailCard.innerHTML = 'اختر عميلاً من قائمة العملاء.';
+        if (histList) histList.innerHTML = '';
+        return;
+      }
+
+      selectedCustomerId = c.id;
+      const debt = Number(c.debt || 0);
+      const debtHtml = debt > 0
+        ? `<strong style="color:#dc2626;">${money(debt)} د.ع (عليه دين)</strong>`
+        : debt < 0
+          ? `<strong style="color:#16a34a;">${money(Math.abs(debt))} د.ع (له رصيد)</strong>`
+          : `<strong style="color:#16a34a;">0 د.ع (مصفر)</strong>`;
+
+      if (detailCard) {
+        detailCard.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="margin:0; font-size:16px;">${c.name}</h3>
+            <span class="badge-qty">${arabicDayName()} • ${todayISO()}</span>
+          </div>
+          <div class="info-kv"><span>رقم الهاتف:</span><strong>${c.phone || '-'}</strong></div>
+          <div class="info-kv"><span>الموقع:</span><strong>${c.location || '-'}</strong></div>
+          <div class="info-kv"><span>أقرب شارع:</span><strong>${c.nearestStreet || '-'}</strong></div>
+          <div class="info-kv"><span>الحساب الحالي:</span>${debtHtml}</div>
+        `;
+      }
+
+      const custVouchers = a.finance.filter(f => f.customerId === c.id || (f.note || '').includes(c.name));
+      const custInvoices = a.invoices.filter(i => i.customer === c.name);
+
+      const combined = [
+        ...custVouchers.map(v => ({
+          kind: 'voucher',
+          id: v.id,
+          title: 'سند قبض #' + (v.receiptNumber || ''),
+          sub: `${v.dayName || arabicDayName()} ${v.date} ${v.qtyText ? '• ' + v.qtyText : ''}`,
+          amount: v.amount
+        })),
+        ...custInvoices.map(inv => ({
+          kind: 'invoice',
+          id: inv.id,
+          title: 'فاتورة بيع #' + inv.id,
+          sub: `${inv.dayName || ''} ${inv.date} • واصل: ${money(inv.paid)}`,
+          amount: inv.total
+        }))
+      ];
+
+      if (histList) {
+        if (!combined.length) {
+          histList.innerHTML = '<div style="font-size:12px; color:var(--text-muted);">لا توجد سندات أو فواتير سابقة لهذا العميل.</div>';
+        } else {
+          histList.innerHTML = combined.map(item => `
+            <div class="entity-card" onclick="${item.kind === 'voucher' ? `openReceiptInvoice('${item.id}')` : `selectInvoice(${item.id}); openSection('sec-invoices');`}">
+              <div>
+                <div style="font-weight:800; font-size:13px;">${item.title}</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${item.sub}</div>
+              </div>
+              <strong style="color:${item.kind === 'voucher' ? '#16a34a' : 'var(--primary-dark)'};">${money(item.amount)} د.ع</strong>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    function renderReceiptInvoiceView() {
+      const a = acc();
+      const sheet = document.getElementById('receipt-invoice-sheet');
+      if (!a || !sheet) return;
+
+      const deposits = a.finance.filter(f => f.type === 'deposit');
+      const v = deposits.find(x => x.id === selectedReceiptVoucherId) || deposits[0];
+
+      if (!v) {
+        sheet.innerHTML = '<div style="text-align:center; color:var(--text-muted);">لا يوجد سند قبض صادر لعرض فاتورته.</div>';
+        return;
+      }
+
+      const custObj = a.customers.find(c => c.id === v.customerId || c.name === v.customerName);
+      const currentDebt = custObj ? Number(custObj.debt || 0) : Number(v.newDebt || 0);
+
+      sheet.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1.5px solid var(--border); padding-bottom:10px; gap:8px;">
+          <div>
+            <strong style="font-size:15px; color:var(--primary-dark);">فاتورة سند قبض #${v.receiptNumber || ''}</strong>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">الجهة: ${a.owner}</div>
+          </div>
+          <div style="text-align:left; font-size:11.5px; color:var(--text-muted);">
+            <div><strong>اليوم:</strong> ${v.dayName || arabicDayName()}</div>
+            <div><strong>التاريخ:</strong> ${v.date}</div>
+            ${v.timeText ? `<div><strong>الوقت:</strong> ${v.timeText}</div>` : ''}
+          </div>
+        </div>
+
+        <div style="margin-top:10px; background:var(--bg-muted); border-radius:12px; padding:10px 12px; font-size:12px;">
+          <div style="font-weight:800; margin-bottom:6px; color:var(--primary-dark);">معلومات العميل</div>
+          <div class="info-kv"><span>الاسم:</span><strong>${v.customerName || '-'}</strong></div>
+          <div class="info-kv"><span>الهاتف:</span><strong>${v.customerPhone || '-'}</strong></div>
+          <div class="info-kv"><span>الموقع:</span><strong>${v.customerLocation || '-'}</strong></div>
+          <div class="info-kv"><span>أقرب شارع:</span><strong>${v.customerStreet || '-'}</strong></div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>البيان / التفاصيل</th>
+              <th>الكمية</th>
+              <th>المبلغ المقبوض</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${v.note || 'سند قبض'}</td>
+              <td>${v.qtyText || '-'}</td>
+              <td><strong>${money(v.amount)} د.ع</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:12px; font-size:12.5px; line-height:1.9;">
+          <div>المبلغ المقبوض: <strong style="color:#16a34a;">${money(v.amount)} د.ع</strong></div>
+          ${v.prevDebt ? `<div>الحساب السابق: <strong>${money(v.prevDebt)} د.ع</strong></div>` : ''}
+          <div>الحساب المتبقي للعميل: <strong>${money(currentDebt)} د.ع</strong></div>
+        </div>
+      `;
+    }
+
+    function addSupplierItem() {
+      const a = acc();
+      if (!a) return;
+      const name = (document.getElementById('supp-name-in').value || '').trim();
+      const note = (document.getElementById('supp-note-in').value || '').trim() || '-';
+      if (!name) return;
+      a.suppliers.push({ id: 'su_' + Date.now(), name, note });
+      document.getElementById('supp-name-in').value = '';
+      document.getElementById('supp-note-in').value = '';
+      persist();
+      renderAll();
+    }
+
+    function setInvoiceSetting(key, val) {
+      const a = acc();
+      if (!a) return;
+      a.invoiceSettings[key] = val;
+      persist();
+      renderInvoiceSettingsView();
+      renderCartView();
+    }
+
+    function toggleInvoiceBool(key) {
+      const a = acc();
+      if (!a) return;
+      a.invoiceSettings[key] = !a.invoiceSettings[key];
+      persist();
+      renderInvoiceSettingsView();
+      renderCartView();
+    }
+
+    function selectInvoice(id) {
+      const a = acc();
+      if (!a) return;
+      a.selectedInvoiceId = id;
+      persist();
+      renderInvoicesView();
+    }
+
+    function downloadBackupFile() {
+      const a = acc();
+      if (!a) return;
+      const payload = {
+        app: 'pos_local_backup',
+        exportedAt: new Date().toISOString(),
+        accountName: appState.currentUser,
+        data: a
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'pos-backup-' + (appState.currentUser || 'account') + '-' + todayISO() + '.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      document.getElementById('backup-msg').textContent = 'تم تنزيل ملف النسخة الاحتياطية بنجاح.';
+    }
+
+    function restoreBackupFile(event) {
+      const file = event.target.files && event.target.files[0];
+      const msg = document.getElementById('backup-msg');
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          const restored = parsed && parsed.data ? parsed.data : parsed;
+          if (!restored || typeof restored !== 'object') throw new Error('invalid');
+          appState.accounts[appState.currentUser] = {
+            ...defaultAccount(appState.currentUser),
+            ...restored,
+            owner: appState.currentUser
+          };
+          persist();
+          msg.style.color = '#16a34a';
+          msg.textContent = 'تمت استعادة النسخة الاحتياطية بنجاح.';
+          renderAll();
+        } catch (err) {
+          msg.style.color = '#dc2626';
+          msg.textContent = 'تعذر قراءة ملف النسخة الاحتياطية.';
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
     function renderInvoiceSettingsView() {
       const a = acc();
       if (!a) return;
@@ -3158,37 +3393,46 @@
       if (catList) {
         catList.innerHTML = a.products.length
           ? a.products.map(p => `
-              <div class="entity-card">
-                <div><strong>${p.name}</strong> — <span style="color:var(--text-muted); font-size:11px;">${p.warehouse || 'المخزن الرئيسي'}</span></div>
-                <span class="badge-qty ${p.qty <= 2 ? 'badge-low' : ''}">الرصيد: ${p.qty} | ${money(p.price)} د.ع</span>
+              <div class="entity-card" style="cursor:default;">
+                <div style="flex:1;">
+                  <div><strong>${p.name}</strong> — <span style="color:var(--text-muted); font-size:11px;">${p.warehouse || 'المخزن الرئيسي'}</span></div>
+                  <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">السعر: ${money(p.price)} د.ع</div>
+                </div>
+                <div style="text-align:left;">
+                  <span class="badge-qty ${p.qty <= 2 ? 'badge-low' : ''}">الرصيد: ${p.qty}</span>
+                  <div class="quick-qty-group">
+                    <button type="button" class="quick-qty-btn" onclick="quickAddStock('${p.id}', 1)">+1</button>
+                    <button type="button" class="quick-qty-btn" onclick="quickAddStock('${p.id}', 10)">+10</button>
+                  </div>
+                </div>
               </div>
             `).join('')
-          : '<div class="entity-card">لا توجد مواد في المخزون حالياً.</div>';
+          : '<div class="entity-card" style="cursor:default;">لا توجد مواد في المخزون حالياً.</div>';
       }
       if (purList) {
         purList.innerHTML = a.purchases.length
           ? a.purchases.map(pu => `
-              <div class="entity-card">
+              <div class="entity-card" style="cursor:default;">
                 <div><strong>${pu.prodName}</strong> (+${pu.qty}) — ${pu.supplier || 'مورد عام'} <span style="color:var(--text-muted); font-size:11px;">• ${pu.date}</span></div>
                 <strong>${money(pu.cost)} د.ع</strong>
               </div>
             `).join('')
-          : '<div class="entity-card">لا توجد فواتير شراء مسجلة.</div>';
+          : '<div class="entity-card" style="cursor:default;">لا توجد فواتير شراء مسجلة.</div>';
       }
       if (retList) {
         retList.innerHTML = a.returns.length
           ? a.returns.map(rt => `
-              <div class="entity-card">
+              <div class="entity-card" style="cursor:default;">
                 <div><strong>${rt.prodName}</strong> (+${rt.qty}) <span style="color:var(--text-muted); font-size:11px;">• ${rt.date}</span></div>
                 <strong>${money(rt.amount)} د.ع</strong>
               </div>
             `).join('')
-          : '<div class="entity-card">لا توجد مرتجعات مسجلة.</div>';
+          : '<div class="entity-card" style="cursor:default;">لا توجد مرتجعات مسجلة.</div>';
       }
       if (suppList) {
         suppList.innerHTML = a.suppliers.length
-          ? a.suppliers.map(s => `<div class="entity-card"><strong>${s.name}</strong><span>${s.note}</span></div>`).join('')
-          : '<div class="entity-card">لا يوجد موردون مضافون بعد.</div>';
+          ? a.suppliers.map(s => `<div class="entity-card" style="cursor:default;"><strong>${s.name}</strong><span>${s.note}</span></div>`).join('')
+          : '<div class="entity-card" style="cursor:default;">لا يوجد موردون مضافون بعد.</div>';
       }
 
       const salesSum = a.invoices.reduce((s, x) => s + Number(x.total || 0), 0);
