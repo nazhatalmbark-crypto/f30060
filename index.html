@@ -51,7 +51,6 @@
       background: linear-gradient(155deg, #0d0c18, #18172b);
     }
 
-    /* شاشة الدخول على مقاس التليفون */
     .login-screen {
       min-height: 100vh;
       display: flex;
@@ -168,7 +167,6 @@
       font-size: 13.5px;
     }
 
-    /* إطار التطبيق بشكل التليفون */
     .app-shell {
       display: none;
       width: 100%;
@@ -193,7 +191,6 @@
       }
     }
 
-    /* الشريط العلوي */
     .top-bar {
       background: var(--bg-app);
       border-bottom: 1px solid var(--border);
@@ -263,7 +260,6 @@
       display: block;
     }
 
-    /* بانر العداد التنازلي للنسخة المدفوعة */
     .license-strip {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -332,7 +328,6 @@
       margin-top: 2px;
     }
 
-    /* شارة العنوان الفرعي أعلى الرئيسية */
     .section-subtitle-pill {
       background: var(--bg-muted);
       color: var(--text-muted);
@@ -344,7 +339,6 @@
       margin-bottom: 12px;
     }
 
-    /* شبكة البطاقات الست في الصفحة الرئيسية (عمودين مثل صورة التليفون) */
     .hub-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -395,7 +389,6 @@
       color: var(--text-muted);
     }
 
-    /* البطاقات الأفقية للمخزن */
     .menu-stack {
       display: flex;
       flex-direction: column;
@@ -533,7 +526,6 @@
       margin-bottom: 10px;
     }
 
-    /* شاشة السندات */
     .filter-tabs-scroll {
       display: flex;
       gap: 12px;
@@ -629,6 +621,24 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+      cursor: pointer;
+    }
+
+    .entity-card:hover {
+      border-color: var(--primary);
+    }
+
+    .info-kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12.5px;
+    }
+
+    .info-kv:last-child {
+      border-bottom: none;
     }
 
     .fab-btn {
@@ -683,7 +693,6 @@
       margin-top: 16px;
     }
 
-    /* إعدادات الفاتورة */
     .settings-group-title {
       font-size: 12px;
       font-weight: 700;
@@ -910,7 +919,6 @@
       gap: 10px;
     }
 
-    /* شريط التنقل السفلي على مقاس التليفون */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -997,7 +1005,6 @@
 
   <!-- التطبيق الرئيسي على شكل تليفون -->
   <div id="app-shell" class="app-shell">
-    <!-- الهيدر العلوي -->
     <header class="top-bar no-print">
       <div class="top-bar-side">
         <button type="button" id="top-left-btn" class="top-icon-btn" onclick="handleTopLeftAction()" title="التقارير">📊</button>
@@ -1017,13 +1024,11 @@
     </header>
 
     <main class="content-area">
-      <!-- شريط حالة التفعيل والعداد التنازلي 30 يوم -->
       <div id="license-strip" class="license-strip no-print" onclick="openSection('sec-activation')" style="cursor:pointer;">
         <span id="license-status-badge" class="license-badge-trial">تجريبي • 30 يوم</span>
         <span id="license-countdown-inline" style="font-weight:700; color:var(--text-muted);">اضغط لإدخال كود التفعيل</span>
       </div>
 
-      <!-- لوحة الأدمن -->
       <div id="admin-panel" class="admin-box no-print">
         <div style="font-weight:800; color:#9f1239; margin-bottom:6px;">لوحة الأدمن - توليد أكواد التفعيل</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -1033,7 +1038,7 @@
         <div id="admin-code-out" class="status-msg"></div>
       </div>
 
-      <!-- 1. الرئيسية (6 بطاقات مرتبة) -->
+      <!-- 1. الرئيسية -->
       <section id="sec-home" class="view-section active">
         <div class="section-subtitle-pill">لإدارة المبيعات</div>
         <div class="hub-grid">
@@ -1073,7 +1078,7 @@
         </div>
       </section>
 
-      <!-- قسم إضافة كود النسخة المدفوعة + العداد التنازلي 30 يوم -->
+      <!-- تفعيل النسخة المدفوعة والعداد التنازلي 30 يوم -->
       <section id="sec-activation" class="view-section">
         <div class="box-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -1118,7 +1123,7 @@
         </div>
       </section>
 
-      <!-- 2. إنشاء فاتورة + خيار الوصل عند إنزال البضاعة -->
+      <!-- إنشاء فاتورة -->
       <section id="sec-cart" class="view-section">
         <div class="box-card">
           <div class="customer-select-row">
@@ -1178,7 +1183,7 @@
         </div>
       </section>
 
-      <!-- 3. اختيار المنتجات وإضافتها للفاتورة -->
+      <!-- اختيار المواد -->
       <section id="sec-sales" class="view-section">
         <div class="search-row">
           <button type="button" class="btn btn-soft" onclick="openSection('sec-add-product')">+ مادة</button>
@@ -1188,13 +1193,13 @@
         <div id="products-grid" class="products-grid"></div>
       </section>
 
-      <!-- 4. إضافة مادة جديدة -->
+      <!-- إضافة مادة جديدة -->
       <section id="sec-add-product" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">إضافة مادة جديدة</h3>
           <div class="form-group">
             <label>اسم المادة</label>
-            <input type="text" id="new-prod-name" placeholder="مثال: شاشة أو سماعات" />
+            <input type="text" id="new-prod-name" placeholder="مثال: كارتون بيض أو زيت" />
           </div>
           <div class="form-group">
             <label>سعر البيع (د.ع)</label>
@@ -1224,7 +1229,7 @@
         </div>
       </section>
 
-      <!-- 5. المخزن (3 بطاقات أفقية) -->
+      <!-- المخزن -->
       <section id="sec-warehouses" class="view-section">
         <div class="menu-stack">
           <div class="menu-row-card" onclick="openSection('sec-purchases')">
@@ -1262,7 +1267,7 @@
         </div>
       </section>
 
-      <!-- 6. قائمة شراء -->
+      <!-- قائمة شراء -->
       <section id="sec-purchases" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">قائمة شراء - توريد الكميات</h3>
@@ -1289,7 +1294,7 @@
         </div>
       </section>
 
-      <!-- 7. عرض المواد والمخازن -->
+      <!-- عرض المواد -->
       <section id="sec-catalog" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">المخازن والفروع</h3>
@@ -1309,7 +1314,7 @@
         </div>
       </section>
 
-      <!-- 8. سجل الشراء -->
+      <!-- سجل الشراء -->
       <section id="sec-purchases-log" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">سجل فواتير الشراء</h3>
@@ -1317,7 +1322,7 @@
         </div>
       </section>
 
-      <!-- 9. السندات والمالية -->
+      <!-- السندات -->
       <section id="sec-finance" class="view-section">
         <div class="filter-tabs-scroll">
           <button type="button" class="filter-tab-btn active" data-vtab="all" onclick="setVoucherFilter('all', this)">الكل</button>
@@ -1374,7 +1379,7 @@
         <button type="button" class="btn btn-primary fab-btn" onclick="openSection('sec-add-voucher')">+ سند جديد</button>
       </section>
 
-      <!-- 10. إضافة سند جديد -->
+      <!-- إضافة سند جديد -->
       <section id="sec-add-voucher" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">إنشاء سند جديد</h3>
@@ -1385,6 +1390,16 @@
               <option value="payment">سند دفع / تسديد مورد</option>
               <option value="expense">سند صرف / مصروف (خصم من الصندوق)</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label>العميل (اختياري لسند القبض)</label>
+            <select id="exp-customer-select" onchange="onVoucherCustomerChange()">
+              <option value="">-- بدون ربط بعميل --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>الكمية / العدد (اختياري)</label>
+            <input type="text" id="exp-qty" placeholder="مثال: 20 كارتون" />
           </div>
           <div class="form-group">
             <label>الاسم / البيان</label>
@@ -1402,7 +1417,7 @@
         </div>
       </section>
 
-      <!-- 11. العملاء -->
+      <!-- العملاء -->
       <section id="sec-customers" class="view-section">
         <div class="search-box-wrap">
           <input type="text" id="customer-search" placeholder="ابحث عن عميل..." oninput="renderCustomersView()" />
@@ -1420,7 +1435,53 @@
         <button type="button" class="btn btn-primary fab-btn" onclick="openSection('sec-add-customer')">👤+ إضافة عميل</button>
       </section>
 
-      <!-- 12. إضافة عميل جديد -->
+      <!-- صفحة تفاصيل العميل + زر إصدار سند قبض -->
+      <section id="sec-customer-detail" class="view-section">
+        <div id="customer-detail-card" class="box-card"></div>
+
+        <div class="box-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h4 style="margin:0;">إصدار سند قبض للعميل</h4>
+            <button type="button" class="btn btn-soft" style="padding:5px 10px; font-size:11.5px;" onclick="fillFullCustomerDebt()">تصفير الدين بالكامل</button>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-receipt-qty">الكمية / الوصف (اختياري)</label>
+            <input type="text" id="cust-receipt-qty" placeholder="مثال: 15 كارتون أو تسديد دفعة" />
+          </div>
+
+          <div class="form-group">
+            <label for="cust-receipt-amount">المبلغ المقبوض (د.ع)</label>
+            <input type="number" id="cust-receipt-amount" placeholder="أدخل المبلغ" min="1" />
+          </div>
+
+          <div class="form-group">
+            <label for="cust-receipt-note">ملاحظة إضافية (اختياري)</label>
+            <input type="text" id="cust-receipt-note" placeholder="مثال: دفعة نقدية" />
+          </div>
+
+          <button type="button" class="btn btn-primary btn-full" onclick="issueCustomerReceipt()">
+            🧾 إصدار سند قبض وفتح الفاتورة
+          </button>
+          <div id="cust-receipt-msg" class="status-msg"></div>
+        </div>
+
+        <div class="box-card">
+          <h4 style="margin-top:0;">سندات وفواتير العميل</h4>
+          <div id="customer-history-list"></div>
+        </div>
+      </section>
+
+      <!-- فاتورة سند القبض للعميل -->
+      <section id="sec-receipt-invoice" class="view-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;" class="no-print">
+          <h3 style="margin:0; font-size:15px;">فاتورة سند القبض</h3>
+          <button type="button" class="btn btn-primary" onclick="window.print()">طباعة PDF</button>
+        </div>
+        <div id="receipt-invoice-sheet" class="invoice-paper"></div>
+      </section>
+
+      <!-- إضافة عميل جديد -->
       <section id="sec-add-customer" class="view-section">
         <div class="box-card">
           <h3 style="margin:0 0 16px; font-size:16px; font-weight:800;">إضافة عميل جديد</h3>
@@ -1447,7 +1508,7 @@
         </div>
       </section>
 
-      <!-- 13. إعدادات الفاتورة -->
+      <!-- إعدادات الفاتورة -->
       <section id="sec-invoice-settings" class="view-section">
         <div class="settings-group-title">أزرار الحفظ والطباعة</div>
         <div class="setting-row-card" onclick="setInvoiceSetting('printMode', 'print_only')">
@@ -1536,7 +1597,7 @@
         </div>
       </section>
 
-      <!-- 14. الفواتير وطباعة PDF -->
+      <!-- الفواتير وطباعة PDF -->
       <section id="sec-invoices" class="view-section">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;" class="no-print">
           <h3 style="margin:0; font-size:15px;">سجل الفواتير وطباعة PDF</h3>
@@ -1546,7 +1607,7 @@
         <div id="invoice-sheet" class="invoice-paper"></div>
       </section>
 
-      <!-- 15. إرجاع بيع / المرتجعات -->
+      <!-- إرجاع بيع -->
       <section id="sec-returns" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">إرجاع بيع / تسجيل مرتجع</h3>
@@ -1571,7 +1632,7 @@
         </div>
       </section>
 
-      <!-- 16. التقارير -->
+      <!-- التقارير -->
       <section id="sec-reports" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">ملخص التقارير</h3>
@@ -1596,7 +1657,7 @@
         </div>
       </section>
 
-      <!-- 17. الموردين -->
+      <!-- الموردين -->
       <section id="sec-suppliers" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">الموردين</h3>
@@ -1613,7 +1674,7 @@
         </div>
       </section>
 
-      <!-- 18. النسخ الاحتياطي -->
+      <!-- النسخ الاحتياطي -->
       <section id="sec-backup" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">النسخ الاحتياطي للبيانات</h3>
@@ -1645,7 +1706,6 @@
       </div>
     </div>
 
-    <!-- الشريط السفلي -->
     <nav class="bottom-nav no-print">
       <button type="button" id="nav-sec-home" class="nav-item active" onclick="openSection('sec-home')">
         <span>🏠</span>
@@ -1684,6 +1744,8 @@
     let voucherFilter = 'all';
     let customerSort = 'name';
     let pendingPrintAfterReceipt = true;
+    let selectedCustomerId = null;
+    let selectedReceiptVoucherId = null;
 
     function persist() {
       try {
@@ -1796,7 +1858,6 @@
       const hours = Math.floor((totalSecs % 86400) / 3600);
       const mins = Math.floor((totalSecs % 3600) / 60);
       const secs = totalSecs % 60;
-
       const pad = n => String(n).padStart(2, '0');
 
       const dEl = document.getElementById('cd-days');
@@ -1818,31 +1879,23 @@
           badge.className = 'license-badge-pro';
           badge.textContent = 'مدفوع • ' + days + 'ي ' + pad(hours) + ':' + pad(mins) + ':' + pad(secs);
         }
-        if (inlineText) {
-          inlineText.textContent = 'الكود: ' + lic.code;
-        }
+        if (inlineText) inlineText.textContent = 'الكود: ' + lic.code;
         if (statePill) {
           statePill.className = 'license-badge-pro';
           statePill.textContent = 'مفعّل • 30 يوم';
         }
-        if (codeInfo) {
-          codeInfo.textContent = 'الكود المفعّل: ' + lic.code + ' — العداد التنازلي يعمل بشكل مباشر';
-        }
+        if (codeInfo) codeInfo.textContent = 'الكود المفعّل: ' + lic.code + ' — العداد التنازلي يعمل بشكل مباشر';
       } else {
         if (badge) {
           badge.className = 'license-badge-trial';
           badge.textContent = 'العد التنازلي: ' + days + 'ي ' + pad(hours) + ':' + pad(mins) + ':' + pad(secs);
         }
-        if (inlineText) {
-          inlineText.textContent = 'إدخال كود المدفوعة 🔑';
-        }
+        if (inlineText) inlineText.textContent = 'إدخال كود المدفوعة 🔑';
         if (statePill) {
           statePill.className = 'license-badge-trial';
           statePill.textContent = 'بانتظار الكود • 30 يوم';
         }
-        if (codeInfo) {
-          codeInfo.textContent = 'أدخل كود التفعيل لتثبيت النسخة المدفوعة وبدء 30 يوماً';
-        }
+        if (codeInfo) codeInfo.textContent = 'أدخل كود التفعيل لتثبيت النسخة المدفوعة وبدء 30 يوماً';
       }
     }
 
@@ -1869,6 +1922,15 @@
 
     function todayISO() {
       return new Date().toISOString().slice(0, 10);
+    }
+
+    function arabicDayName() {
+      const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      return days[new Date().getDay()];
+    }
+
+    function currentTimeText() {
+      return new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
     }
 
     function loginUser() {
@@ -1906,6 +1968,8 @@
       'sec-finance': { title: 'السندات', backTo: 'sec-home', badge: null, rightBtn: '⚙️' },
       'sec-add-voucher': { title: 'سند جديد', backTo: 'sec-finance', badge: null },
       'sec-customers': { title: 'العملاء', backTo: 'sec-home', badge: 'customers', rightBtn: null },
+      'sec-customer-detail': { title: 'ملف العميل', backTo: 'sec-customers', badge: null },
+      'sec-receipt-invoice': { title: 'فاتورة سند القبض', backTo: 'sec-customer-detail', badge: null },
       'sec-add-customer': { title: 'إضافة عميل', backTo: 'sec-customers', badge: null },
       'sec-invoice-settings': { title: 'إعدادات الفاتورة', backTo: 'sec-cart', badge: null },
       'sec-invoices': { title: 'قائمة الفواتير', backTo: 'sec-home', badge: 'invoices' },
@@ -2166,6 +2230,7 @@
       const inv = {
         id: 1000 + a.invoices.length,
         date: todayISO(),
+        dayName: arabicDayName(),
         customer,
         items: a.cart.map(x => ({ ...x })),
         subtotal,
@@ -2183,7 +2248,9 @@
         a.finance.unshift({
           id: 'fn_' + Date.now(),
           date: todayISO(),
+          dayName: arabicDayName(),
           type: 'deposit',
+          customerName: customer,
           note: customer + ' (فاتورة #' + inv.id + ')',
           amount: paid
         });
@@ -2252,6 +2319,7 @@
         a.finance.unshift({
           id: 'fn_' + Date.now(),
           date: todayISO(),
+          dayName: arabicDayName(),
           type: 'payment',
           note: supplier + ' - شراء ' + p.name + ' (' + qty + ')',
           amount: cost
@@ -2282,13 +2350,30 @@
       renderFinanceView();
     }
 
+    function onVoucherCustomerChange() {
+      const a = acc();
+      if (!a) return;
+      const sel = document.getElementById('exp-customer-select');
+      const noteIn = document.getElementById('exp-note');
+      const valIn = document.getElementById('exp-val');
+      if (!sel || !sel.value) return;
+      const c = a.customers.find(x => x.id === sel.value);
+      if (!c) return;
+      if (noteIn && !noteIn.value.trim()) noteIn.value = 'قبض من ' + c.name;
+      if (valIn && (!valIn.value || Number(valIn.value) === 0) && Number(c.debt || 0) > 0) {
+        valIn.value = String(Number(c.debt || 0));
+      }
+    }
+
     function addFinanceEntry() {
       const a = acc();
       const msg = document.getElementById('fin-msg');
       if (!a) return;
+      const type = document.getElementById('exp-type').value;
+      const custId = document.getElementById('exp-customer-select') ? document.getElementById('exp-customer-select').value : '';
+      const qtyText = document.getElementById('exp-qty') ? (document.getElementById('exp-qty').value || '').trim() : '';
       const note = (document.getElementById('exp-note').value || '').trim();
       const amount = Number(document.getElementById('exp-val').value);
-      const type = document.getElementById('exp-type').value;
 
       if (!note || amount <= 0) {
         msg.style.color = '#dc2626';
@@ -2296,20 +2381,53 @@
         return;
       }
 
-      a.finance.unshift({
+      let customerObj = null;
+      let prevDebt = 0;
+      let newDebt = 0;
+
+      if (type === 'deposit' && custId) {
+        customerObj = a.customers.find(x => x.id === custId);
+        if (customerObj) {
+          prevDebt = Number(customerObj.debt || 0);
+          newDebt = prevDebt - amount;
+          customerObj.debt = newDebt;
+          customerObj.lastAction = 'اليوم';
+        }
+      }
+
+      const voucher = {
         id: 'fn_' + Date.now(),
+        receiptNumber: 5000 + a.finance.length,
         date: todayISO(),
+        dayName: arabicDayName(),
+        timeText: currentTimeText(),
         type,
-        note,
+        customerId: customerObj ? customerObj.id : null,
+        customerName: customerObj ? customerObj.name : note,
+        customerPhone: customerObj ? customerObj.phone : '-',
+        customerLocation: customerObj ? customerObj.location : '-',
+        customerStreet: customerObj ? customerObj.nearestStreet : '-',
+        qtyText,
+        prevDebt,
+        newDebt,
+        note: qtyText ? `${note} (${qtyText})` : note,
         amount
-      });
+      };
+
+      a.finance.unshift(voucher);
+      selectedReceiptVoucherId = voucher.id;
 
       document.getElementById('exp-note').value = '';
       document.getElementById('exp-val').value = '';
+      if (document.getElementById('exp-qty')) document.getElementById('exp-qty').value = '';
       persist();
       msg.style.color = '#16a34a';
       msg.textContent = 'تم حفظ السند بنجاح.';
       renderAll();
+
+      if (type === 'deposit' && customerObj) {
+        openSection('sec-receipt-invoice');
+      }
     }
 
     function recordReturn() {
@@ -2341,6 +2459,7 @@
         a.finance.unshift({
           id: 'fn_' + Date.now(),
           date: todayISO(),
+          dayName: arabicDayName(),
           type: 'return',
           note: 'مرتجع ' + p.name + ' (' + qty + ')',
           amount: refund
@@ -2369,7 +2488,7 @@
       const nearestStreet = (document.getElementById('cust-street-in').value || '').trim() || '-';
       if (!name) return;
 
-      a.customers.push({
+      const newCust = {
         id: 'cu_' + Date.now(),
         name,
         phone,
@@ -2377,7 +2496,9 @@
         nearestStreet,
         debt: 0,
         lastAction: 'اليوم'
-      });
+      };
+      a.customers.push(newCust);
+      selectedCustomerId = newCust.id;
 
       document.getElementById('cust-name-in').value = '';
       document.getElementById('cust-phone-in').value = '';
@@ -2385,6 +2506,220 @@
       document.getElementById('cust-street-in').value = '';
       persist();
       openSection('sec-customers');
+    }
+
+    function openCustomerDetail(custId) {
+      selectedCustomerId = custId;
+      const msg = document.getElementById('cust-receipt-msg');
+      if (msg) msg.textContent = '';
+      openSection('sec-customer-detail');
+    }
+
+    function fillFullCustomerDebt() {
+      const a = acc();
+      if (!a || !selectedCustomerId) return;
+      const c = a.customers.find(x => x.id === selectedCustomerId);
+      if (!c) return;
+      const amtIn = document.getElementById('cust-receipt-amount');
+      if (amtIn) amtIn.value = String(Math.max(0, Number(c.debt || 0)));
+    }
+
+    function issueCustomerReceipt() {
+      const a = acc();
+      if (!a || !selectedCustomerId) return;
+      const c = a.customers.find(x => x.id === selectedCustomerId);
+      if (!c) return;
+
+      const qtyText = (document.getElementById('cust-receipt-qty').value || '').trim();
+      const amount = Number(document.getElementById('cust-receipt-amount').value);
+      const extraNote = (document.getElementById('cust-receipt-note').value || '').trim();
+      const msg = document.getElementById('cust-receipt-msg');
+
+      if (!amount || amount <= 0) {
+        msg.style.color = '#dc2626';
+        msg.textContent = 'أدخل المبلغ المقبوض من العميل أولاً.';
+        return;
+      }
+
+      const prevDebt = Number(c.debt || 0);
+      const newDebt = prevDebt - amount;
+      c.debt = newDebt;
+      c.lastAction = 'اليوم';
+
+      const dateStr = todayISO();
+      const dayStr = arabicDayName();
+      const timeStr = currentTimeText();
+      const summaryParts = ['سند قبض - ' + c.name];
+      if (qtyText) summaryParts.push('الكمية: ' + qtyText);
+      if (extraNote) summaryParts.push(extraNote);
+
+      const voucher = {
+        id: 'fn_' + Date.now(),
+        receiptNumber: 5000 + a.finance.length,
+        date: dateStr,
+        dayName: dayStr,
+        timeText: timeStr,
+        type: 'deposit',
+        customerId: c.id,
+        customerName: c.name,
+        customerPhone: c.phone || '-',
+        customerLocation: c.location || '-',
+        customerStreet: c.nearestStreet || '-',
+        qtyText,
+        extraNote,
+        prevDebt,
+        newDebt,
+        note: summaryParts.join(' • '),
+        amount
+      };
+
+      a.finance.unshift(voucher);
+      selectedReceiptVoucherId = voucher.id;
+
+      document.getElementById('cust-receipt-qty').value = '';
+      document.getElementById('cust-receipt-amount').value = '';
+      document.getElementById('cust-receipt-note').value = '';
+      persist();
+
+      openSection('sec-receipt-invoice');
+    }
+
+    function openReceiptInvoice(voucherId) {
+      selectedReceiptVoucherId = voucherId;
+      openSection('sec-receipt-invoice');
+    }
+
+    function renderCustomerDetailView() {
+      const a = acc();
+      if (!a) return;
+      const c = a.customers.find(x => x.id === selectedCustomerId) || a.customers[0];
+      const detailCard = document.getElementById('customer-detail-card');
+      const histList = document.getElementById('customer-history-list');
+
+      if (!c) {
+        if (detailCard) detailCard.innerHTML = 'اختر عميلاً من قائمة العملاء.';
+        if (histList) histList.innerHTML = '';
+        return;
+      }
+
+      selectedCustomerId = c.id;
+      const debt = Number(c.debt || 0);
+      const debtHtml = debt > 0
+        ? `<strong style="color:#dc2626;">${money(debt)} د.ع (عليه دين)</strong>`
+        : debt < 0
+          ? `<strong style="color:#16a34a;">${money(Math.abs(debt))} د.ع (له رصيد)</strong>`
+          : `<strong style="color:#16a34a;">0 د.ع (مصفر)</strong>`;
+
+      if (detailCard) {
+        detailCard.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="margin:0; font-size:16px;">${c.name}</h3>
+            <span class="badge-qty">${arabicDayName()} • ${todayISO()}</span>
+          </div>
+          <div class="info-kv"><span>رقم الهاتف:</span><strong>${c.phone || '-'}</strong></div>
+          <div class="info-kv"><span>الموقع:</span><strong>${c.location || '-'}</strong></div>
+          <div class="info-kv"><span>أقرب شارع:</span><strong>${c.nearestStreet || '-'}</strong></div>
+          <div class="info-kv"><span>الحساب الحالي:</span>${debtHtml}</div>
+        `;
+      }
+
+      const custVouchers = a.finance.filter(f => f.customerId === c.id || (f.note || '').includes(c.name));
+      const custInvoices = a.invoices.filter(i => i.customer === c.name);
+
+      const combined = [
+        ...custVouchers.map(v => ({
+          kind: 'voucher',
+          id: v.id,
+          title: 'سند قبض #' + (v.receiptNumber || ''),
+          sub: `${v.dayName || arabicDayName()} ${v.date} ${v.qtyText ? '• ' + v.qtyText : ''}`,
+          amount: v.amount
+        })),
+        ...custInvoices.map(inv => ({
+          kind: 'invoice',
+          id: inv.id,
+          title: 'فاتورة بيع #' + inv.id,
+          sub: `${inv.dayName || ''} ${inv.date} • واصل: ${money(inv.paid)}`,
+          amount: inv.total
+        }))
+      ];
+
+      if (histList) {
+        if (!combined.length) {
+          histList.innerHTML = '<div style="font-size:12px; color:var(--text-muted);">لا توجد سندات أو فواتير سابقة لهذا العميل.</div>';
+        } else {
+          histList.innerHTML = combined.map(item => `
+            <div class="entity-card" onclick="${item.kind === 'voucher' ? `openReceiptInvoice('${item.id}')` : `selectInvoice(${item.id}); openSection('sec-invoices');`}">
+              <div>
+                <div style="font-weight:800; font-size:13px;">${item.title}</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${item.sub}</div>
+              </div>
+              <strong style="color:${item.kind === 'voucher' ? '#16a34a' : 'var(--primary-dark)'};">${money(item.amount)} د.ع</strong>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    function renderReceiptInvoiceView() {
+      const a = acc();
+      const sheet = document.getElementById('receipt-invoice-sheet');
+      if (!a || !sheet) return;
+
+      const deposits = a.finance.filter(f => f.type === 'deposit');
+      const v = deposits.find(x => x.id === selectedReceiptVoucherId) || deposits[0];
+
+      if (!v) {
+        sheet.innerHTML = '<div style="text-align:center; color:var(--text-muted);">لا يوجد سند قبض صادر لعرض فاتورته.</div>';
+        return;
+      }
+
+      const custObj = a.customers.find(c => c.id === v.customerId || c.name === v.customerName);
+      const currentDebt = custObj ? Number(custObj.debt || 0) : Number(v.newDebt || 0);
+
+      sheet.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1.5px solid var(--border); padding-bottom:10px; gap:8px;">
+          <div>
+            <strong style="font-size:15px; color:var(--primary-dark);">فاتورة سند قبض #${v.receiptNumber || ''}</strong>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">الجهة: ${a.owner}</div>
+          </div>
+          <div style="text-align:left; font-size:11.5px; color:var(--text-muted);">
+            <div><strong>اليوم:</strong> ${v.dayName || arabicDayName()}</div>
+            <div><strong>التاريخ:</strong> ${v.date}</div>
+            ${v.timeText ? `<div><strong>الوقت:</strong> ${v.timeText}</div>` : ''}
+          </div>
+        </div>
+
+        <div style="margin-top:10px; background:var(--bg-muted); border-radius:12px; padding:10px 12px; font-size:12px;">
+          <div style="font-weight:800; margin-bottom:6px; color:var(--primary-dark);">معلومات العميل</div>
+          <div class="info-kv"><span>الاسم:</span><strong>${v.customerName || '-'}</strong></div>
+          <div class="info-kv"><span>الهاتف:</span><strong>${v.customerPhone || '-'}</strong></div>
+          <div class="info-kv"><span>الموقع:</span><strong>${v.customerLocation || '-'}</strong></div>
+          <div class="info-kv"><span>أقرب شارع:</span><strong>${v.customerStreet || '-'}</strong></div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>البيان / التفاصيل</th>
+              <th>الكمية</th>
+              <th>المبلغ المقبوض</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${v.note || 'سند قبض'}</td>
+              <td>${v.qtyText || '-'}</td>
+              <td><strong>${money(v.amount)} د.ع</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:12px; font-size:12.5px; line-height:1.9;">
+          <div>المبلغ المقبوض: <strong style="color:#16a34a;">${money(v.amount)} د.ع</strong></div>
+          ${v.prevDebt ? `<div>الحساب السابق: <strong>${money(v.prevDebt)} د.ع</strong></div>` : ''}
+          <div>الحساب المتبقي للعميل: <strong>${money(currentDebt)} د.ع</strong></div>
+        </div>
+      `;
     }
 
     function addSupplierItem() {
@@ -2584,6 +2919,14 @@
       if (!a) return;
       const q = ((document.getElementById('voucher-search') && document.getElementById('voucher-search').value) || '').trim().toLowerCase();
 
+      const expCustSel = document.getElementById('exp-customer-select');
+      if (expCustSel) {
+        const cur = expCustSel.value;
+        expCustSel.innerHTML = '<option value="">-- بدون ربط بعميل --</option>' +
+          a.customers.map(c => `<option value="${c.id}">${c.name} (الدين: ${money(c.debt || 0)} د.ع)</option>`).join('');
+        if (a.customers.some(c => c.id === cur)) expCustSel.value = cur;
+      }
+
       const deposits = a.finance.filter(f => f.type === 'deposit');
       const payments = a.finance.filter(f => f.type === 'payment');
       const expenses = a.finance.filter(f => f.type === 'expense');
@@ -2629,13 +2972,14 @@
 
       listEl.innerHTML = filtered.map((fn, idx) => {
         const info = typeInfo[fn.type] || typeInfo.deposit;
+        const clickHandler = fn.type === 'deposit' ? `onclick="openReceiptInvoice('${fn.id}')"` : '';
         return `
-          <div class="entity-card">
+          <div class="entity-card" ${clickHandler}>
             <div style="font-size:14px; font-weight:800; color:${info.color}; white-space:nowrap;">${money(fn.amount)} د.ع</div>
             <div style="flex:1; text-align:right;">
               <div style="font-weight:800; font-size:13.5px;">${fn.note}</div>
               <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
-                <span style="color:${info.color}; font-weight:700;">${info.label}</span> #${100 + idx} • ${fn.date}
+                <span style="color:${info.color}; font-weight:700;">${info.label}</span> #${fn.receiptNumber || (100 + idx)} • ${fn.dayName ? fn.dayName + ' ' : ''}${fn.date}
               </div>
             </div>
             <div style="width:34px; height:34px; border-radius:10px; background:${info.bg}; color:${info.color}; display:flex; align-items:center; justify-content:center; font-weight:800;">
@@ -2680,7 +3024,7 @@
       container.innerHTML = list.map(c => {
         const debt = Number(c.debt || 0);
         const invCount = a.invoices.filter(i => i.customer === c.name).length;
-        const finCount = a.finance.filter(f => (f.note || '').includes(c.name)).length;
+        const finCount = a.finance.filter(f => f.customerId === c.id || (f.note || '').includes(c.name)).length;
         let amountHtml = `<div style="font-size:13.5px; font-weight:800;">0 د.ع</div>`;
         if (debt > 0) {
           amountHtml = `<div style="font-size:13.5px; font-weight:800; color:#dc2626;">${money(debt)} د.ع</div><div style="font-size:10.5px; color:#dc2626;">الدين</div>`;
@@ -2691,9 +3035,9 @@
           ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">📍 ${c.location || '-'} • ${c.nearestStreet || '-'}</div>`
           : '';
         return `
-          <div class="entity-card">
+          <div class="entity-card" onclick="openCustomerDetail('${c.id}')">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span style="color:var(--text-muted); font-size:15px;">⋮</span>
+              <span style="color:var(--primary-dark); font-size:11px; font-weight:800;">سند قبض ›</span>
               <div>${amountHtml}</div>
             </div>
             <div style="text-align:right;">
@@ -2734,7 +3078,7 @@
       }
 
       list.innerHTML = a.invoices.map(inv => `
-        <div class="entity-card" style="cursor:pointer; ${a.selectedInvoiceId === inv.id ? 'border-color:var(--primary); background:var(--primary-tint);' : ''}" onclick="selectInvoice(${inv.id})">
+        <div class="entity-card" style="${a.selectedInvoiceId === inv.id ? 'border-color:var(--primary); background:var(--primary-tint);' : ''}" onclick="selectInvoice(${inv.id})">
           <div>
             <strong>فاتورة #${inv.id}</strong> — ${inv.customer}
             <div style="font-size:11px; color:var(--text-muted);">${inv.date} • ${inv.hasReceipt === false ? 'بدون وصل' : 'بوصل'}</div>
@@ -2872,6 +3216,8 @@
       renderCartView();
       renderFinanceView();
       renderCustomersView();
+      renderCustomerDetailView();
+      renderReceiptInvoiceView();
       renderInvoiceSettingsView();
       renderInvoicesView();
       renderWarehousesAndReports();
