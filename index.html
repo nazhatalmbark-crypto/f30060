@@ -10,7 +10,7 @@
       --primary-dark: #403a7a;
       --primary-soft: #eae8f7;
       --primary-tint: #f4f3fc;
-      --bg-outer: #e4dff5;
+      --bg-outer: #ddd7f3;
       --bg-app: #f6f6fa;
       --bg-card: #ffffff;
       --bg-muted: #efeff6;
@@ -24,7 +24,7 @@
     }
 
     body.dark-theme {
-      --bg-outer: #0f0e1b;
+      --bg-outer: #0d0c18;
       --bg-app: #151424;
       --bg-card: #1e1d33;
       --bg-muted: #272540;
@@ -43,15 +43,15 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: linear-gradient(155deg, #d7d0f0, #f5f4fb 50%, #e1dcf5);
+      background: linear-gradient(155deg, #d7d0f0, #ece8fa 50%, #dfd9f6);
       color: var(--text-main);
     }
 
     body.dark-theme {
-      background: linear-gradient(155deg, #0f0e1b, #18172b);
+      background: linear-gradient(155deg, #0d0c18, #18172b);
     }
 
-    /* شاشة الدخول */
+    /* شاشة الدخول على مقاس التليفون */
     .login-screen {
       min-height: 100vh;
       display: flex;
@@ -63,17 +63,17 @@
 
     .login-card {
       width: 100%;
-      max-width: 400px;
+      max-width: 390px;
       background: var(--bg-card);
-      border-radius: 22px;
-      padding: 26px 22px;
-      box-shadow: 0 20px 45px rgba(23, 23, 34, 0.22);
+      border-radius: 24px;
+      padding: 26px 20px;
+      box-shadow: 0 20px 45px rgba(23, 23, 34, 0.25);
       text-align: center;
     }
 
     .login-card h1 {
       margin: 0 0 6px;
-      font-size: 22px;
+      font-size: 21px;
       color: var(--primary-dark);
     }
 
@@ -89,12 +89,12 @@
 
     .form-group {
       text-align: right;
-      margin-bottom: 14px;
+      margin-bottom: 13px;
     }
 
     .form-group label {
       display: block;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 700;
       margin-bottom: 6px;
       color: var(--text-main);
@@ -102,7 +102,7 @@
 
     input, select, textarea {
       width: 100%;
-      padding: 11px 14px;
+      padding: 10px 13px;
       border: 1px solid var(--border);
       border-radius: 12px;
       font-size: 13px;
@@ -123,8 +123,8 @@
     .btn {
       border: none;
       border-radius: 12px;
-      padding: 10px 16px;
-      font-size: 13px;
+      padding: 9px 14px;
+      font-size: 12.5px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
@@ -164,30 +164,44 @@
 
     .btn-full {
       width: 100%;
-      padding: 12px;
-      font-size: 14px;
+      padding: 11px;
+      font-size: 13.5px;
     }
 
-    /* إطار التطبيق */
+    /* إطار التطبيق بشكل التليفون */
     .app-shell {
       display: none;
-      max-width: 820px;
+      width: 100%;
+      max-width: 430px;
       margin: 0 auto;
       min-height: 100vh;
       background: var(--bg-app);
       padding-bottom: 84px;
-      box-shadow: 0 0 32px rgba(23, 23, 34, 0.08);
+      box-shadow: 0 0 40px rgba(23, 23, 34, 0.14);
+      position: relative;
+    }
+
+    @media (min-width: 480px) {
+      body {
+        padding: 14px 0;
+      }
+      .app-shell {
+        min-height: calc(100vh - 28px);
+        border-radius: 30px;
+        border: 4px solid #25233a;
+        overflow-x: clip;
+      }
     }
 
     /* الشريط العلوي */
     .top-bar {
       background: var(--bg-app);
       border-bottom: 1px solid var(--border);
-      padding: 12px 16px;
+      padding: 11px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 6px;
       position: sticky;
       top: 0;
       z-index: 20;
@@ -196,17 +210,17 @@
     .top-bar-side {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .top-icon-btn {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: 10px;
       border: 1px solid var(--border);
       background: var(--bg-card);
       color: var(--text-main);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
@@ -217,16 +231,17 @@
     .top-title-wrap {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 17px;
+      gap: 6px;
+      font-size: 16px;
       font-weight: 800;
       color: var(--text-main);
+      white-space: nowrap;
     }
 
     .count-pill {
       background: var(--primary-soft);
       color: var(--primary-dark);
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 800;
       padding: 2px 8px;
       border-radius: 999px;
@@ -237,7 +252,7 @@
     }
 
     .content-area {
-      padding: 16px;
+      padding: 14px;
     }
 
     .view-section {
@@ -246,6 +261,75 @@
 
     .view-section.active {
       display: block;
+    }
+
+    /* بانر العداد التنازلي للنسخة المدفوعة */
+    .license-strip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 9px 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11.5px;
+    }
+
+    .license-badge-pro {
+      background: rgba(22, 163, 74, 0.14);
+      color: #15803d;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    body.dark-theme .license-badge-pro {
+      color: #4ade80;
+    }
+
+    .license-badge-trial {
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    body.dark-theme .license-badge-trial {
+      color: #d5d0fa;
+    }
+
+    .countdown-boxes {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 12px 0;
+      text-align: center;
+    }
+
+    .countdown-cell {
+      background: var(--bg-muted);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 4px;
+    }
+
+    .countdown-num {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--primary-dark);
+    }
+
+    body.dark-theme .countdown-num {
+      color: #d5d0fa;
+    }
+
+    .countdown-lbl {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
     }
 
     /* شارة العنوان الفرعي أعلى الرئيسية */
@@ -257,27 +341,21 @@
       text-align: center;
       padding: 8px 14px;
       border-radius: 10px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
-    /* شبكة البطاقات الست في الصفحة الرئيسية */
+    /* شبكة البطاقات الست في الصفحة الرئيسية (عمودين مثل صورة التليفون) */
     .hub-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
-    }
-
-    @media (min-width: 680px) {
-      .hub-grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
+      gap: 12px;
     }
 
     .hub-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 22px 14px;
+      padding: 20px 10px;
       text-align: center;
       cursor: pointer;
       box-shadow: 0 3px 10px rgba(23, 23, 34, 0.03);
@@ -290,16 +368,16 @@
     }
 
     .hub-icon {
-      width: 52px;
-      height: 52px;
-      margin: 0 auto 12px;
+      width: 50px;
+      height: 50px;
+      margin: 0 auto 10px;
       border-radius: 14px;
       background: var(--primary-soft);
       color: var(--primary-dark);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 23px;
+      font-size: 22px;
     }
 
     body.dark-theme .hub-icon {
@@ -307,7 +385,7 @@
     }
 
     .hub-title {
-      font-size: 15px;
+      font-size: 14.5px;
       font-weight: 800;
       margin-bottom: 4px;
     }
@@ -363,13 +441,12 @@
       color: #d5d0fa;
     }
 
-    /* بطاقات الفاتورة */
     .box-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 18px 20px;
-      margin-bottom: 14px;
+      padding: 15px 16px;
+      margin-bottom: 12px;
       box-shadow: 0 2px 8px rgba(23, 23, 34, 0.03);
     }
 
@@ -402,26 +479,26 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      padding: 11px 4px;
+      gap: 8px;
+      padding: 10px 4px;
       border-top: 1px solid var(--border);
     }
 
     .inv-item-total {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       color: var(--text-main);
       white-space: nowrap;
     }
 
     .inv-item-name {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       text-align: right;
     }
 
     .inv-item-sub {
-      font-size: 12px;
+      font-size: 11.5px;
       color: var(--text-muted);
       text-align: right;
       margin-top: 2px;
@@ -432,11 +509,11 @@
       align-items: center;
       justify-content: space-between;
       margin-bottom: 10px;
-      font-size: 14px;
+      font-size: 13.5px;
     }
 
     .summary-line strong {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 800;
     }
 
@@ -444,26 +521,26 @@
       text-align: center;
       font-size: 16px;
       font-weight: 800;
-      padding: 11px;
+      padding: 10px;
       border-radius: 12px;
-      margin: 8px 0 10px;
+      margin: 6px 0 10px;
     }
 
     .pay-mode-row {
       display: flex;
       gap: 8px;
       justify-content: flex-start;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     /* شاشة السندات */
     .filter-tabs-scroll {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       overflow-x: auto;
       border-bottom: 1px solid var(--border);
       padding-bottom: 8px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .filter-tab-btn {
@@ -471,14 +548,14 @@
       border: none;
       border-bottom: 2.5px solid transparent;
       padding: 4px 2px 8px;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 700;
       color: var(--text-muted);
       cursor: pointer;
       white-space: nowrap;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
 
     .filter-tab-btn.active {
@@ -500,26 +577,19 @@
     .stats-4-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      gap: 4px;
       text-align: center;
       margin-top: 8px;
     }
 
-    @media (max-width: 520px) {
-      .stats-4-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-      }
-    }
-
     .stat-col-val {
-      font-size: 13px;
+      font-size: 11.5px;
       font-weight: 800;
       margin-top: 4px;
     }
 
     .stat-col-sub {
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--text-muted);
       margin-top: 2px;
     }
@@ -542,31 +612,43 @@
       pointer-events: none;
     }
 
+    .search-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
     .entity-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 13px 15px;
+      padding: 12px 14px;
       margin-bottom: 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
     }
 
     .fab-btn {
       position: fixed;
-      bottom: 76px;
-      left: 20px;
+      bottom: 74px;
+      left: calc(50% - 195px);
       z-index: 25;
       border-radius: 14px;
-      padding: 11px 16px;
-      font-size: 13px;
+      padding: 10px 15px;
+      font-size: 12.5px;
       font-weight: 800;
       box-shadow: 0 8px 20px rgba(64, 58, 122, 0.28);
     }
 
-    /* شريط الفرز في العملاء */
+    @media (max-width: 440px) {
+      .fab-btn {
+        left: 16px;
+      }
+    }
+
     .segment-bar {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -597,8 +679,8 @@
     .form-actions-end {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
-      margin-top: 18px;
+      gap: 8px;
+      margin-top: 16px;
     }
 
     /* إعدادات الفاتورة */
@@ -612,11 +694,11 @@
     .setting-row-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      padding: 13px 15px;
+      padding: 13px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
       cursor: pointer;
     }
 
@@ -687,10 +769,9 @@
       transform: translateX(-20px);
     }
 
-    /* شبكة المنتجات */
     .products-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 10px;
     }
 
@@ -698,7 +779,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 11px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -706,13 +787,13 @@
     }
 
     .prod-thumb {
-      height: 58px;
+      height: 54px;
       background: var(--bg-muted);
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: 20px;
     }
 
     .badge-qty {
@@ -738,7 +819,7 @@
       border: 1.5px dashed #e11d48;
       border-radius: 14px;
       padding: 12px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       display: none;
       color: #111827;
     }
@@ -746,7 +827,7 @@
     .invoice-paper {
       border: 2px solid var(--primary-dark);
       border-radius: 16px;
-      padding: 16px;
+      padding: 14px;
       background: var(--bg-card);
       margin-top: 12px;
     }
@@ -760,7 +841,7 @@
 
     th, td {
       border: 1px solid var(--border);
-      padding: 7px 9px;
+      padding: 7px 8px;
       text-align: right;
     }
 
@@ -780,7 +861,6 @@
       color: #c7c2f5;
     }
 
-    /* نافذة سؤال: تريد تكص وصل لو لا؟ */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -798,7 +878,7 @@
 
     .modal-card {
       width: 100%;
-      max-width: 390px;
+      max-width: 370px;
       background: var(--bg-card);
       color: var(--text-main);
       border-radius: 20px;
@@ -809,7 +889,7 @@
 
     .modal-card h3 {
       margin: 0 0 8px;
-      font-size: 18px;
+      font-size: 17px;
       color: var(--primary-dark);
     }
 
@@ -830,13 +910,14 @@
       gap: 10px;
     }
 
-    /* شريط التنقل السفلي */
+    /* شريط التنقل السفلي على مقاس التليفون */
     .bottom-nav {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      max-width: 820px;
+      width: 100%;
+      max-width: 430px;
       margin: 0 auto;
       background: var(--bg-card);
       border-top: 1px solid var(--border);
@@ -846,6 +927,14 @@
       z-index: 20;
     }
 
+    @media (min-width: 480px) {
+      .bottom-nav {
+        bottom: 14px;
+        border-bottom-left-radius: 26px;
+        border-bottom-right-radius: 26px;
+      }
+    }
+
     .nav-item {
       background: transparent;
       border: none;
@@ -853,7 +942,7 @@
       flex-direction: column;
       align-items: center;
       gap: 2px;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       color: var(--text-muted);
       cursor: pointer;
@@ -874,14 +963,18 @@
       body {
         background: #fff;
         color: #111;
+        padding: 0;
       }
-      .top-bar, .bottom-nav, .fab-btn, .no-print, .modal-backdrop {
+      .top-bar, .bottom-nav, .fab-btn, .no-print, .modal-backdrop, .license-strip {
         display: none !important;
       }
       .app-shell {
         box-shadow: none;
+        border: none;
+        border-radius: 0;
         padding-bottom: 0;
         max-width: 100%;
+        width: 100%;
         background: #fff;
       }
     }
@@ -902,7 +995,7 @@
     </div>
   </div>
 
-  <!-- التطبيق الرئيسي -->
+  <!-- التطبيق الرئيسي على شكل تليفون -->
   <div id="app-shell" class="app-shell">
     <!-- الهيدر العلوي -->
     <header class="top-bar no-print">
@@ -917,17 +1010,24 @@
       </div>
 
       <div class="top-bar-side">
+        <button type="button" class="top-icon-btn" onclick="openSection('sec-activation')" title="كود النسخة المدفوعة والعداد">🔑</button>
         <button type="button" id="top-right-btn" class="top-icon-btn" onclick="handleTopRightAction()" title="إعدادات الفاتورة">⚙️</button>
         <button type="button" class="top-icon-btn" onclick="logoutUser()" title="خروج">↪</button>
       </div>
     </header>
 
     <main class="content-area">
+      <!-- شريط حالة التفعيل والعداد التنازلي 30 يوم -->
+      <div id="license-strip" class="license-strip no-print" onclick="openSection('sec-activation')" style="cursor:pointer;">
+        <span id="license-status-badge" class="license-badge-trial">تجريبي • 30 يوم</span>
+        <span id="license-countdown-inline" style="font-weight:700; color:var(--text-muted);">اضغط لإدخال كود التفعيل</span>
+      </div>
+
       <!-- لوحة الأدمن -->
       <div id="admin-panel" class="admin-box no-print">
         <div style="font-weight:800; color:#9f1239; margin-bottom:6px;">لوحة الأدمن - توليد أكواد التفعيل</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <input type="text" id="admin-client" placeholder="اسم الزبون أو المحل" style="flex:1; min-width:140px;" />
+          <input type="text" id="admin-client" placeholder="اسم الزبون أو المحل" style="flex:1; min-width:130px;" />
           <button type="button" class="btn btn-primary" onclick="makeCode()">توليد كود</button>
         </div>
         <div id="admin-code-out" class="status-msg"></div>
@@ -968,8 +1068,53 @@
             <div class="hub-desc">سندات قبض وصرف</div>
           </div>
         </div>
-        <div style="text-align:center; margin-top:16px; font-size:11px; color:var(--text-muted);">
-          الإصدار 6.0.1 • <span style="cursor:pointer; text-decoration:underline;" onclick="openSection('sec-backup')">نسخ احتياطي</span> • <span style="cursor:pointer; text-decoration:underline;" onclick="openSection('sec-suppliers')">الموردين</span>
+        <div style="text-align:center; margin-top:14px; font-size:11px; color:var(--text-muted);">
+          الإصدار 6.0.1 • <span style="cursor:pointer; text-decoration:underline;" onclick="openSection('sec-activation')">كود التفعيل</span> • <span style="cursor:pointer; text-decoration:underline;" onclick="openSection('sec-backup')">نسخ احتياطي</span> • <span style="cursor:pointer; text-decoration:underline;" onclick="openSection('sec-suppliers')">الموردين</span>
+        </div>
+      </section>
+
+      <!-- قسم إضافة كود النسخة المدفوعة + العداد التنازلي 30 يوم -->
+      <section id="sec-activation" class="view-section">
+        <div class="box-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 style="margin:0; font-size:16px;">تفعيل النسخة المدفوعة</h3>
+            <span id="act-state-pill" class="license-badge-trial">غير مفعّل</span>
+          </div>
+          <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px; line-height:1.6;">
+            أدخل كود النسخة المدفوعة لتفعيل الحساب وبدء العداد التنازلي لـ 30 يوماً.
+          </p>
+
+          <div class="countdown-boxes">
+            <div class="countdown-cell">
+              <div id="cd-days" class="countdown-num">30</div>
+              <div class="countdown-lbl">يوم</div>
+            </div>
+            <div class="countdown-cell">
+              <div id="cd-hours" class="countdown-num">00</div>
+              <div class="countdown-lbl">ساعة</div>
+            </div>
+            <div class="countdown-cell">
+              <div id="cd-mins" class="countdown-num">00</div>
+              <div class="countdown-lbl">دقيقة</div>
+            </div>
+            <div class="countdown-cell">
+              <div id="cd-secs" class="countdown-num">00</div>
+              <div class="countdown-lbl">ثانية</div>
+            </div>
+          </div>
+
+          <div id="act-code-info" style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px; text-align:center;"></div>
+
+          <div class="form-group">
+            <label for="paid-code-input">كود النسخة المدفوعة</label>
+            <input type="text" id="paid-code-input" placeholder="أدخل كود التفعيل هنا..." autocomplete="off" />
+          </div>
+
+          <div class="form-actions-end">
+            <button type="button" class="btn btn-muted" onclick="openSection('sec-home')">رجوع</button>
+            <button type="button" class="btn btn-primary" onclick="activatePaidVersion()">تفعيل الكود</button>
+          </div>
+          <div id="act-msg" class="status-msg"></div>
         </div>
       </section>
 
@@ -1036,9 +1181,9 @@
       <!-- 3. اختيار المنتجات وإضافتها للفاتورة -->
       <section id="sec-sales" class="view-section">
         <div class="search-row">
-          <button type="button" class="btn btn-soft" onclick="openSection('sec-add-product')">+ مادة جديدة</button>
-          <input type="text" id="pos-search" placeholder="ابحث باسم أو باركود المادة..." oninput="renderProductsGrid()" />
-          <button type="button" class="btn btn-primary" onclick="openSection('sec-cart')">الفاتورة (<span id="cart-badge">0</span>)</button>
+          <button type="button" class="btn btn-soft" onclick="openSection('sec-add-product')">+ مادة</button>
+          <input type="text" id="pos-search" placeholder="ابحث باسم أو باركود..." oninput="renderProductsGrid()" />
+          <button type="button" class="btn btn-primary" onclick="openSection('sec-cart')">(<span id="cart-badge">0</span>)</button>
         </div>
         <div id="products-grid" class="products-grid"></div>
       </section>
@@ -1071,9 +1216,9 @@
             <label>كود باركود (اختياري)</label>
             <input type="text" id="new-prod-barcode" placeholder="مثال: 1001" />
           </div>
-          <div style="display:flex; gap:8px;">
+          <div class="form-actions-end">
+            <button type="button" class="btn btn-muted" onclick="openSection('sec-sales')">رجوع</button>
             <button type="button" class="btn btn-primary" onclick="saveNewProduct()">حفظ المادة</button>
-            <button type="button" class="btn btn-muted" onclick="openSection('sec-sales')">رجوع للمواد</button>
           </div>
           <div id="add-prod-msg" class="status-msg"></div>
         </div>
@@ -1117,7 +1262,7 @@
         </div>
       </section>
 
-      <!-- 6. قائمة شراء (توريد المخزون) -->
+      <!-- 6. قائمة شراء -->
       <section id="sec-purchases" class="view-section">
         <div class="box-card">
           <h3 style="margin-top:0;">قائمة شراء - توريد الكميات</h3>
@@ -1139,7 +1284,7 @@
             <label>تكلفة الشراء الإجمالية (د.ع)</label>
             <input type="number" id="pur-cost" placeholder="مثال: 20000" min="0" />
           </div>
-          <button type="button" class="btn btn-primary" onclick="recordPurchase()">تأكيد الشراء وتحديث المخزون</button>
+          <button type="button" class="btn btn-primary btn-full" onclick="recordPurchase()">تأكيد الشراء وتحديث المخزون</button>
           <div id="pur-msg" class="status-msg"></div>
         </div>
       </section>
@@ -1150,7 +1295,7 @@
           <h3 style="margin-top:0;">المخازن والفروع</h3>
           <div class="search-row">
             <input type="text" id="new-wh-name" placeholder="اسم مخزن أو فرع جديد..." />
-            <button type="button" class="btn btn-primary" onclick="addWarehouse()">إضافة مخزن</button>
+            <button type="button" class="btn btn-primary" onclick="addWarehouse()">إضافة</button>
           </div>
           <div id="warehouses-list"></div>
         </div>
@@ -1193,26 +1338,26 @@
         <div class="box-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <span style="font-size:11px; color:var(--text-muted);" id="voucher-count-label">0 سند</span>
-            <strong style="font-size:13px;">إحصائيات الصندوق: <span id="fin-balance-amount">0 د.ع</span></strong>
+            <strong style="font-size:12.5px;">إحصائيات الصندوق: <span id="fin-balance-amount">0 د.ع</span></strong>
           </div>
           <div class="stats-4-grid">
             <div>
-              <div style="font-size:12px;">↓ القبض</div>
+              <div style="font-size:11px;">↓ القبض</div>
               <div class="stat-col-val" style="color:#16a34a;" id="stat-v-deposit">0 د.ع</div>
               <div class="stat-col-sub" id="stat-c-deposit">0</div>
             </div>
             <div>
-              <div style="font-size:12px;">↑ الدفع</div>
+              <div style="font-size:11px;">↑ الدفع</div>
               <div class="stat-col-val" style="color:#b45309;" id="stat-v-payment">0 د.ع</div>
               <div class="stat-col-sub" id="stat-c-payment">0</div>
             </div>
             <div>
-              <div style="font-size:12px;">🧾 الصرف</div>
+              <div style="font-size:11px;">🧾 الصرف</div>
               <div class="stat-col-val" style="color:#dc2626;" id="stat-v-expense">0 د.ع</div>
               <div class="stat-col-sub" id="stat-c-expense">0</div>
             </div>
             <div>
-              <div style="font-size:12px;">↩️ المرتجعات</div>
+              <div style="font-size:11px;">↩️ المرتجعات</div>
               <div class="stat-col-val" style="color:#2563eb;" id="stat-v-return">0 د.ع</div>
               <div class="stat-col-sub" id="stat-c-return">0</div>
             </div>
@@ -1249,9 +1394,9 @@
             <label>المبلغ (د.ع)</label>
             <input type="number" id="exp-val" placeholder="مثال: 25000" min="1" />
           </div>
-          <div style="display:flex; gap:8px;">
+          <div class="form-actions-end">
+            <button type="button" class="btn btn-muted" onclick="openSection('sec-finance')">رجوع</button>
             <button type="button" class="btn btn-primary" onclick="addFinanceEntry()">حفظ السند</button>
-            <button type="button" class="btn btn-muted" onclick="openSection('sec-finance')">رجوع للسندات</button>
           </div>
           <div id="fin-msg" class="status-msg"></div>
         </div>
@@ -1275,10 +1420,10 @@
         <button type="button" class="btn btn-primary fab-btn" onclick="openSection('sec-add-customer')">👤+ إضافة عميل</button>
       </section>
 
-      <!-- 12. إضافة عميل جديد (بنفس ترتيب الصورة مع حقل الموقع وأقرب شارع مكان الرصيد) -->
+      <!-- 12. إضافة عميل جديد -->
       <section id="sec-add-customer" class="view-section">
         <div class="box-card">
-          <h3 style="margin:0 0 18px; font-size:16px; font-weight:800;">إضافة عميل جديد</h3>
+          <h3 style="margin:0 0 16px; font-size:16px; font-weight:800;">إضافة عميل جديد</h3>
           <div class="form-group">
             <label for="cust-name-in">اسم العميل</label>
             <input type="text" id="cust-name-in" placeholder="اسم العميل" />
@@ -1306,7 +1451,7 @@
       <section id="sec-invoice-settings" class="view-section">
         <div class="settings-group-title">أزرار الحفظ والطباعة</div>
         <div class="setting-row-card" onclick="setInvoiceSetting('printMode', 'print_only')">
-          <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span id="radio-print_only" class="radio-circle checked"></span>
             <div>
               <div style="font-weight:800; font-size:13px;">بيع وطباعة فقط</div>
@@ -1316,7 +1461,7 @@
           <span>🖨️</span>
         </div>
         <div class="setting-row-card" onclick="setInvoiceSetting('printMode', 'save_only')">
-          <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span id="radio-save_only" class="radio-circle"></span>
             <div>
               <div style="font-weight:800; font-size:13px;">حفظ بدون طباعة فقط</div>
@@ -1326,7 +1471,7 @@
           <span>💾</span>
         </div>
         <div class="setting-row-card" onclick="setInvoiceSetting('printMode', 'both')">
-          <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span id="radio-both" class="radio-circle"></span>
             <div>
               <div style="font-weight:800; font-size:13px;">الاثنان معاً</div>
@@ -1338,7 +1483,7 @@
 
         <div class="settings-group-title">ميزات الفاتورة</div>
         <div class="setting-row-card" onclick="toggleInvoiceBool('giftsEnabled')">
-          <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span id="sw-giftsEnabled" class="switch-toggle"></span>
             <div>
               <div style="font-weight:800; font-size:13px;">تفعيل الهدايا</div>
@@ -1348,7 +1493,7 @@
           <span>🎁</span>
         </div>
         <div class="setting-row-card" onclick="toggleInvoiceBool('discountEnabled')">
-          <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span id="sw-discountEnabled" class="switch-toggle"></span>
             <div>
               <div style="font-weight:800; font-size:13px;">تفعيل الخصم</div>
@@ -1358,7 +1503,7 @@
           <span>🏷️</span>
         </div>
         <div class="setting-row-card" onclick="toggleInvoiceBool('showPrevDebt')">
-          <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span id="sw-showPrevDebt" class="switch-toggle"></span>
             <div>
               <div style="font-weight:800; font-size:13px;">إظهار الديون السابقة</div>
@@ -1370,7 +1515,7 @@
 
         <div class="settings-group-title">سلوك الفاتورة</div>
         <div class="setting-row-card" onclick="toggleInvoiceBool('warnBelowCost')">
-          <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span id="sw-warnBelowCost" class="switch-toggle on"></span>
             <div>
               <div style="font-weight:800; font-size:13px;">تنبيه أقل من تكلفة الشراء</div>
@@ -1380,7 +1525,7 @@
           <span>⚠️</span>
         </div>
         <div class="setting-row-card" onclick="toggleInvoiceBool('warnLowStock')">
-          <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span id="sw-warnLowStock" class="switch-toggle"></span>
             <div>
               <div style="font-weight:800; font-size:13px;">تنبيه نقص المخزون</div>
@@ -1394,8 +1539,8 @@
       <!-- 14. الفواتير وطباعة PDF -->
       <section id="sec-invoices" class="view-section">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;" class="no-print">
-          <h3 style="margin:0;">سجل الفواتير وطباعة PDF</h3>
-          <button type="button" class="btn btn-primary" onclick="window.print()">طباعة / حفظ PDF</button>
+          <h3 style="margin:0; font-size:15px;">سجل الفواتير وطباعة PDF</h3>
+          <button type="button" class="btn btn-primary" onclick="window.print()">طباعة PDF</button>
         </div>
         <div id="invoices-list" class="no-print" style="margin-top:10px;"></div>
         <div id="invoice-sheet" class="invoice-paper"></div>
@@ -1417,7 +1562,7 @@
             <label>المبلغ المسترجع للزبون (د.ع)</label>
             <input type="number" id="ret-amount" placeholder="مثال: 15000" min="0" />
           </div>
-          <button type="button" class="btn btn-primary" onclick="recordReturn()">تأكيد المرتجع وإعادة الرصيد</button>
+          <button type="button" class="btn btn-primary btn-full" onclick="recordReturn()">تأكيد المرتجع وإعادة الرصيد</button>
           <div id="ret-msg" class="status-msg"></div>
         </div>
         <div class="box-card">
@@ -1432,19 +1577,19 @@
           <h3 style="margin-top:0;">ملخص التقارير</h3>
           <div class="stats-4-grid">
             <div>
-              <div>إجمالي المبيعات</div>
+              <div style="font-size:11px;">المبيعات</div>
               <div class="stat-col-val" id="rep-total-sales">0</div>
             </div>
             <div>
-              <div>رصيد المخزون</div>
+              <div style="font-size:11px;">المخزون</div>
               <div class="stat-col-val" id="rep-total-stock">0</div>
             </div>
             <div>
-              <div>عدد الفواتير</div>
+              <div style="font-size:11px;">الفواتير</div>
               <div class="stat-col-val" id="rep-inv-count">0</div>
             </div>
             <div>
-              <div>صافي الصندوق</div>
+              <div style="font-size:11px;">الصندوق</div>
               <div class="stat-col-val" id="rep-net-cash">0</div>
             </div>
           </div>
@@ -1463,7 +1608,7 @@
             <label>رقم الهاتف أو ملاحظة</label>
             <input type="text" id="supp-note-in" placeholder="07700000000" />
           </div>
-          <button type="button" class="btn btn-primary" onclick="addSupplierItem()">إضافة مورد</button>
+          <button type="button" class="btn btn-primary btn-full" onclick="addSupplierItem()">إضافة مورد</button>
           <div id="suppliers-list" style="margin-top:12px;"></div>
         </div>
       </section>
@@ -1473,7 +1618,7 @@
         <div class="box-card">
           <h3 style="margin-top:0;">النسخ الاحتياطي للبيانات</h3>
           <p style="font-size:12px; color:var(--text-muted); line-height:1.7;">
-            بياناتك محفوظة محلياً تلقائياً على هذا المتصفح تحت مفتاح <strong>yasser_web_green_pos_v1</strong>. يمكنك تنزيل نسخة احتياطية كملف `.json` أو استعادتها بأي وقت.
+            بياناتك محفوظة محلياً تلقائياً على هذا المتصفح تحت مفتاح <strong>yasser_web_green_pos_v1</strong>.
           </p>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button type="button" class="btn btn-primary" onclick="downloadBackupFile()">تنزيل نسخة احتياطية</button>
@@ -1527,6 +1672,7 @@
 
   <script>
     const STORE_KEY = 'yasser_web_green_pos_v1';
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
     const appState = {
       currentUser: '',
@@ -1571,6 +1717,12 @@
         finance: [],
         returns: [],
         selectedInvoiceId: null,
+        license: {
+          active: false,
+          code: '',
+          activatedAt: null,
+          expiresAt: null
+        },
         invoiceSettings: {
           printMode: 'print_only',
           giftsEnabled: false,
@@ -1589,6 +1741,9 @@
       }
       const a = appState.accounts[appState.currentUser];
       if (!a.returns) a.returns = [];
+      if (!a.license) {
+        a.license = { active: false, code: '', activatedAt: null, expiresAt: null };
+      }
       if (!a.invoiceSettings) {
         a.invoiceSettings = {
           printMode: 'print_only',
@@ -1600,6 +1755,95 @@
         };
       }
       return a;
+    }
+
+    function activatePaidVersion() {
+      const a = acc();
+      if (!a) return;
+      const input = document.getElementById('paid-code-input');
+      const msg = document.getElementById('act-msg');
+      const code = (input.value || '').trim().toUpperCase();
+
+      if (!code || code.length < 4) {
+        msg.style.color = '#dc2626';
+        msg.textContent = 'أدخل كود التفعيل الصحيح للنسخة المدفوعة.';
+        return;
+      }
+
+      const now = Date.now();
+      a.license = {
+        active: true,
+        code,
+        activatedAt: now,
+        expiresAt: now + THIRTY_DAYS_MS
+      };
+      persist();
+      msg.style.color = '#16a34a';
+      msg.textContent = 'تم تفعيل النسخة المدفوعة وبدأ العداد التنازلي 30 يوماً.';
+      renderLicenseCountdown();
+    }
+
+    function renderLicenseCountdown() {
+      const a = acc();
+      if (!a) return;
+      const lic = a.license || {};
+      const now = Date.now();
+      const targetEnd = lic.active && lic.expiresAt ? lic.expiresAt : (now + THIRTY_DAYS_MS);
+      const rem = Math.max(0, targetEnd - now);
+
+      const totalSecs = Math.floor(rem / 1000);
+      const days = Math.floor(totalSecs / 86400);
+      const hours = Math.floor((totalSecs % 86400) / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+
+      const pad = n => String(n).padStart(2, '0');
+
+      const dEl = document.getElementById('cd-days');
+      const hEl = document.getElementById('cd-hours');
+      const mEl = document.getElementById('cd-mins');
+      const sEl = document.getElementById('cd-secs');
+      if (dEl) dEl.textContent = String(days);
+      if (hEl) hEl.textContent = pad(hours);
+      if (mEl) mEl.textContent = pad(mins);
+      if (sEl) sEl.textContent = pad(secs);
+
+      const badge = document.getElementById('license-status-badge');
+      const inlineText = document.getElementById('license-countdown-inline');
+      const statePill = document.getElementById('act-state-pill');
+      const codeInfo = document.getElementById('act-code-info');
+
+      if (lic.active) {
+        if (badge) {
+          badge.className = 'license-badge-pro';
+          badge.textContent = 'مدفوع • ' + days + 'ي ' + pad(hours) + ':' + pad(mins) + ':' + pad(secs);
+        }
+        if (inlineText) {
+          inlineText.textContent = 'الكود: ' + lic.code;
+        }
+        if (statePill) {
+          statePill.className = 'license-badge-pro';
+          statePill.textContent = 'مفعّل • 30 يوم';
+        }
+        if (codeInfo) {
+          codeInfo.textContent = 'الكود المفعّل: ' + lic.code + ' — العداد التنازلي يعمل بشكل مباشر';
+        }
+      } else {
+        if (badge) {
+          badge.className = 'license-badge-trial';
+          badge.textContent = 'العد التنازلي: ' + days + 'ي ' + pad(hours) + ':' + pad(mins) + ':' + pad(secs);
+        }
+        if (inlineText) {
+          inlineText.textContent = 'إدخال كود المدفوعة 🔑';
+        }
+        if (statePill) {
+          statePill.className = 'license-badge-trial';
+          statePill.textContent = 'بانتظار الكود • 30 يوم';
+        }
+        if (codeInfo) {
+          codeInfo.textContent = 'أدخل كود التفعيل لتثبيت النسخة المدفوعة وبدء 30 يوماً';
+        }
+      }
     }
 
     function applyTheme() {
@@ -1651,6 +1895,7 @@
 
     const SECTION_META = {
       'sec-home': { title: 'الرئيسية', backTo: null, badge: null },
+      'sec-activation': { title: 'كود التفعيل', backTo: 'sec-home', badge: null },
       'sec-cart': { title: 'إنشاء فاتورة', backTo: 'sec-home', badge: '#1000', rightBtn: '⚙️' },
       'sec-sales': { title: 'اختيار المواد', backTo: 'sec-cart', badge: null, rightBtn: '🛒' },
       'sec-add-product': { title: 'إضافة مادة', backTo: 'sec-sales', badge: null },
@@ -2245,7 +2490,7 @@
       );
 
       if (!filtered.length) {
-        grid.innerHTML = '<div class="entity-card" style="grid-column:1/-1;">لا توجد مواد مضافة بعد. اضغط (+ مادة جديدة) لإضافة موادك.</div>';
+        grid.innerHTML = '<div class="entity-card" style="grid-column:1/-1;">لا توجد مواد مضافة بعد. اضغط (+ مادة) لإضافة موادك.</div>';
         return;
       }
 
@@ -2253,15 +2498,15 @@
         <div class="prod-card">
           <div>
             <div class="prod-thumb">📦</div>
-            <div style="font-weight:800; font-size:13px; margin-top:6px;">${p.name}</div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${p.warehouse || 'المخزن الرئيسي'}</div>
+            <div style="font-weight:800; font-size:12.5px; margin-top:6px;">${p.name}</div>
+            <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">${p.warehouse || 'المخزن الرئيسي'}</div>
           </div>
           <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:4px; margin-bottom:8px;">
-              <strong style="font-size:12px; color:var(--primary-dark);">${money(p.price)} د.ع</strong>
-              <span class="badge-qty ${p.qty <= 2 ? 'badge-low' : ''}">الرصيد: ${p.qty}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:4px; margin-bottom:6px;">
+              <strong style="font-size:11.5px; color:var(--primary-dark);">${money(p.price)} د.ع</strong>
+              <span class="badge-qty ${p.qty <= 2 ? 'badge-low' : ''}">${p.qty}</span>
             </div>
-            <button type="button" class="btn btn-primary btn-full" onclick="addToCart('${p.id}')">+ إضافة للفاتورة</button>
+            <button type="button" class="btn btn-primary btn-full" style="padding:8px; font-size:12px;" onclick="addToCart('${p.id}')">+ إضافة</button>
           </div>
         </div>
       `).join('');
@@ -2308,7 +2553,7 @@
       }
 
       if (!a.cart.length) {
-        list.innerHTML = '<div style="text-align:center; padding:16px; color:var(--text-muted); font-size:12px;">لا توجد مواد في الفاتورة حالياً. اضغط (+ إضافة) لاختيار المواد.</div>';
+        list.innerHTML = '<div style="text-align:center; padding:14px; color:var(--text-muted); font-size:12px;">لا توجد مواد في الفاتورة حالياً. اضغط (+ إضافة) لاختيار المواد.</div>';
       } else {
         list.innerHTML = a.cart.map(item => `
           <div class="inv-item-row">
@@ -2318,8 +2563,8 @@
               <div class="inv-item-sub">${money(item.price)} × ${item.count}</div>
             </div>
             <div style="display:flex; gap:4px;">
-              <button type="button" class="btn btn-muted" style="padding:5px 9px;" onclick="decCart('${item.prodId}')">-</button>
-              <button type="button" class="btn btn-soft" style="padding:5px 9px;" onclick="addToCart('${item.prodId}')">+</button>
+              <button type="button" class="btn btn-muted" style="padding:4px 8px;" onclick="decCart('${item.prodId}')">-</button>
+              <button type="button" class="btn btn-soft" style="padding:4px 8px;" onclick="addToCart('${item.prodId}')">+</button>
             </div>
           </div>
         `).join('');
@@ -2386,14 +2631,14 @@
         const info = typeInfo[fn.type] || typeInfo.deposit;
         return `
           <div class="entity-card">
-            <div style="font-size:15px; font-weight:800; color:${info.color}; white-space:nowrap;">${money(fn.amount)} د.ع</div>
+            <div style="font-size:14px; font-weight:800; color:${info.color}; white-space:nowrap;">${money(fn.amount)} د.ع</div>
             <div style="flex:1; text-align:right;">
-              <div style="font-weight:800; font-size:14px;">${fn.note}</div>
+              <div style="font-weight:800; font-size:13.5px;">${fn.note}</div>
               <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
                 <span style="color:${info.color}; font-weight:700;">${info.label}</span> #${100 + idx} • ${fn.date}
               </div>
             </div>
-            <div style="width:36px; height:36px; border-radius:10px; background:${info.bg}; color:${info.color}; display:flex; align-items:center; justify-content:center; font-weight:800;">
+            <div style="width:34px; height:34px; border-radius:10px; background:${info.bg}; color:${info.color}; display:flex; align-items:center; justify-content:center; font-weight:800;">
               ${info.arrow}
             </div>
           </div>
@@ -2436,24 +2681,24 @@
         const debt = Number(c.debt || 0);
         const invCount = a.invoices.filter(i => i.customer === c.name).length;
         const finCount = a.finance.filter(f => (f.note || '').includes(c.name)).length;
-        let amountHtml = `<div style="font-size:14px; font-weight:800;">0 د.ع</div>`;
+        let amountHtml = `<div style="font-size:13.5px; font-weight:800;">0 د.ع</div>`;
         if (debt > 0) {
-          amountHtml = `<div style="font-size:14px; font-weight:800; color:#dc2626;">${money(debt)} د.ع</div><div style="font-size:11px; color:#dc2626;">الدين</div>`;
+          amountHtml = `<div style="font-size:13.5px; font-weight:800; color:#dc2626;">${money(debt)} د.ع</div><div style="font-size:10.5px; color:#dc2626;">الدين</div>`;
         } else if (debt < 0) {
-          amountHtml = `<div style="font-size:14px; font-weight:800; color:#16a34a;">${money(Math.abs(debt))}</div><div style="font-size:11px; color:#16a34a;">له رصيد</div>`;
+          amountHtml = `<div style="font-size:13.5px; font-weight:800; color:#16a34a;">${money(Math.abs(debt))}</div><div style="font-size:10.5px; color:#16a34a;">له رصيد</div>`;
         }
         const locLine = (c.location && c.location !== '-') || (c.nearestStreet && c.nearestStreet !== '-')
           ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">📍 ${c.location || '-'} • ${c.nearestStreet || '-'}</div>`
           : '';
         return `
           <div class="entity-card">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <span style="color:var(--text-muted); font-size:16px;">⋮</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="color:var(--text-muted); font-size:15px;">⋮</span>
               <div>${amountHtml}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:14px; font-weight:800;">${c.name}</div>
-              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${invCount} فاتورة • ${finCount} سند • 📞 ${c.phone || '-'}</div>
+              <div style="font-size:13.5px; font-weight:800;">${c.name}</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">${invCount} فاتورة • ${finCount} سند • 📞 ${c.phone || '-'}</div>
               ${locLine}
               <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">🕒 آخر حركة: ${c.lastAction || 'اليوم'}</div>
             </div>
@@ -2505,8 +2750,8 @@
       sheet.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px;">
           <div>
-            <strong style="font-size:16px; color:var(--primary-dark);">فاتورة بيع #${cur.id}</strong>
-            <div style="font-size:12px; color:var(--text-muted);">الجهة: ${a.owner} | التاريخ: ${cur.date}</div>
+            <strong style="font-size:15px; color:var(--primary-dark);">فاتورة بيع #${cur.id}</strong>
+            <div style="font-size:11.5px; color:var(--text-muted);">الجهة: ${a.owner} | التاريخ: ${cur.date}</div>
           </div>
           <div style="font-size:12px; font-weight:700;">العميل: ${cur.customer}</div>
         </div>
@@ -2530,7 +2775,7 @@
             `).join('')}
           </tbody>
         </table>
-        <div style="margin-top:12px; font-size:13px; line-height:1.8;">
+        <div style="margin-top:12px; font-size:12.5px; line-height:1.8;">
           <div>المجموع: <strong>${money(cur.total)} د.ع</strong></div>
           <div>الواصل: <strong>${money(cur.paid !== undefined ? cur.paid : cur.total)} د.ع</strong></div>
           <div>الباقي: <strong>${money(cur.remaining !== undefined ? cur.remaining : 0)} د.ع</strong></div>
@@ -2622,6 +2867,7 @@
       if (!a) return;
       document.getElementById('admin-panel').style.display = isAdminUser() ? 'block' : 'none';
       updateHeaderForSection(currentSection);
+      renderLicenseCountdown();
       renderProductsGrid();
       renderCartView();
       renderFinanceView();
@@ -2630,6 +2876,12 @@
       renderInvoicesView();
       renderWarehousesAndReports();
     }
+
+    setInterval(() => {
+      if (appState.currentUser) {
+        renderLicenseCountdown();
+      }
+    }, 1000);
 
     hydrate();
     applyTheme();
